@@ -266,6 +266,7 @@ def save_history(path: Path, rows: list[dict]) -> None:
 
 
 def evaluate_dev(model: nn.Module, paths: list[Path], kind: str, kit_root: Path, out: Path, device: torch.device) -> dict:
+    out.mkdir(parents=True, exist_ok=True)
     ds = dataset_for(kind, paths); order = list(range(len(ds))); dl = loader(ds, order); pred, target = [], []; elapsed = 0.0; model.eval()
     with torch.no_grad():
         for x, y, _, _ in dl:
@@ -351,8 +352,15 @@ def phase2(args, train_paths: list[Path], kind: str, out: Path, device: torch.de
     chosen = 1e-4 if use_high else 1e-5; atom_json(p2 / "summary.json", {"runs":finals,"chosen_lr":chosen,"criterion":"1e-4 finite and final or mean train loss at least 5% lower"}); return chosen
 
 
-def phase3(args, train_paths: list[Path], dev_paths: list[Path], kind: str, lr: float, out: Path, kit: Path, device: torch.device) -> str:
-    p3 = out / "phase3_local3"; p3.mkdir(exist_ok=True); ds = dataset_for(kind, train_paths); order = fixed_order(len(ds), 7500*BATCH, args.seed); dl = loader(ds, order); set_seed(args.seed); model = Local3MLP().to(device); opt, h1, actual, seconds, finite = train_loss(model, dl, lr, 1500, args.seed, p3 / "screening", device); save_history(p3 / "screening" / "loss_curve.csv", h1); torch.save({"model_state_dict":model.state_dict(),"optimizer_state_dict":opt.state_dict(),"iteration":actual,"lr":lr}, p3 / "last@1500.pt")
+def phase3(args, train_paths: list[Path], dev_paths: list[Path], kind: str, lr: float, out: Path, kit: Path, device: torch.device, resume_source: Path | None = None) -> str:
+    p3 = out / "phase3_local3"; p3.mkdir(exist_ok=True); ds = dataset_for(kind, train_paths); order = fixed_order(len(ds), 7500*BATCH, args.seed); dl = loader(ds, order)
+    checkpoint_source = (resume_source / "phase3_local3" / "last@1500.pt") if resume_source else None
+    if checkpoint_source and checkpoint_source.is_file():
+        set_seed(args.seed); model = Local3MLP().to(device); opt = torch.optim.AdamW(model.parameters(), lr=lr); ckpt = torch.load(checkpoint_source, map_location=device); model.load_state_dict(ckpt["model_state_dict"]); opt.load_state_dict(ckpt["optimizer_state_dict"]); h1 = []; actual = int(ckpt.get("iteration", 1500)); finite = True; (p3 / "screening").mkdir(parents=True, exist_ok=True); shutil.copy2(checkpoint_source, p3 / "last@1500.pt")
+        source_curve = checkpoint_source.parent / "screening" / "loss_curve.csv"
+        if source_curve.is_file(): shutil.copy2(source_curve, p3 / "screening" / "loss_curve.csv")
+    else:
+        set_seed(args.seed); model = Local3MLP().to(device); opt, h1, actual, seconds, finite = train_loss(model, dl, lr, 1500, args.seed, p3 / "screening", device); save_history(p3 / "screening" / "loss_curve.csv", h1); torch.save({"model_state_dict":model.state_dict(),"optimizer_state_dict":opt.state_dict(),"iteration":actual,"lr":lr}, p3 / "last@1500.pt")
     if not finite or actual != 1500: raise RuntimeError("Phase 3A training did not reach 1500 finite updates")
     cand = evaluate_dev(model, dev_paths, kind, kit, p3 / "dev@1500_local3", device); persist = evaluate_dev(persistence_model().to(device), dev_paths, kind, kit, p3 / "dev@1500_persist", device); passed, gate = screen_gate(persist, cand); atom_json(p3 / "screening_gate.json", gate)
     if not passed:
@@ -384,7 +392,7 @@ def main() -> None:
             source = args.resume_source.resolve(); frozen = json.loads((source / "frozen_choices.json").read_text(encoding="utf-8")); kind, lr = frozen["POINT_RAM_PIPELINE_V1"], float(frozen["POINT_V1_LR"]); atom_json(out / "resume_metadata.json", {"resumed_from":str(source),"phase1_phase2_reused":True,"phase1_freeze":str(source / "phase1_freeze.json"),"phase2_summary":str(source / "phase2_lr_sanity" / "summary.json")})
         else:
             kind = phase1(args, train_paths, out, device); write_status(out,"RUNNING","phase2_lr_sanity",pipeline=kind); lr = phase2(args, train_paths, kind, out, device); atom_json(out / "frozen_choices.json", {"POINT_RAM_PIPELINE_V1":kind,"POINT_V1_LR":lr})
-        atom_json(out / "frozen_choices.json", {"POINT_RAM_PIPELINE_V1":kind,"POINT_V1_LR":lr}); write_status(out,"RUNNING","phase3a_screening",pipeline=kind,lr=lr); decision = phase3(args, train_paths, dev_paths, kind, lr, out, args.kit_root, device); atom_json(out / "final_summary.json", {"phase1_pipeline":kind,"phase2_lr":lr,"phase3_decision":decision,"locked_final_accessed":False,"codabench":False})
+        atom_json(out / "frozen_choices.json", {"POINT_RAM_PIPELINE_V1":kind,"POINT_V1_LR":lr}); write_status(out,"RUNNING","phase3a_screening",pipeline=kind,lr=lr); decision = phase3(args, train_paths, dev_paths, kind, lr, out, args.kit_root, device, args.resume_source); atom_json(out / "final_summary.json", {"phase1_pipeline":kind,"phase2_lr":lr,"phase3_decision":decision,"locked_final_accessed":False,"codabench":False})
     except Exception:
         write_status(out,"FAILED","exception",traceback=traceback.format_exc(),locked_final_accessed=False,codabench=False); raise
 
