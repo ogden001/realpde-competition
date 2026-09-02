@@ -283,3 +283,14 @@ FE 结论：Temporal、SpatialPhysics、PixelPosition 都未通过同时保护 R
 - FE-00 checkpoint SHA `499ec748cc5db1b7f3ad24029a464e921ad31c3d383b69626ec540eba392903e`; `last@1500` SHA `fb6735bff296cc53f028b894b74691697f7475f5bbfda9ae8ee0dcd70d1e3bd2`; runner SHA `9b3d3382496208496ddfa9ac382134095400f957fb4390bfc50904ebe7735b15`.
 - Locked-final and Codabench were not accessed. H2, LOCAL5, joint training and loss changes are not authorized by this result.
 - Handoff: `docs/coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1.md`; remote evidence remains under `/home/chyfuture/realpde_runs/hybrid_cno_point_h1_s20260902/artifacts/` and small review files under `../artifacts/hybrid_cno_point_h1_s20260902_review/`.
+
+### `T1-ID-HYBRID-CNO-POINT-H1-SCALE-S20260902` — COMPLETED / GO_H1_SCALE_CALIBRATION
+
+- Replay-only residual-scale probe using the completed H1 `last@1500`; no neural-network training, optimizer step, loss change, or checkpoint update.
+- Fixed alpha grid `0.0` through `1.0` in increments of `0.1`; alpha selected on train only by TKE degradation `<=5%`, then maximum Rel-L2 improvement with the preregistered tie-breaks. `alpha_star=0.5`.
+- Dev v9 errors (same frozen CNO / original H1 alpha=1 / scaled H1 alpha=0.5), Rel-L2 / TKE / MVPE: `0.19082105 / 0.64406884 / 0.14425756`; `0.14110152 / 0.70690584 / 0.10270503`; `0.15642738 / 0.66956341 / 0.11520854`.
+- Scaled candidate relative improvements: Rel-L2 `+18.024%`, TKE `-3.958%` (TKE error worsened 3.958%, within the 5% protection line), MVPE `+20.137%`; dev gate passed as `GO_H1_SCALE_CALIBRATION`.
+- Fixed protocol: manifest SHA `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`; 50 train / 16 dev / 16 locked-final untouched; B3_PACKED; seed `20260901`; batch `8`; raw velocity; official v9 scorer. Alpha 0/1 replay max absolute difference was `0.0` and pressure was exact.
+- CNO checkpoint SHA `499ec748cc5db1b7f3ad24029a464e921ad31c3d383b69626ec540eba392903e`; H1 checkpoint SHA `fb6735bff296cc53f028b894b74691697f7475f5bbfda9ae8ee0dcd70d1e3bd2`; scale runner SHA `6dde2508786836221359094b01a2ccb919dc0a937ca97efe5684bca6b916a5a8`.
+- `dev accessed: YES` only after train selection; locked-final and Codabench: NO. H2, joint training, per-channel/per-horizon scaling, loss changes and new experiments remain unauthorized.
+- Handoff: `docs/coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1_SCALE.md`; review evidence remains under `../artifacts/hybrid_cno_point_h1_scale_s20260902_review/` and the remote run path.

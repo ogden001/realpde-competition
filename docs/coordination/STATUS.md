@@ -4,7 +4,7 @@ Updated: 2026-09-02
 
 ## Current Stage
 
-Point Modeling: **H1 COMPLETED / STOP_HYBRID_POINT_H1_EARLY**.
+Point Modeling: **H1 SCALE PROBE COMPLETED / GO_H1_SCALE_CALIBRATION**.
 The bounded random-init loss-balance experiment (`MSE + 0.001*TKE`) failed its
 1500-step screen; no old LOCAL3 checkpoint was reused and no locked-final or
 Codabench access occurred.
@@ -27,13 +27,13 @@ Handoff: `docs/coordination/CHATGPT_HANDOFF_FEATURE_FUSION_FF00.md`
 
 ## Latest Completed
 
-`T1-ID-HYBRID-CNO-POINT-H1-S20260902` — `DONE` /
-`STOP_HYBRID_POINT_H1_EARLY`.
+`T1-ID-HYBRID-CNO-POINT-H1-SCALE-S20260902` — `DONE` /
+`GO_H1_SCALE_CALIBRATION`.
 
-- Frozen FE-00 CNO + zero-initialized LOCAL3 Point head at 1500 updates:
-  Rel-L2 `+26.056%`, MVPE `+28.804%`, TKE error `-9.756%` relative improvement
-  (9.756% worsening). The protected TKE degradation limit was exceeded.
-- Handoff: `docs/coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1.md`.
+- Replay-only alpha probe selected `alpha_star=0.5` from train; dev relative to
+  frozen CNO: Rel-L2 `+18.024%`, MVPE `+20.137%`, TKE error `-3.958%` (worsened
+  but within the 5% protection line).
+- Handoff: `docs/coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1_SCALE.md`.
 
 `FF-00-FUSION-PROTOCOL-S20260902` — Fusion Protocol & Baseline Freeze — `COMPLETED` /
 `REVIEW_REQUIRED`.
@@ -99,8 +99,9 @@ The protected 5% TKE condition therefore failed, giving
 `docs/coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1.md`. No continuation to
 7500, H2, LOCAL5 or joint training is authorized.
 
-No execution task is active. H1 is complete and awaits ChatGPT/Sol review; do not
-start H2, LOCAL5, joint training, or any loss change. FF-00 is also complete and
+No execution task is active. H1 scale calibration is complete and awaits
+ChatGPT/Sol review; do not start H2, LOCAL5, joint training, or any loss change.
+FF-00 is also complete and
 awaits ChatGPT/Sol review of the accepted provenance exception and proposed Fusion
 protocol. Do not start FF-01, FF-02 or FF-03.
 
@@ -133,6 +134,7 @@ FF-00 handoff status: completed with `BASELINE_PROVENANCE_EXCEPTION_ACCEPTED`; t
 historical source commit remains `UNKNOWN / NOT RECOVERED`, and the conclusion is
 `REVIEW_REQUIRED`. There is no active execution task.
 
-H1 handoff: `docs/coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1.md`. The
-candidate improved Rel-L2/MVPE but failed the protected TKE criterion; no
-continuation or downstream Point experiment is authorized.
+H1 scale handoff: `docs/coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1_SCALE.md`.
+The train-selected scalar retained substantial Rel-L2/MVPE gains and brought
+TKE degradation inside the preregistered line; this does not authorize H2 or
+any downstream Point experiment.
