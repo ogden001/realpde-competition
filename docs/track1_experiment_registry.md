@@ -167,6 +167,16 @@ FE 结论：Temporal、SpatialPhysics、PixelPosition 都未通过同时保护 R
 - Gates: exact `DATA_EQUIVALENCE` on 100 fixed train windows; report windows/s, latency, data wait ratio and RSS. No dev/final/scorer/Codabench access; no automatic Point-V1.
 - Evidence: `docs/coordination/CHATGPT_HANDOFF_POINT_DATA_BENCHMARK.md`; remote run was intentionally paused after B0 at the user's request. Smoke evidence is sufficient to identify the HDF5 bottleneck; no complete candidate ranking is claimed.
 
+### `T1-ID-POINT-V1-LOCAL3-20260902` — IN_PROGRESS
+
+- Reference: Point-V0 clean screening and `T1-ID-POINT-DATA-BENCH-20260902`; no Point-V0 retraining, locked-final access, or Codabench.
+- Research cleanliness: `CLEAN`; train-only Phase 1/2, then the pre-registered 16-trajectory dev gate/evaluation in Phase 3.
+- Sole model variable: no spatial-field context → deterministic replicate-padded 3×3 local u/v history context; normalized grid x/y only; raw-space residual output.
+- Frozen model/loss: `362→256→256→256→128→40`, GELU, AdamW, `MSE + 0.05*TKE`, batch 8, seed `20260901`, 50/16/16 manifest SHA `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`.
+- Phase 1: coarse B3_RAM vs B3_PACKED (`20/100/1`), exact fixed seeded shuffled train-window order and DATA_EQUIVALENCE; only coarse winner receives formal `100/1000/3`.
+- Phase 2: same initialization/window order, LR `1e-5` vs `1e-4`, 500 train updates; no dev LR selection. Phase 3A `last@1500` gate may continue the same model to `last@7500` only when the registered gate passes.
+- Execution: `tools/realpde_point_v1_local3_runner.py`; remote run `/home/chyfuture/realpde_runs/point_v1_local3_s20260901`; Docker memory hard limit 48 GiB / swap 48 GiB; current stage is Phase 1 coarse.
+
 每产生一个实质性候选或完整结果，在本文件末尾追加一条；不要回写或覆盖旧结论。
 
 ```markdown
@@ -206,3 +216,15 @@ FE 结论：Temporal、SpatialPhysics、PixelPosition 都未通过同时保护 R
 - Trajectory-macro win rates vs Raw-Control (Rel/TKE/MVPE): Temporal `0.875 / 1.000 / 0.938`; Spatial `0.812 / 1.000 / 0.750`; Joint `0.938 / 1.000 / 1.000`. This is stability evidence only, not a neural-model guarantee.
 - Shortlist: Raw+Temporal, Raw+Spatial, and Raw+Temporal+Spatial `KEEP_FOR_MODEL_PROBE`; no additional feature catalog expansion. Final protocol state `REVIEW_REQUIRED`.
 - Implementation SHA-256: `6e37aa883c6080df3ce60b15173f1d451002a50694c55aaff47605ca4eea3567`. Exact command and artifact inventory are in `docs/coordination/CHATGPT_HANDOFF_FE_INCREMENTAL_PROBE.md`; generated outputs remain under `../artifacts/fe_incremental_probe_s20260902/` and are not committed.
+
+### `T1-ID-FE-INCR-FROZEN-CNO-E0-RIDGE-S20260902` — COMPLETED / REVIEW_REQUIRED
+
+- Reference: registered `T1-ID-LOSS-E0-90M-S20260901` historical `OFFICIAL_WARM_START` E0 `model_best.pth`; frozen throughout. Checkpoint SHA-256 `5d02c8da5bcbcbcc47917b0021b1007b2036931a3a51483772f7607deeb4aff6`; starting-kit scorer SHA-256 `a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39`.
+- Provenance / protocol: official vendored CNO3d `3→3`, input/output `[B,20,32,64,3]`, raw `u/v` plus zero pressure; exact frozen 50 train / 16 dev manifest SHA `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`; complete 20→20 windows, stride 20; 2052 / 659 windows; no final/private-test or Codabench.
+- Implementation SHA-256 `73724987b0f471d74c803f07ce866273b76a1faedec2c1c6b31e75aa1db588b1`; run source commit `c51b2fbf6d8656c455872d68bb394106f2de18a1` with unrelated dirty/untracked work; exact smoke/formal commands and artifact inventory are in `docs/coordination/CHATGPT_HANDOFF_FE_INCREMENTAL_CNO_E0.md`.
+- Formal runtime: GPU inference plus CPU closed-form ridge `834.0 s` (13.9 min); train-only feature standardization; alpha `1e-2*n`; four fixed groups only (Raw-Control dim 2, Raw+Temporal dim 8, Raw+Spatial dim 6, Joint dim 12); TKE-proxy and vorticity excluded as independent inputs.
+- Frozen CNO raw dev Rel-L2 / TKE / MVPE: `0.168923 / 0.538475 / 0.136146`, matching the registered E0 reference. Corrected dev errors: Raw-Control `0.168162 / 0.594538 / 0.135999`; Temporal `0.161318 / 0.608969 / 0.135610`; Spatial `0.166255 / 0.624081 / 0.135474`; Joint `0.159876 / 0.631270 / 0.135046`.
+- Deltas vs Raw-Control (Rel/TKE/MVPE): Temporal `-0.006843 / +0.014432 / -0.000390`; Spatial `-0.001907 / +0.029543 / -0.000525`; Joint `-0.008286 / +0.036732 / -0.000954`. Joint vs Temporal `-0.001442 / +0.022301 / -0.000564`; Spatial has independent Rel/MVPE value beyond Temporal but worsens TKE.
+- Trajectory win rates vs Raw-Control (Rel/TKE/MVPE): Temporal `1.000/0.313/0.563`; Spatial `1.000/0.125/0.750`; Joint `1.000/0.250/0.625`. No all-three-metric stable gain; labels are Temporal/Spatial/Joint `LOW_INCREMENTAL_VALUE` under conservative protection, with Rel/MVPE signals review-only.
+- Comparison: PERSIST ridge probe improved all three metrics, while this strong-CNO probe has Rel/MVPE gains and TKE penalties. Required conflict label: `FEATURE_VALUE_POSITIVE_BUT_FUSION_HISTORY_NEGATIVE`; historical FE-01/FE-02 fusion outcomes are not evidence that the underlying feature contains no information.
+- Final decision: **STOP** automatic fusion training; final execution state `REVIEW_REQUIRED`. Artifacts remain local under `../artifacts/fe_incremental_probe_cno_e0_s20260902/`; generated outputs are not committed.
