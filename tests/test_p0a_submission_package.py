@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
 from build_p0a_n2_submission import (  # noqa: E402
     copy_vendored_sources,
+    copy_cno_sources,
     generate_submission_module,
     package_file_inventory,
     validate_checkpoint_for_submission,
@@ -60,6 +61,21 @@ def test_copy_vendored_sources_keeps_license_and_excludes_nonruntime_markers(tmp
     assert (destination / "LICENSE").is_file()
     assert not (destination / "README.txt").exists()
     assert not (destination / "py.typed").exists()
+
+
+def test_copy_cno_sources_excludes_unrelated_model_families(tmp_path):
+    source, destination = tmp_path / "source", tmp_path / "destination"
+    (source / "model").mkdir(parents=True)
+    (source / "utils").mkdir()
+    (source / "model" / "cno.py").write_text("", encoding="utf-8")
+    (source / "model" / "fno.py").write_text("", encoding="utf-8")
+    (source / "utils" / "metrics.py").write_text("", encoding="utf-8")
+
+    copy_cno_sources(source, destination)
+
+    assert (destination / "model" / "cno.py").is_file()
+    assert (destination / "utils" / "metrics.py").is_file()
+    assert not (destination / "model" / "fno.py").exists()
 
 
 def test_generated_submission_uses_file_relative_singleton_inference(tmp_path):

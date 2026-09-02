@@ -17,6 +17,21 @@ REQUIRED_ITERATION = 15_300
 N2_WEIGHTS = {"mse": 1.0, "tke": 0.05, "rel": 0.027514, "mvpe": 0.009757}
 MAX_ZIP_BYTES = 256 * 1024 * 1024
 LICENSE_FILENAMES = {"LICENSE", "LICENSE.txt", "NOTICE", "NOTICE.txt"}
+CNO_RUNTIME_FILES = (
+    "__init__.py", "model/__init__.py", "model/cno.py", "model/model.py",
+    "utils/__init__.py", "utils/metrics.py", "model/CNO_libs/__init__.py",
+    "model/CNO_libs/dnnlib/__init__.py", "model/CNO_libs/dnnlib/util.py",
+    "model/CNO_libs/local_torch_utils/__init__.py", "model/CNO_libs/local_torch_utils/custom_ops.py",
+    "model/CNO_libs/local_torch_utils/misc.py", "model/CNO_libs/local_torch_utils/persistence.py",
+    "model/CNO_libs/local_torch_utils/ops/__init__.py", "model/CNO_libs/local_torch_utils/ops/bias_act.py",
+    "model/CNO_libs/local_torch_utils/ops/conv2d_gradfix.py",
+    "model/CNO_libs/local_torch_utils/ops/conv2d_resample.py",
+    "model/CNO_libs/local_torch_utils/ops/filtered_lrelu.py",
+    "model/CNO_libs/local_torch_utils/ops/fma.py",
+    "model/CNO_libs/local_torch_utils/ops/grid_sample_gradfix.py",
+    "model/CNO_libs/local_torch_utils/ops/upfirdn2d.py",
+    "model/CNO_libs/training/filtered_networks.py",
+)
 
 
 def sha256(path: Path) -> str:
@@ -151,6 +166,16 @@ def copy_vendored_sources(source: Path, destination: Path) -> None:
     shutil.copytree(source, destination, ignore=ignore_non_runtime)
 
 
+def copy_cno_sources(source: Path, destination: Path) -> None:
+    for relative in CNO_RUNTIME_FILES:
+        source_path = source / relative
+        if not source_path.is_file():
+            continue
+        target = destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_path, target)
+
+
 def build_submission(*, checkpoint: Path, kit_root: Path, out_dir: Path, experiment_id: str, git_commit: str) -> dict:
     if out_dir.exists():
         raise FileExistsError(out_dir)
@@ -167,7 +192,7 @@ def build_submission(*, checkpoint: Path, kit_root: Path, out_dir: Path, experim
                "feature_set": payload["feature_set"], "feature_config": payload["feature_config"],
                "loss_weights": payload["loss_weights"]}
     torch.save(minimal, staging / "model.pth")
-    copy_vendored_sources(source_cno, staging / "rpde_baselines")
+    copy_cno_sources(source_cno, staging / "rpde_baselines")
     copy_vendored_sources(source_einops, staging / "_vendor" / "einops")
     inventory = package_file_inventory(staging)
     zip_path = out_dir / "submission.zip"
