@@ -263,3 +263,13 @@ FE 结论：Temporal、SpatialPhysics、PixelPosition 都未通过同时保护 R
 - Checkpoint SHA-256 `95df4c9e69a287dc55290208a07a754e2cebf2706ead521e407e4f68347d6122`; runner SHA-256 `55eb38d0c7a99e3265adee9a8f7aa696f7caf198d606c099b240a2699ff41a5d`; manifest SHA unchanged `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`.
 - Locked-final and Codabench: not accessed. Do not infer that all Point modeling is invalid; this only closes the preregistered balanced LOCAL3 candidate.
 - Handoff: `docs/coordination/CHATGPT_HANDOFF_POINT_LOCAL3_BALANCED_L001.md`; small review artifacts under `../artifacts/point_local3_balanced_l001_s20260902_review/`.
+
+### `T1-ID-HYBRID-CNO-POINT-H1-S20260902` — IN_PROGRESS
+
+- Reference: `T1-ID-FE-N2-30M-S20260901` FE-00 CNO-only, used only as a frozen CLEAN FE-specific backbone; this is not a general CNO architecture comparison.
+- Sole variable: add a zero-initialized LOCAL3 Point residual head to the frozen CNO. CNO parameters remain `requires_grad=False`, in `eval()` and outside the optimizer.
+- Backbone: remote FE-00 CNO-only `last.pth`, SHA-256 `499ec748cc5db1b7f3ad24029a464e921ad31c3d383b69626ec540eba392903e`; initialization family `sim_pretrain -> local train PIV`, no `sim_real_ft`.
+- Point head: input `402` (`40` CNO future uv + `360` replicate-padded LOCAL3 history + normalized x/y), MLP `402→256→256→256→128→40` GELU, final layer zero-init; CNO pressure channel copied unchanged.
+- Fixed protocol: manifest SHA `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`, 50/16/16, B3_PACKED, seed `20260901`, batch `8`, AdamW `lr=1e-4`, `weight_decay=0`, uv MSE only, 1500-step screen and gate-controlled continuation to 7500.
+- Screening gate versus the same frozen CNO: Rel-L2 improvement >0%, MVPE improvement >0%, TKE degradation ≤5%. No locked-final, Codabench, LOCAL5, extra features or H2.
+- Current state: runner implementation and tests complete; remote checkpoint resolved; smoke pending before detached launch.
