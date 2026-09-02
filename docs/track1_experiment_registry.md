@@ -254,3 +254,12 @@ FE 结论：Temporal、SpatialPhysics、PixelPosition 都未通过同时保护 R
 - Fixed protocol: random initialization, seed `20260901`, B3_PACKED, batch `8`, fixed seeded-shuffled train-window order, AdamW `1e-4`, LOCAL3 `362→256→256→256→128→40` GELU, replicate-padded 3×3 raw u/v history plus normalized x/y, raw residual output, p=0, 1500-step screen and gate-controlled continuation to 7500.
 - Execution: standalone `tools/realpde_point_local3_balanced_runner.py`; remote run and exact command will be recorded in the completion handoff. Old `last@1500.pt` is not reused.
 - Current state: implementation/smoke pending; no dev, locked-final or Codabench access yet.
+
+### `T1-ID-POINT-LOCAL3-BALANCED-L001-S20260902` — COMPLETED / STOP_BALANCED_LOCAL3_EARLY
+
+- Random-init LOCAL3 with the sole change `lambda_tke=0.001` completed 1500 updates on B3_PACKED and stopped at the preregistered screen; no 7500 continuation.
+- Dev raw v9 errors (PERSIST / candidate): Rel-L2 `0.13557753 / 0.14545619`, TKE `1.00000000 / 0.85760111`, MVPE `0.13270709 / 0.13071164`; relative deltas `-7.286% / +14.240% / +1.504%` (Rel/TKE/MVPE), failing Rel-L2 >0% and TKE degradation ≤10%.
+- Train-only gradient snapshots were finite; median weighted-TKE/MSE gradient ratio was `8.888` at initialization and `1.631` at update 1500 (four fixed train batches each). No old checkpoint was reused.
+- Checkpoint SHA-256 `95df4c9e69a287dc55290208a07a754e2cebf2706ead521e407e4f68347d6122`; runner SHA-256 `55eb38d0c7a99e3265adee9a8f7aa696f7caf198d606c099b240a2699ff41a5d`; manifest SHA unchanged `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`.
+- Locked-final and Codabench: not accessed. Do not infer that all Point modeling is invalid; this only closes the preregistered balanced LOCAL3 candidate.
+- Handoff: `docs/coordination/CHATGPT_HANDOFF_POINT_LOCAL3_BALANCED_L001.md`; small review artifacts under `../artifacts/point_local3_balanced_l001_s20260902_review/`.

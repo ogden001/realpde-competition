@@ -4,10 +4,10 @@ Updated: 2026-09-02
 
 ## Current Stage
 
-Point Modeling: **POINT-LOCAL3-BALANCED-L001 RUNNING**. This is a single bounded
-random-init loss-balance experiment (`MSE + 0.001*TKE`) following the train-only
-gradient diagnostic. No old LOCAL3 checkpoint is reused; no locked-final or
-Codabench access is permitted.
+Point Modeling: **POINT-LOCAL3-BALANCED-L001 COMPLETED / STOP_BALANCED_LOCAL3_EARLY**.
+The bounded random-init loss-balance experiment (`MSE + 0.001*TKE`) failed its
+1500-step screen; no old LOCAL3 checkpoint was reused and no locked-final or
+Codabench access occurred.
 
 Temporal / Spatial Prior Fusion: **FF-00 completed / REVIEW_REQUIRED**. Feature Discovery remains
 **CLOSED**; no FF-01, FF-02 or FF-03 experiment is authorized.
@@ -83,11 +83,11 @@ Handoff: `docs/coordination/CHATGPT_HANDOFF_FEATURE_FUSION_FF00.md`
 
 ## Current Task
 
-The standalone runner passed local tests and a remote B3_PACKED smoke; the
-formal detached job is running on `gpu` with the 48 GiB RAM hard limit. The
-runner may continue from 1500 to 7500 only when the preregistered Rel-L2/MVPE/
-TKE screening gate passes. Codex must return the job information and stop
-polling.
+The detached job on `gpu` completed at 1500 updates with screening deltas
+Rel-L2 `-7.286%`, TKE `+14.240%`, MVPE `+1.504%`; decision
+`STOP_BALANCED_LOCAL3_EARLY`. Handoff:
+`docs/coordination/CHATGPT_HANDOFF_POINT_LOCAL3_BALANCED_L001.md`. No further
+Point experiment is authorized by this result.
 
 No execution task is active. FF-00 is complete and awaits ChatGPT/Sol review of the
 accepted provenance exception and proposed Fusion protocol. Do not start FF-01,
