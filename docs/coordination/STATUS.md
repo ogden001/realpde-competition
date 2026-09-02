@@ -4,10 +4,10 @@ Updated: 2026-09-02
 
 ## Current Stage
 
-Point Modeling: **POINT-LOCAL3-BALANCED-L001 implementation pending**. This is a
-single bounded random-init loss-balance experiment (`MSE + 0.001*TKE`) following
-the train-only gradient diagnostic. No old LOCAL3 checkpoint is reused; no
-locked-final or Codabench access is permitted.
+Point Modeling: **POINT-LOCAL3-BALANCED-L001 RUNNING**. This is a single bounded
+random-init loss-balance experiment (`MSE + 0.001*TKE`) following the train-only
+gradient diagnostic. No old LOCAL3 checkpoint is reused; no locked-final or
+Codabench access is permitted.
 
 Temporal / Spatial Prior Fusion: **FF-00 completed / REVIEW_REQUIRED**. Feature Discovery remains
 **CLOSED**; no FF-01, FF-02 or FF-03 experiment is authorized.
@@ -83,10 +83,11 @@ Handoff: `docs/coordination/CHATGPT_HANDOFF_FEATURE_FUSION_FF00.md`
 
 ## Current Task
 
-Implement and smoke-test `tools/realpde_point_local3_balanced_runner.py`, then
-launch the detached remote job with the 48 GiB RAM hard limit. The runner may
-continue from 1500 to 7500 only when the preregistered Rel-L2/MVPE/TKE screening
-gate passes. Codex must return the job information and stop polling.
+The standalone runner passed local tests and a remote B3_PACKED smoke; the
+formal detached job is running on `gpu` with the 48 GiB RAM hard limit. The
+runner may continue from 1500 to 7500 only when the preregistered Rel-L2/MVPE/
+TKE screening gate passes. Codex must return the job information and stop
+polling.
 
 No execution task is active. FF-00 is complete and awaits ChatGPT/Sol review of the
 accepted provenance exception and proposed Fusion protocol. Do not start FF-01,
