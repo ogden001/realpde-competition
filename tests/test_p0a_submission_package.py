@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import numpy as np
 import torch
 
 
@@ -14,6 +15,7 @@ from build_p0a_n2_submission import (  # noqa: E402
     package_file_inventory,
     validate_checkpoint_for_submission,
 )
+from realpde_p0a_submission_smoke import prediction_error_summary  # noqa: E402
 
 
 def test_validate_checkpoint_rejects_non_15300_iteration(tmp_path):
@@ -42,3 +44,15 @@ def test_generated_submission_uses_file_relative_singleton_inference(tmp_path):
     assert "h5py" not in source
     assert "http" not in source
     assert "_MODEL is None" in source
+
+
+def test_error_summary_is_zero_for_equal_predictions():
+    result = prediction_error_summary(np.ones((1, 2), np.float32), np.ones((1, 2), np.float32))
+
+    assert result == {"max_abs_error": 0.0, "max_rel_error": 0.0}
+
+
+def test_error_summary_uses_safe_relative_denominator():
+    result = prediction_error_summary(np.zeros(1, np.float32), np.ones(1, np.float32))
+
+    assert result["max_rel_error"] > 0.0

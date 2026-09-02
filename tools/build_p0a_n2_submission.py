@@ -110,6 +110,7 @@ def submission_source() -> str:
             global _MODEL
             if _MODEL is None:
                 sys.path.insert(0, str(_ROOT))
+                sys.path.insert(0, str(_ROOT / "_vendor"))
                 from rpde_baselines.model.cno import CNO3d
                 payload = torch.load(_ROOT / "model.pth", map_location="cpu", weights_only=False)
                 model = CNO3d(in_dim=20, out_dim=3, out_dim_mult=1, in_size=64, N_layers=3).to(_DEVICE)
