@@ -14,6 +14,7 @@ import json
 import math
 import os
 import random
+import shutil
 import subprocess
 import sys
 import time
@@ -239,6 +240,7 @@ class Local3MLP(nn.Module):
 
 
 def train_loss(model: Local3MLP, dl: DataLoader, lr: float, updates: int, seed: int, out: Path, device: torch.device, start_step: int = 0, optimizer: torch.optim.Optimizer | None = None) -> tuple[torch.optim.Optimizer, list[dict], int, float, bool]:
+    out.mkdir(parents=True, exist_ok=True)
     set_seed(seed); model.train(); opt = optimizer or torch.optim.AdamW(model.parameters(), lr=lr); it = iter(dl)
     if start_step:
         for _ in range(start_step % max(len(dl), 1)):
@@ -365,7 +367,7 @@ def phase3(args, train_paths: list[Path], dev_paths: list[Path], kind: str, lr: 
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(); p.add_argument("--data-root", type=Path, required=True); p.add_argument("--manifest", type=Path, required=True); p.add_argument("--kit-root", type=Path, required=True); p.add_argument("--out-dir", type=Path, required=True); p.add_argument("--seed", type=int, default=SEED); p.add_argument("--device", default="cuda"); p.add_argument("--coarse-warmup", type=int, default=20); p.add_argument("--coarse-measured", type=int, default=100); p.add_argument("--formal-warmup", type=int, default=100); p.add_argument("--formal-measured", type=int, default=1000); p.add_argument("--formal-repeats", type=int, default=3); p.add_argument("--lr-updates", type=int, default=500); p.add_argument("--smoke", action="store_true")
+    p = argparse.ArgumentParser(); p.add_argument("--data-root", type=Path, required=True); p.add_argument("--manifest", type=Path, required=True); p.add_argument("--kit-root", type=Path, required=True); p.add_argument("--out-dir", type=Path, required=True); p.add_argument("--seed", type=int, default=SEED); p.add_argument("--device", default="cuda"); p.add_argument("--coarse-warmup", type=int, default=20); p.add_argument("--coarse-measured", type=int, default=100); p.add_argument("--formal-warmup", type=int, default=100); p.add_argument("--formal-measured", type=int, default=1000); p.add_argument("--formal-repeats", type=int, default=3); p.add_argument("--lr-updates", type=int, default=500); p.add_argument("--resume-source", type=Path, help="Reuse completed Phase 1/2 artifacts from a prior run and execute Phase 3 only"); p.add_argument("--smoke", action="store_true")
     args = p.parse_args(); out = args.out_dir
     if out.exists(): raise FileExistsError(out)
     out.mkdir(parents=True); write_status(out,"RUNNING","initializing",locked_final_accessed=False,codabench=False)
@@ -378,7 +380,11 @@ def main() -> None:
             for kind in ("B3_RAM","B3_PACKED"):
                 ds = dataset_for(kind, paths); smoke[kind] = data_equivalence(H5WindowDataset(paths,in_steps=20,out_steps=20,stride=20,sub_sample=2,include_pressure=False), ds, order, min(10,len(order))); x,y,_,_ = next(iter(loader(ds,order))); pred = Local3MLP().to(device)(x.to(device)); smoke[kind]["local3_shape"] = list(pred.shape); smoke[kind]["cache_bytes"] = int(ds.cache_bytes)
             atom_json(out / "smoke.json", smoke); write_status(out,"DONE","smoke_complete",smoke_pass=True); (out / "DONE").touch(); return
-        kind = phase1(args, train_paths, out, device); write_status(out,"RUNNING","phase2_lr_sanity",pipeline=kind); lr = phase2(args, train_paths, kind, out, device); atom_json(out / "frozen_choices.json", {"POINT_RAM_PIPELINE_V1":kind,"POINT_V1_LR":lr}); write_status(out,"RUNNING","phase3a_screening",pipeline=kind,lr=lr); decision = phase3(args, train_paths, dev_paths, kind, lr, out, args.kit_root, device); atom_json(out / "final_summary.json", {"phase1_pipeline":kind,"phase2_lr":lr,"phase3_decision":decision,"locked_final_accessed":False,"codabench":False})
+        if args.resume_source:
+            source = args.resume_source.resolve(); frozen = json.loads((source / "frozen_choices.json").read_text(encoding="utf-8")); kind, lr = frozen["POINT_RAM_PIPELINE_V1"], float(frozen["POINT_V1_LR"]); atom_json(out / "resume_metadata.json", {"resumed_from":str(source),"phase1_phase2_reused":True,"phase1_freeze":str(source / "phase1_freeze.json"),"phase2_summary":str(source / "phase2_lr_sanity" / "summary.json")})
+        else:
+            kind = phase1(args, train_paths, out, device); write_status(out,"RUNNING","phase2_lr_sanity",pipeline=kind); lr = phase2(args, train_paths, kind, out, device); atom_json(out / "frozen_choices.json", {"POINT_RAM_PIPELINE_V1":kind,"POINT_V1_LR":lr})
+        atom_json(out / "frozen_choices.json", {"POINT_RAM_PIPELINE_V1":kind,"POINT_V1_LR":lr}); write_status(out,"RUNNING","phase3a_screening",pipeline=kind,lr=lr); decision = phase3(args, train_paths, dev_paths, kind, lr, out, args.kit_root, device); atom_json(out / "final_summary.json", {"phase1_pipeline":kind,"phase2_lr":lr,"phase3_decision":decision,"locked_final_accessed":False,"codabench":False})
     except Exception:
         write_status(out,"FAILED","exception",traceback=traceback.format_exc(),locked_final_accessed=False,codabench=False); raise
 
