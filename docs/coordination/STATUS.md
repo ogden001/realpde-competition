@@ -94,7 +94,8 @@ The next explicitly authorized bounded task is
 `T1-ID-HYBRID-CNO-POINT-H1-S20260902`: frozen CLEAN FE-00 CNO plus a
 zero-initialized LOCAL3 Point residual head. It is registered as `IN_PROGRESS`;
 checkpoint resolution and runner implementation are complete, and remote smoke
-must pass before detached launch. No joint training, locked-final or Codabench.
+passed all frozen/zero-init/shape checks. Formal detached launch is next. No
+joint training, locked-final or Codabench.
 
 No execution task is active. FF-00 is complete and awaits ChatGPT/Sol review of the
 accepted provenance exception and proposed Fusion protocol. Do not start FF-01,

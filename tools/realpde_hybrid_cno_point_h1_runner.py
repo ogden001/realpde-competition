@@ -150,7 +150,17 @@ def resolve_paths(manifest: Path, data_root: Path, split: str) -> list[Path]:
 
 
 def load_frozen_cno(kit_root: Path, checkpoint: Path, device: torch.device) -> nn.Module:
-    model = core.load_cno(kit_root, checkpoint, device)
+    # FE-00 stores the CNO inside FEModel, so its checkpoint keys are prefixed
+    # with ``cno.``.  Unwrap only that known format; never relax strict loading.
+    sys.path.insert(0, str(kit_root))
+    from rpde_baselines.model.cno import CNO3d
+    payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
+    state = payload.get("model_state_dict", payload)
+    if not isinstance(state, dict): raise TypeError("FE-00 checkpoint has no state dict")
+    if state and all(str(key).startswith("cno.") for key in state):
+        state = {str(key)[4:]: value for key, value in state.items()}
+    model = CNO3d(in_dim=3, out_dim=3, out_dim_mult=1, in_size=64, N_layers=3).to(device)
+    model.load_state_dict(state, strict=True)
     freeze_backbone(model)
     if any(parameter.requires_grad for parameter in model.parameters()):
         raise RuntimeError("CNO freeze check failed")
@@ -273,7 +283,7 @@ def run(args: argparse.Namespace) -> str:
     atomic_json(out / "run_metadata.json", metadata)
     if args.smoke:
         smoke_packed = base.PackedDataset(train_paths[:1], in_steps=20, out_steps=20, stride=20, sub_sample=2, include_pressure=False)
-        x, _, _, _ = next(iter(base.loader(smoke_packed, [0], workers=0, drop_last=True))); x = x.to(device)
+        x, _, _, _ = next(iter(base.loader(smoke_packed, [0], workers=0, drop_last=False))); x = x.to(device)
         with torch.no_grad(): cno = model(x.permute(0, 4, 1, 2, 3)).permute(0, 2, 3, 4, 1); hybrid = hybrid_forward(cno, x, head)
         zero_exact = bool(torch.equal(hybrid, cno)); opt_ids = {id(p) for group in optimizer.param_groups for p in group["params"]}; head_ids = {id(p) for p in head.parameters()}; cno_grad_none = all(p.grad is None for p in model.parameters())
         if not zero_exact: raise RuntimeError("FAIL_ZERO_INIT_EQUIVALENCE")

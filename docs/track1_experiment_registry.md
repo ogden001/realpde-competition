@@ -272,4 +272,4 @@ FE 结论：Temporal、SpatialPhysics、PixelPosition 都未通过同时保护 R
 - Point head: input `402` (`40` CNO future uv + `360` replicate-padded LOCAL3 history + normalized x/y), MLP `402→256→256→256→128→40` GELU, final layer zero-init; CNO pressure channel copied unchanged.
 - Fixed protocol: manifest SHA `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`, 50/16/16, B3_PACKED, seed `20260901`, batch `8`, AdamW `lr=1e-4`, `weight_decay=0`, uv MSE only, 1500-step screen and gate-controlled continuation to 7500.
 - Screening gate versus the same frozen CNO: Rel-L2 improvement >0%, MVPE improvement >0%, TKE degradation ≤5%. No locked-final, Codabench, LOCAL5, extra features or H2.
-- Current state: runner implementation and tests complete; remote checkpoint resolved; smoke pending before detached launch.
+- Current state: runner implementation/tests complete; FE-00 checkpoint resolved and remote smoke passed all frozen/zero-init/shape checks; formal detached launch pending.
