@@ -141,7 +141,14 @@ def generate_submission_module(root: Path) -> None:
 
 
 def copy_vendored_sources(source: Path, destination: Path) -> None:
-    shutil.copytree(source, destination, ignore=shutil.ignore_patterns("py.typed", "__pycache__"))
+    def ignore_non_runtime(_directory: str, names: list[str]) -> list[str]:
+        ignored = []
+        for name in names:
+            path = Path(name)
+            if name == "__pycache__" or (path.suffix and path.suffix != ".py" and name not in LICENSE_FILENAMES):
+                ignored.append(name)
+        return ignored
+    shutil.copytree(source, destination, ignore=ignore_non_runtime)
 
 
 def build_submission(*, checkpoint: Path, kit_root: Path, out_dir: Path, experiment_id: str, git_commit: str) -> dict:

@@ -58,7 +58,7 @@ def test_copy_vendored_sources_keeps_license_and_excludes_nonruntime_markers(tmp
 
     assert (destination / "module.py").is_file()
     assert (destination / "LICENSE").is_file()
-    assert (destination / "README.txt").is_file()
+    assert not (destination / "README.txt").exists()
     assert not (destination / "py.typed").exists()
 
 
