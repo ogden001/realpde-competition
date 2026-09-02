@@ -11,6 +11,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
 from build_p0a_n2_submission import (  # noqa: E402
+    copy_vendored_sources,
     generate_submission_module,
     package_file_inventory,
     validate_checkpoint_for_submission,
@@ -31,6 +32,34 @@ def test_package_inventory_rejects_training_artifacts(tmp_path):
 
     with pytest.raises(ValueError, match="optimizer"):
         package_file_inventory(tmp_path)
+
+
+def test_package_inventory_allows_explicit_license_names_only(tmp_path):
+    (tmp_path / "submission.py").write_text("", encoding="utf-8")
+    (tmp_path / "model.pth").write_bytes(b"model")
+    license_dir = tmp_path / "_vendor" / "einops"
+    license_dir.mkdir(parents=True)
+    (license_dir / "LICENSE").write_text("license", encoding="utf-8")
+    assert any(item["path"] == "_vendor/einops/LICENSE" for item in package_file_inventory(tmp_path))
+    (license_dir / "README.txt").write_text("readme", encoding="utf-8")
+    with pytest.raises(ValueError, match="README.txt"):
+        package_file_inventory(tmp_path)
+
+
+def test_copy_vendored_sources_keeps_license_and_excludes_nonruntime_markers(tmp_path):
+    source, destination = tmp_path / "source", tmp_path / "destination"
+    source.mkdir()
+    (source / "module.py").write_text("x = 1\n")
+    (source / "LICENSE").write_text("license")
+    (source / "README.txt").write_text("readme")
+    (source / "py.typed").write_text("")
+
+    copy_vendored_sources(source, destination)
+
+    assert (destination / "module.py").is_file()
+    assert (destination / "LICENSE").is_file()
+    assert (destination / "README.txt").is_file()
+    assert not (destination / "py.typed").exists()
 
 
 def test_generated_submission_uses_file_relative_singleton_inference(tmp_path):

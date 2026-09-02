@@ -16,6 +16,7 @@ import torch
 REQUIRED_ITERATION = 15_300
 N2_WEIGHTS = {"mse": 1.0, "tke": 0.05, "rel": 0.027514, "mvpe": 0.009757}
 MAX_ZIP_BYTES = 256 * 1024 * 1024
+LICENSE_FILENAMES = {"LICENSE", "LICENSE.txt", "NOTICE", "NOTICE.txt"}
 
 
 def sha256(path: Path) -> str:
@@ -47,9 +48,10 @@ def package_file_inventory(root: Path) -> list[dict[str, int | str]]:
     entries: list[dict[str, int | str]] = []
     for path in sorted(item for item in root.rglob("*") if item.is_file()):
         relative = path.relative_to(root).as_posix()
-        allowed_source = ((relative.startswith("rpde_baselines/") or relative.startswith("_vendor/einops/"))
-                          and path.suffix == ".py")
-        if relative not in allowed_exact and not allowed_source:
+        dependency_path = relative.startswith("rpde_baselines/") or relative.startswith("_vendor/einops/")
+        allowed_source = dependency_path and path.suffix == ".py"
+        allowed_license = dependency_path and path.name in LICENSE_FILENAMES
+        if relative not in allowed_exact and not allowed_source and not allowed_license:
             raise ValueError(f"package inventory forbids {relative}")
         if "optimizer" in relative.lower() or "log" in relative.lower() or path.suffix in {".h5", ".jsonl"}:
             raise ValueError(f"package inventory forbids training artifact {relative}")
@@ -138,6 +140,10 @@ def generate_submission_module(root: Path) -> None:
     (root / "submission.py").write_text(submission_source(), encoding="utf-8")
 
 
+def copy_vendored_sources(source: Path, destination: Path) -> None:
+    shutil.copytree(source, destination, ignore=shutil.ignore_patterns("py.typed", "__pycache__"))
+
+
 def build_submission(*, checkpoint: Path, kit_root: Path, out_dir: Path, experiment_id: str, git_commit: str) -> dict:
     if out_dir.exists():
         raise FileExistsError(out_dir)
@@ -154,8 +160,8 @@ def build_submission(*, checkpoint: Path, kit_root: Path, out_dir: Path, experim
                "feature_set": payload["feature_set"], "feature_config": payload["feature_config"],
                "loss_weights": payload["loss_weights"]}
     torch.save(minimal, staging / "model.pth")
-    shutil.copytree(source_cno, staging / "rpde_baselines")
-    shutil.copytree(source_einops, staging / "_vendor" / "einops")
+    copy_vendored_sources(source_cno, staging / "rpde_baselines")
+    copy_vendored_sources(source_einops, staging / "_vendor" / "einops")
     inventory = package_file_inventory(staging)
     zip_path = out_dir / "submission.zip"
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
