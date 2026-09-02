@@ -185,6 +185,15 @@ FE 结论：Temporal、SpatialPhysics、PixelPosition 都未通过同时保护 R
 - Screening gate deltas (Rel-L2/TKE/MVPE): `-14.51% / +16.74% / -6.12%`; Rel-L2 and MVPE did not improve, so `STOP_LOCAL3_EARLY`. No Phase 3B, no locked-final, no Codabench. `NEXT_CANDIDATE` is not authorized by this result.
 - Evidence: remote `/home/chyfuture/realpde_runs/point_v1_local3_phase3_retry3_s20260901`; `phase3_local3/screening_gate.json`, `dev@1500_local3/evaluation.json`, `dev@1500_persist/evaluation.json`, `last@1500.pt`.
 
+### `T1-ID-POINT-LOSS-GRAD-DIAG-20260902` — COMPLETED / DIAGNOSTIC ONLY
+
+- Reference: `T1-ID-POINT-V1-LOCAL3-20260902`; existing `last@1500.pt`, no retraining, no optimizer step.
+- Research cleanliness: `CLEAN`, train-only; B3_PACKED, batch 8, seed `20260901`, 32 fixed seeded-shuffled train batches.
+- Frozen loss decomposition: separately compute `∇θ MSE` and `∇θ (0.05*TKE)` with trainable parameters only; no loss/LR/architecture sweep.
+- Results: grad-ratio mean/median `57.949/44.764` (min/max `19.821/189.385`); cosine mean/median `-0.0853/-0.0731` (mixed batch directions); mean per-batch scalar `(0.05*TKE)/MSE` `103.472×`; all finite.
+- Diagnostic label: `TKE_GRADIENT_STRONGLY_DOMINANT`. This supports a narrow objective-imbalance hypothesis but does not authorize changing lambda or training a balanced-loss model.
+- Evidence: `docs/coordination/CHATGPT_HANDOFF_POINT_LOSS_GRADIENT_DIAGNOSTIC.md`; remote `/home/chyfuture/realpde_runs/point_loss_grad_diag_s20260901`; dev/locked-final/scorer/Codabench all `NO`.
+
 每产生一个实质性候选或完整结果，在本文件末尾追加一条；不要回写或覆盖旧结论。
 
 ```markdown
