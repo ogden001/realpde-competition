@@ -3,12 +3,13 @@
 **Task:** `FF-00` — Fusion Protocol & Baseline Freeze
 **Scope:** protocol design and provenance audit only; no model training or new
 performance result was produced in this task.
-**Protocol conclusion:** `BLOCKED`
-**Execution state:** `BLOCKED`
-**Reason:** the historical strong-CNO checkpoint is uniquely identified, but the
-Git source commit used to train that checkpoint was not recorded and cannot be
-recovered uniquely from the repository history. The closest source artifact is
-recorded below; it is not a substitute for a commit.
+**Protocol conclusion:** `REVIEW_REQUIRED`
+**Execution state:** `REVIEW_REQUIRED`
+**Provenance exception:** `BASELINE_PROVENANCE_EXCEPTION_ACCEPTED`
+**Reason:** the historical strong-CNO checkpoint is accepted as an immutable
+artifact baseline even though its training source commit is not recoverable. The
+limitation is explicit below: this does not make the historical training process
+fully reproducible from source.
 
 ## A. Protocol Summary
 
@@ -18,6 +19,12 @@ The requested strong baseline remains the existing historical reference
 `T1-ID-LOSS-E0-90M-S20260901`. It is an `OFFICIAL_WARM_START` / competition-oriented
 reference, not the default `CLEAN` offline family. FF-00 does not switch to the
 planned clean CNO reference and does not retrain the baseline.
+
+`BASELINE_PROVENANCE_EXCEPTION_ACCEPTED` means that downstream Fusion candidates
+may reuse this exact checkpoint. Every later Feature candidate and its matched
+Raw-Control must share the same checkpoint SHA, downstream code/protocol, split,
+scorer, optimizer/seed/budget policy, and checkpoint selection rule. Any later
+change must be a separately recorded protocol variable.
 
 ### Split and manifest
 
@@ -119,14 +126,16 @@ against: Rel-L2/MVPE decrease while TKE increases.
 | Training recipe | `MSE + 0.05*TKE`; AdamW, `lr=1e-5`, batch 8, workers 2, seed `20260901`, 7498 updates, approximately 90.7 minutes; best iteration 7498 |
 | Dev raw metrics | Rel-L2 `0.168923`; TKE `0.538475`; MVPE `0.136146` |
 | Scorer | Starting Kit v9 `scoring.py`, SHA-256 as in Section A |
-| Historical source commit | **not recorded; no unique commit recovered** |
+| Training source commit | **UNKNOWN / NOT RECOVERED** |
 | Source artifact fallback | `artifacts/loss_optimization_v9_20260901_run1/source/realpde_loss_official_v9.py`, SHA-256 `6fdf6d2e3268098e3663fd93eb819322786e1524c5091d1e3d69b6ef0c06cb50` |
 | Dirty-tree note | historical run metadata records paths, hashes and recipe but no Git SHA; the source artifact is a copied runner file, not a repository commit |
 
-This last provenance gap is the FF-00 blocker. The checkpoint hash and model
-interface are sufficient to identify the frozen weights, but the task explicitly
-requires a source commit or an accepted equivalent dirty-tree record. FF-00 does
-not invent a commit and does not replace the baseline.
+The provenance exception is accepted for checkpoint reuse because the checkpoint
+SHA, artifact identifier, architecture, runtime, manifest and scorer are fixed.
+The checkpoint may be reused as an immutable artifact baseline, but no report may
+claim that its historical training process can be fully reproduced from source.
+Downstream FF code must record its own Git commit or complete dirty-diff SHA and
+must not inherit this missing-commit limitation.
 
 ## C. Frozen Feature Package Definitions
 
@@ -250,26 +259,24 @@ checkpoint rule changes, or numeric promotion thresholds are frozen by FF-00.
 
 ## G. Risks / Open Questions for ChatGPT / Sol
 
-1. **Blocking provenance:** can the historical checkpoint be accepted for Fusion
-   protocol work using checkpoint SHA plus source-file SHA and an explicit missing
-   commit note, or must the original source commit be recovered before FF-01/02/03?
-2. The selected baseline is `OFFICIAL_WARM_START`, while the clean CNO reference is
+1. The selected baseline is `OFFICIAL_WARM_START`, while the clean CNO reference is
    only `PLANNED`. Confirm whether Fusion should remain in the competition-oriented
    family or wait for a clean baseline.
-3. Confirm the parameter-matching tolerance and whether the deterministic raw-only
+2. Confirm the parameter-matching tolerance and whether the deterministic raw-only
    channel tiling/projection described in Section D is the preferred control.
-4. Choose at most one bounded first Fusion direction and at most three candidates;
+3. Choose at most one bounded first Fusion direction and at most three candidates;
    do not launch all matrix rows automatically.
-5. For FF-03, decide whether an explicit std-moment objective is sufficiently
+4. For FF-03, decide whether an explicit std-moment objective is sufficiently
    distinct from historical `L_fluct`, and whether Gradient or Vorticity should be
    prioritized. Do not treat helper-code existence as prior evidence.
 
 ## H. Protocol Conclusion
 
-`BLOCKED`
+`REVIEW_REQUIRED`
 
 The FF-00 protocol itself is documented, the feature catalog is frozen, the matched
 control rule and metric/gate policy are specified, and the Loss duplication audit is
-complete. Execution cannot be released as `REVIEW_REQUIRED` until the missing
-historical baseline source commit is resolved or explicitly accepted under the task's
-provenance rule. No FF-01, FF-02 or FF-03 execution was started.
+complete. `BASELINE_PROVENANCE_EXCEPTION_ACCEPTED` releases the immutable
+checkpoint for downstream reuse while preserving the limitation that the historical
+training source is `UNKNOWN / NOT RECOVERED`. No FF-01, FF-02 or FF-03 execution was
+started. ChatGPT/Sol review is required before any downstream execution.

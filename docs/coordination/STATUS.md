@@ -4,18 +4,34 @@ Updated: 2026-09-02
 
 ## Current Stage
 
-Temporal / Spatial Prior Fusion: **FF-00 BLOCKED**. Feature Discovery remains
+Temporal / Spatial Prior Fusion: **FF-00 completed / REVIEW_REQUIRED**. Feature Discovery remains
 **CLOSED**; no FF-01, FF-02 or FF-03 experiment is authorized.
 
-FF-00 protocol design and the historical Loss duplication audit are complete, but
-the requested strong baseline's historical training source commit is not uniquely
-recoverable. The checkpoint SHA, manifest, scorer, architecture and metrics are
-known; the fallback source-file SHA and missing-commit note are recorded in the
-handoff. This is a provenance blocker, not a baseline switch.
+FF-00 protocol design and the historical Loss duplication audit are complete.
+`BASELINE_PROVENANCE_EXCEPTION_ACCEPTED` accepts
+`T1-ID-LOSS-E0-90M-S20260901` as an immutable checkpoint artifact baseline despite
+the training source commit being `UNKNOWN / NOT RECOVERED`. The checkpoint SHA,
+manifest, scorer, architecture, runtime and metrics are recorded in the handoff.
+This does not claim full source-level reproducibility of historical training.
+
+All downstream FF candidates and matched Raw-Controls must share the same baseline
+checkpoint and downstream code/protocol; each downstream run must record its own
+code commit or complete dirty-diff SHA.
 
 Handoff: `docs/coordination/CHATGPT_HANDOFF_FEATURE_FUSION_FF00.md`
 
 ## Latest Completed
+
+`FF-00-FUSION-PROTOCOL-S20260902` — Fusion Protocol & Baseline Freeze — `COMPLETED` /
+`REVIEW_REQUIRED`.
+
+- `BASELINE_PROVENANCE_EXCEPTION_ACCEPTED`: the historical
+  `T1-ID-LOSS-E0-90M-S20260901` checkpoint is frozen as an immutable artifact baseline.
+- Training source commit remains `UNKNOWN / NOT RECOVERED`; this is a documented
+  provenance limitation, not a claim of full historical source reproducibility.
+- Handoff: `docs/coordination/CHATGPT_HANDOFF_FEATURE_FUSION_FF00.md`.
+- No training, GPU job, locked-final/private-test access, Codabench submission or
+  FF-01/FF-02/FF-03 execution occurred.
 
 `FE-FINAL-REVIEW-S20260902` — Feature Engineering final review — `CLOSED` /
 `REVIEW_REQUIRED`.
@@ -62,18 +78,19 @@ Handoff: `docs/coordination/CHATGPT_HANDOFF_FEATURE_FUSION_FF00.md`
 
 ## Current Task
 
-No execution task is active. FF-00 is blocked pending ChatGPT/Sol review of the
-provenance gap and the proposed Fusion protocol. Do not start FF-01, FF-02 or FF-03.
+No execution task is active. FF-00 is complete and awaits ChatGPT/Sol review of the
+accepted provenance exception and proposed Fusion protocol. Do not start FF-01,
+FF-02 or FF-03.
 
 ## Execution State
 
-`BLOCKED`
+`REVIEW_REQUIRED`
 
 Feature Engineering stage: `CLOSED`.
-Temporal / Spatial Prior Fusion stage: `FF-00 BLOCKED`.
+Temporal / Spatial Prior Fusion stage: `FF-00 completed / REVIEW_REQUIRED`.
 
 Ask ChatGPT/Sol to read `docs/coordination/CHATGPT_HANDOFF_FEATURE_FUSION_FF00.md`,
-resolve the source-commit provenance blocker, and return one bounded next action.
+review `BASELINE_PROVENANCE_EXCEPTION_ACCEPTED`, and return one bounded next action.
 
 ## Constraints
 
@@ -90,5 +107,6 @@ For the next material result, provide: experiment ID and state; commit SHA or di
 
 The registry and several tools are presently uncommitted local work. Until a commit is created, reports must identify the relevant dirty-tree state rather than implying a reproducible commit SHA.
 
-FF-00 handoff status: protocol design complete, but conclusion `BLOCKED` because
-the historical baseline source commit is missing. There is no active execution task.
+FF-00 handoff status: completed with `BASELINE_PROVENANCE_EXCEPTION_ACCEPTED`; the
+historical source commit remains `UNKNOWN / NOT RECOVERED`, and the conclusion is
+`REVIEW_REQUIRED`. There is no active execution task.
