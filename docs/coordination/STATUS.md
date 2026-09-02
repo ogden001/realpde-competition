@@ -8,6 +8,15 @@ Clean offline research: candidate/feature screening under the frozen Track 1 ID 
 
 ## Latest Completed
 
+`T1-ID-FE-INCR-FROZEN-CNO-E0-RIDGE-S20260902` — `DONE` / `REVIEW_REQUIRED`.
+
+- Frozen, traceable strong CNO baseline: registered `T1-ID-LOSS-E0-90M-S20260901` E0 `model_best.pth`, SHA-256 `5d02c8da5bcbcbcc47917b0021b1007b2036931a3a51483772f7607deeb4aff6`; weights frozen throughout.
+- 50 train / 16 dev only; complete 20→20 windows, stride 20, 2052 / 659 windows, runtime H×W 32×64. GPU inference plus CPU closed-form ridge took 834.0 s; no final/private-test or Codabench access.
+- Frozen-CNO raw dev Rel-L2/TKE/MVPE: `0.168923 / 0.538475 / 0.136146` (matches registered E0 reference). Raw-Control ridge: `0.168162 / 0.594538 / 0.135999`.
+- Temporal improves Rel-L2 and MVPE but worsens TKE; Spatial independently improves Rel-L2 and MVPE beyond Temporal, while worsening TKE; Joint improves Rel-L2/MVPE further but has the largest TKE worsening. No all-three-metric stable gain was established.
+- Under the protected all-three-metric rule, Temporal, Spatial, and Joint are `LOW_INCREMENTAL_VALUE`; their Rel/MVPE trade-off signals remain review-only and do not authorize fusion training.
+- Evidence is local under `../artifacts/fe_incremental_probe_cno_e0_s20260902/`; the GitHub-readable handoff is `docs/coordination/CHATGPT_HANDOFF_FE_INCREMENTAL_CNO_E0.md`.
+
 `T1-ID-FE-INCR-PERSIST-RIDGE-S20260902` — `DONE` / `REVIEW_REQUIRED`.
 
 - Minimal supervised incremental-value probe on the existing registered PERSIST baseline; 50 train / 16 dev only, complete 20→20 windows, 2052 / 659 windows, runtime H×W 32×64.
@@ -24,11 +33,13 @@ Clean offline research: candidate/feature screening under the frozen Track 1 ID 
 
 ## Current Task
 
-No execution task is active. Ask ChatGPT/Sol to read `docs/coordination/CHATGPT_HANDOFF_FE_INCREMENTAL_PROBE.md` from GitHub and review the bounded incremental-value probe.
+No execution task is active. Ask ChatGPT/Sol to read the latest GitHub handoff and review under Track 1 V3 protocol.
 
 ## Execution State
 
 `REVIEW_REQUIRED`
+
+Ask ChatGPT/Sol to read the latest GitHub handoff and review under Track 1 V3 protocol.
 
 ## Constraints
 
