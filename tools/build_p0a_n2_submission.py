@@ -168,6 +168,7 @@ def build_submission(*, checkpoint: Path, kit_root: Path, out_dir: Path, experim
               "zip": str(zip_path), "zip_sha256": sha256(zip_path), "zip_bytes": zip_path.stat().st_size,
               "inventory": inventory, "official_template": str(kit_root / "submission_template.py")}
     (out_dir / "build_report.json").write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
+    (out_dir / "submission.zip.sha256").write_text(f"{report['zip_sha256']}  submission.zip\n", encoding="utf-8")
     return report
 
 

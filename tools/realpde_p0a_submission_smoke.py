@@ -137,6 +137,11 @@ def main() -> None:
     args = parser.parse_args()
     report = verify(zip_path=args.zip, checkpoint=args.checkpoint, kit_root=args.kit_root,
                     trainer=args.trainer, out_dir=args.out_dir)
+    build_path = args.zip.parent / "build_report.json"
+    if build_path.is_file():
+        build = json.loads(build_path.read_text(encoding="utf-8"))
+        (args.zip.parent / "SUBMISSION_MANIFEST.md").write_text(
+            _manifest(report, build, str(report["status"])), encoding="utf-8")
     print(json.dumps(report, indent=2))
     if report["status"] != "READY_TO_SUBMIT": raise SystemExit(1)
 
