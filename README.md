@@ -4,12 +4,13 @@
 
 ## 当前结论
 
-截至 2026-08-29，Codabench 真实提交结果显示：
+截至 2026-09-03，Codabench 真实提交结果显示：
 
 - `submission_cno_tke1200_bounds_rel00.zip`: `75.58455`
 - 2026-08-29 的 UNet 后处理提交: `74.48384`
+- P0-A + N2 全量 15,300-update CNO: `71.153839`
 
-因此当前主线已经从 UNet 切回 CNO。UNet 在本地验证代理分数较高，但隐藏榜单上 Rel-L2、TKE、MVPE 都弱于 CNO，说明之前的 local final proxy 和验证集后处理有明显泛化风险。
+因此当前主线已经从 UNet 切回 CNO。UNet 在本地验证代理分数较高，但隐藏榜单上 Rel-L2、TKE、MVPE 都弱于 CNO，说明之前的 local final proxy 和验证集后处理有明显泛化风险。P0-A + N2 全量模型将 TKE 子分提高到 `78.355520`，但 SPS 降至 `11.431650`，最终分低于当前最佳 CNO；它提供了物理指标改善的有效证据，但不是新的提交首选。完整的结构、特征、loss、训练与正式分数分析见 `docs/coordination/CHATGPT_HANDOFF_T1_P0A_N2_FULL15300_CODABENCH.md`。
 
 ## 仓库内容
 
@@ -19,6 +20,7 @@
 - `tools/realpde_compare_architectures.py`：不同 baseline 架构对比脚本。
 - `tools/realpde_ensemble_scan.py`：候选模型 ensemble 扫描脚本。
 - `docs/submission_log.md`：提交与候选包记录。
+- `docs/coordination/CHATGPT_HANDOFF_T1_P0A_N2_FULL15300_CODABENCH.md`：P0-A + N2 全量 15,300-update 方案与 Codabench 正式结果交接。
 
 ## 不进 Git 的内容
 
