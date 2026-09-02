@@ -245,3 +245,12 @@ FE 结论：Temporal、SpatialPhysics、PixelPosition 都未通过同时保护 R
 - Trajectory win rates vs Raw-Control (Rel/TKE/MVPE): Temporal `1.000/0.313/0.563`; Spatial `1.000/0.125/0.750`; Joint `1.000/0.250/0.625`. No all-three-metric stable gain; labels are Temporal/Spatial/Joint `LOW_INCREMENTAL_VALUE` under conservative protection, with Rel/MVPE signals review-only.
 - Comparison: PERSIST ridge probe improved all three metrics, while this strong-CNO probe has Rel/MVPE gains and TKE penalties. Required conflict label: `FEATURE_VALUE_POSITIVE_BUT_FUSION_HISTORY_NEGATIVE`; historical FE-01/FE-02 fusion outcomes are not evidence that the underlying feature contains no information.
 - Final decision: **STOP** automatic fusion training; final execution state `REVIEW_REQUIRED`. Artifacts remain local under `../artifacts/fe_incremental_probe_cno_e0_s20260902/`; generated outputs are not committed.
+
+### `T1-ID-POINT-LOCAL3-BALANCED-L001-S20260902` — IN_PROGRESS
+
+- Reference: `T1-ID-POINT-V1-LOCAL3-20260902` and `T1-ID-POINT-LOSS-GRAD-DIAG-20260902`; final bounded Point-MLP loss-balance experiment.
+- Research cleanliness: `CLEAN`; train-only optimization followed by the preregistered 16-trajectory dev gate; locked-final and Codabench prohibited.
+- Sole variable: frozen TKE coefficient `0.05 -> 0.001`, selected only from the train-only median gradient ratio `44.764` (`0.05/44.764 ≈ 0.00112`).
+- Fixed protocol: random initialization, seed `20260901`, B3_PACKED, batch `8`, fixed seeded-shuffled train-window order, AdamW `1e-4`, LOCAL3 `362→256→256→256→128→40` GELU, replicate-padded 3×3 raw u/v history plus normalized x/y, raw residual output, p=0, 1500-step screen and gate-controlled continuation to 7500.
+- Execution: standalone `tools/realpde_point_local3_balanced_runner.py`; remote run and exact command will be recorded in the completion handoff. Old `last@1500.pt` is not reused.
+- Current state: implementation/smoke pending; no dev, locked-final or Codabench access yet.
