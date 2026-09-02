@@ -168,9 +168,9 @@ def fixed_order(n: int, count: int, seed: int) -> list[int]:
     return [int(base[i % n]) for i in range(count)]
 
 
-def loader(ds: Dataset, order: Sequence[int], workers: int = 0) -> DataLoader:
+def loader(ds: Dataset, order: Sequence[int], workers: int = 0, drop_last: bool = True) -> DataLoader:
     return DataLoader(SequenceDataset(ds, order), batch_size=BATCH, shuffle=False, num_workers=workers,
-                      pin_memory=True, drop_last=True)
+                      pin_memory=True, drop_last=drop_last)
 
 
 def data_equivalence(base: H5WindowDataset, cand: H5WindowDataset, order: Sequence[int], n: int) -> dict:
@@ -267,7 +267,7 @@ def save_history(path: Path, rows: list[dict]) -> None:
 
 def evaluate_dev(model: nn.Module, paths: list[Path], kind: str, kit_root: Path, out: Path, device: torch.device) -> dict:
     out.mkdir(parents=True, exist_ok=True)
-    ds = dataset_for(kind, paths); order = list(range(len(ds))); dl = loader(ds, order); pred, target = [], []; elapsed = 0.0; model.eval()
+    ds = dataset_for(kind, paths); order = list(range(len(ds))); dl = loader(ds, order, drop_last=False); pred, target = [], []; elapsed = 0.0; model.eval()
     with torch.no_grad():
         for x, y, _, _ in dl:
             x = x.to(device, non_blocking=True); sync(device); t = time.perf_counter(); p = model(x); sync(device); elapsed += time.perf_counter() - t
