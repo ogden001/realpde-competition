@@ -55,6 +55,13 @@ centered difference at interior pixels; first-order forward difference on index
 and columns. No smoothing, clipping, normalization, coordinates, mask, target,
 CFD, Re/AoA or locked-final data is used. Actual input shape is H×W=`64×128`.
 
+Implementation: `tools/realpde_spatial_diagnostic_batch1.py` (SHA-256
+`2fa8cd5b2b33532c365673f04cd621e6d14f3b1188b6538ca56865306ab267ad`). Exact
+command from the workspace root:
+`python code/tools/realpde_spatial_diagnostic_batch1.py --data-archive data/train_real.tar.gz --manifest artifacts/loss_optimization_v9_20260901_run1/evidence/manifests/id_seed20260901.json --out-dir artifacts/spatial_diagnostic_batch1`.
+The local evidence directory is `artifacts/spatial_diagnostic_batch1/` and
+contains the definition JSON, value/trajectory/edge/correlation CSVs and report.
+
 Full train/dev counts are 2,102/675 windows. Value-level mean/p95:
 
 | Feature | train mean / p95 | dev mean / p95 |
