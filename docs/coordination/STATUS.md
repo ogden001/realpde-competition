@@ -83,9 +83,10 @@ Handoff: `docs/coordination/CHATGPT_HANDOFF_FEATURE_FUSION_FF00.md`
 
 ## Current Task
 
-The detached job on `gpu` completed at 1500 updates with screening deltas
-Rel-L2 `-7.286%`, TKE `+14.240%`, MVPE `+1.504%`; decision
-`STOP_BALANCED_LOCAL3_EARLY`. Handoff:
+The detached job on `gpu` completed at 1500 updates with relative improvements
+Rel-L2 `-7.286%`, TKE `+14.240%`, MVPE `+1.504%`; because lower error is
+better, TKE improved and passed its gate condition. The only failed condition
+was Rel-L2, giving decision `STOP_BALANCED_LOCAL3_EARLY`. Handoff:
 `docs/coordination/CHATGPT_HANDOFF_POINT_LOCAL3_BALANCED_L001.md`. No further
 Point experiment is authorized by this result.
 

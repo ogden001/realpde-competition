@@ -14,9 +14,10 @@ stopped at the preregistered screen gate:
 | LOCAL3, lambda=0.001 | 0.14545619 | 0.85760111 | 0.13071164 |
 
 Candidate relative to PERSIST: Rel-L2 `-7.286%`, TKE `+14.240%`, MVPE
-`+1.504%` (improvement is positive; TKE therefore worsened by 14.240%). The
-screen requires Rel-L2 > 0%, MVPE > 0%, and TKE degradation ≤ 10%; it failed
-Rel-L2 and TKE. No 7500-step continuation was run.
+`+1.504%`. Because these are error metrics, positive TKE improvement means the
+TKE error decreased by 14.240% (`1.0 -> 0.857601`); the TKE screen condition
+therefore passed. The only failed screening condition was Rel-L2 improvement
+(`-7.286%`), so no 7500-step continuation was run.
 
 ## Frozen protocol
 
