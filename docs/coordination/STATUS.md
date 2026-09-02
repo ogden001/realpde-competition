@@ -8,15 +8,15 @@ Clean offline research: candidate/feature screening under the frozen Track 1 ID 
 
 ## Latest Completed
 
-`T1-ID-FE-DATA01-B1-S20260902` — `DONE` / `REVIEW_REQUIRED`.
+`T1-ID-FE-SPATIAL-DATA01-S20260902` — `DONE` / `REVIEW_REQUIRED`.
 
-- Pure Batch-1 runtime-feature distribution diagnosis: 50 train / 16 dev only, 2102 / 675 windows, no training and no locked-final access.
+- Spatial pixel-gradient follow-up plus FE-DATA-01 consistency correction: 50 train / 16 dev only, 2102 / 675 windows, H×W 64×128, no training and no locked-final access.
 - Raw evidence remains local under `../artifacts/feature_summary_batch1/` and is intentionally not in Git. The committed review record is `docs/coordination/CHATGPT_HANDOFF_FE_DATA01.md`.
-- The outcome is a descriptive KEEP/WATCH/LOW_VALUE shortlist. It does not authorize feature fusion, model training, a locked-final audit, or a submission.
+- The outcome is a descriptive Spatial KEEP/WATCH/LOW_VALUE shortlist; all five are retained as data-side candidates, with vorticity explicitly derived. It does not authorize feature fusion, model training, a locked-final audit, or a submission.
 
 ## Current Task
 
-No execution task is active. Ask ChatGPT/Sol to read `docs/coordination/CHATGPT_HANDOFF_FE_DATA01.md` from GitHub and await a bounded `NEXT_ACTION`.
+No execution task is active. Ask ChatGPT/Sol to read `docs/coordination/CHATGPT_HANDOFF_FE_DATA01.md` from GitHub and await a bounded `NEXT_ACTION` for Spatial follow-up.
 
 ## Execution State
 
