@@ -177,6 +177,14 @@ FE 结论：Temporal、SpatialPhysics、PixelPosition 都未通过同时保护 R
 - Phase 2: same initialization/window order, LR `1e-5` vs `1e-4`, 500 train updates; no dev LR selection. Phase 3A `last@1500` gate may continue the same model to `last@7500` only when the registered gate passes.
 - Execution: `tools/realpde_point_v1_local3_runner.py`; remote run `/home/chyfuture/realpde_runs/point_v1_local3_s20260901`; Docker memory hard limit 48 GiB / swap 48 GiB; current stage is Phase 1 coarse.
 
+### `T1-ID-POINT-V1-LOCAL3-20260902` — COMPLETED / STOP_LOCAL3_EARLY
+
+- Phase 1 froze `POINT_RAM_PIPELINE_V1=B3_PACKED`: formal training-path `306.79 windows/s`, step latency `26.08 ms`, data-wait ratio `5.77%`, cache build `31.17 s`, cache `1.04 GB`, process-tree peak RSS `2.06 GB`; DATA_EQUIVALENCE passed exactly.
+- Phase 2 froze `POINT-V1 LR=1e-4`: both 500-update runs finite; final total train loss `0.04198` (1e-4) vs `0.07075` (1e-5), with no NaN/Inf.
+- Phase 3A: LOCAL3 residual, raw velocity, replicate-padded 3×3 context, 1500 updates, `last@1500`; train-side losses finite. Dev comparison versus PERSIST: PERSIST Rel-L2/TKE/MVPE `0.135578/1.000000/0.132707`; LOCAL3 `0.155252/0.832650/0.140822`.
+- Screening gate deltas (Rel-L2/TKE/MVPE): `-14.51% / +16.74% / -6.12%`; Rel-L2 and MVPE did not improve, so `STOP_LOCAL3_EARLY`. No Phase 3B, no locked-final, no Codabench. `NEXT_CANDIDATE` is not authorized by this result.
+- Evidence: remote `/home/chyfuture/realpde_runs/point_v1_local3_phase3_retry3_s20260901`; `phase3_local3/screening_gate.json`, `dev@1500_local3/evaluation.json`, `dev@1500_persist/evaluation.json`, `last@1500.pt`.
+
 每产生一个实质性候选或完整结果，在本文件末尾追加一条；不要回写或覆盖旧结论。
 
 ```markdown
