@@ -1,7 +1,7 @@
 # Track 1 Feature Engineering — Final Review Handoff
 
-**Final state: `CLOSED / REVIEW_REQUIRED`**  
-**Feature Discovery: `CLOSED`**  
+**Final state: `CLOSED / REVIEW_REQUIRED`**
+**Feature Discovery: `CLOSED`**
 **Protocol conclusion: `STOP` (no new Feature or Fusion execution) / `REVIEW_REQUIRED`**
 
 请从已连接的 GitHub 仓库读取本文件，并按 Track 1 V3 协议完成 review。本文是
@@ -181,14 +181,14 @@ This closure does not authorize that project.
 
 Existing commands (not re-run during closure):
 
-- Spatial diagnostic, from workspace root:  
+- Spatial diagnostic, from workspace root:
   `python code/tools/realpde_spatial_diagnostic_batch1.py --data-archive data/train_real.tar.gz --manifest artifacts/loss_optimization_v9_20260901_run1/evidence/manifests/id_seed20260901.json --out-dir artifacts/spatial_diagnostic_batch1`
-- PERSIST probe, from workspace root:  
+- PERSIST probe, from workspace root:
   `python code/tools/realpde_incremental_value_probe.py --data-root artifacts/sim2real_gap_full/_full_cache/real --manifest artifacts/loss_optimization_v9_20260901_run1/evidence/manifests/id_seed20260901.json --kit-root <temporary extracted starting-kit> --out-dir artifacts/fe_incremental_probe_s20260902`
-- Frozen-CNO smoke command (one window per trajectory):  
+- Frozen-CNO smoke command (one window per trajectory):
   `docker run --rm --gpus all -v /tmp/realpde_frozen_cno_incremental_probe.py:/probe.py:ro -v /tmp/id_seed20260901.json:/manifest.json:ro -v /tmp/realpde_t1_kit_20260902/realpde_t1_starting_kit_v9:/kit:ro -v /home/chyfuture/RealPDE_data:/data:ro -v /home/chyfuture/realpde_runs:/runs:ro -v /tmp/realpde_cno_probe_smoke_e0:/out realpde-pytorch-h5py:0831 python /probe.py --data-root /data/p0ab_real_h5_20260830 --manifest /manifest.json --kit-root /kit --checkpoint /runs/loss_opt_v9_20260901_run1/long_E0_s20260901/model_best.pth --out-dir /out --batch-size 8 --max-windows-per-trajectory 1 --experiment-id T1-ID-FE-INCR-FROZEN-CNO-E0-RIDGE-S20260902`
 - Frozen-CNO formal command (the `<remote-artifact-dir>` mount is intentionally
-  redacted; all other arguments are exact):  
+  redacted; all other arguments are exact):
   `docker run --rm --gpus all -v /tmp/realpde_frozen_cno_incremental_probe.py:/probe.py:ro -v /tmp/id_seed20260901.json:/manifest.json:ro -v /tmp/realpde_t1_kit_20260902/realpde_t1_starting_kit_v9:/kit:ro -v /home/chyfuture/RealPDE_data:/data:ro -v /home/chyfuture/realpde_runs:/runs:ro -v <remote-artifact-dir>:/out realpde-pytorch-h5py:0831 python /probe.py --data-root /data/p0ab_real_h5_20260830 --manifest /manifest.json --kit-root /kit --checkpoint /runs/loss_opt_v9_20260901_run1/long_E0_s20260901/model_best.pth --out-dir /out --batch-size 32 --code-commit c51b2fbf6d8656c455872d68bb394106f2de18a1 --experiment-id T1-ID-FE-INCR-FROZEN-CNO-E0-RIDGE-S20260902 --baseline-family "registered T1-ID-LOSS-E0-90M model_best; frozen weights"`
 - Frozen-CNO ridge configuration: residual target is target minus frozen prediction;
   train-only standardization over `4,202,496` rows; per-pixel closed form
