@@ -285,7 +285,7 @@ def train(args: argparse.Namespace) -> None:
     if out.exists():
         raise FileExistsError(out)
     out.mkdir(parents=True)
-    repo = Path(__file__).resolve().parents[1]
+    repo = Path(args.provenance_repo).resolve() if args.provenance_repo else None
     manifest = args.manifest.resolve()
     init_checkpoint = args.init_checkpoint.resolve()
     kit_root = args.kit_root.resolve()
@@ -327,7 +327,12 @@ def train(args: argparse.Namespace) -> None:
         "device": str(device),
         "total_parameters": count_parameters(model),
         "added_parameters": count_parameters(model.conditioner),
-        **git_provenance(repo),
+        **(git_provenance(repo) if repo else {
+            "code_commit": args.code_commit or "UNKNOWN",
+            "working_tree_status": args.working_tree_status or "UNKNOWN",
+            "working_tree_diff_sha256": args.working_tree_diff_sha256 or "UNKNOWN",
+            "runner_sha256": sha256(Path(__file__).resolve()),
+        }),
         "start_time": time.time(),
     }
     (out / "run_metadata.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
@@ -411,6 +416,10 @@ def main() -> None:
     parser.add_argument("--max-train-seconds", type=float, default=1800.0)
     parser.add_argument("--max-windows-per-trajectory", type=int)
     parser.add_argument("--eval-split", default="dev")
+    parser.add_argument("--provenance-repo", type=Path)
+    parser.add_argument("--code-commit")
+    parser.add_argument("--working-tree-status")
+    parser.add_argument("--working-tree-diff-sha256")
     args = parser.parse_args()
     # The dataset paths in the manifest are resolved by the shared loader.  The
     # explicit data-root argument remains part of the command/provenance API;
