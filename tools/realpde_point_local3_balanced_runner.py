@@ -300,7 +300,10 @@ def write_reports(out: Path, decision: str, screen: dict, phase_metrics: list[di
 
 def run(args: argparse.Namespace) -> str:
     out = args.out_dir
-    if out.exists() and any(out.iterdir()):
+    # Detached shell redirection creates run.log before Python starts; that
+    # single file is an allowed empty-run sentinel. Any other prior artifact
+    # still fails closed to avoid overwriting an existing experiment.
+    if out.exists() and any(path.name != "run.log" for path in out.iterdir()):
         raise FileExistsError(f"output directory is not empty: {out}")
     out.mkdir(parents=True, exist_ok=True)
     write_status(out, "RUNNING", "initializing", current_update=0, target_update=SCREEN_UPDATES, loss_weight=LAMBDA_TKE)
