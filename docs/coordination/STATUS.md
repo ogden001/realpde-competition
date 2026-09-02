@@ -4,8 +4,16 @@ Updated: 2026-09-02
 
 ## Current Stage
 
-Feature Engineering: **CLOSED / REVIEW_REQUIRED**. The Feature Discovery catalog is
-frozen; no new Feature or Fusion experiment is authorized in this stage.
+Temporal / Spatial Prior Fusion: **FF-00 BLOCKED**. Feature Discovery remains
+**CLOSED**; no FF-01, FF-02 or FF-03 experiment is authorized.
+
+FF-00 protocol design and the historical Loss duplication audit are complete, but
+the requested strong baseline's historical training source commit is not uniquely
+recoverable. The checkpoint SHA, manifest, scorer, architecture and metrics are
+known; the fallback source-file SHA and missing-commit note are recorded in the
+handoff. This is a provenance blocker, not a baseline switch.
+
+Handoff: `docs/coordination/CHATGPT_HANDOFF_FEATURE_FUSION_FF00.md`
 
 ## Latest Completed
 
@@ -54,17 +62,18 @@ frozen; no new Feature or Fusion experiment is authorized in this stage.
 
 ## Current Task
 
-No execution task is active. Feature Engineering is closed pending review. Ask
-ChatGPT/Sol to read `docs/coordination/CHATGPT_HANDOFF_FE_FINAL_REVIEW.md` and review
-under Track 1 V3 protocol.
+No execution task is active. FF-00 is blocked pending ChatGPT/Sol review of the
+provenance gap and the proposed Fusion protocol. Do not start FF-01, FF-02 or FF-03.
 
 ## Execution State
 
-`REVIEW_REQUIRED`
+`BLOCKED`
 
-Feature Engineering stage: `CLOSED / REVIEW_REQUIRED`.
+Feature Engineering stage: `CLOSED`.
+Temporal / Spatial Prior Fusion stage: `FF-00 BLOCKED`.
 
-Ask ChatGPT/Sol to read the latest GitHub handoff and review under Track 1 V3 protocol.
+Ask ChatGPT/Sol to read `docs/coordination/CHATGPT_HANDOFF_FEATURE_FUSION_FF00.md`,
+resolve the source-commit provenance blocker, and return one bounded next action.
 
 ## Constraints
 
@@ -80,3 +89,6 @@ For the next material result, provide: experiment ID and state; commit SHA or di
 ## Repository Note
 
 The registry and several tools are presently uncommitted local work. Until a commit is created, reports must identify the relevant dirty-tree state rather than implying a reproducible commit SHA.
+
+FF-00 handoff status: protocol design complete, but conclusion `BLOCKED` because
+the historical baseline source commit is missing. There is no active execution task.
