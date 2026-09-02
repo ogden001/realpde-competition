@@ -273,3 +273,13 @@ FE 结论：Temporal、SpatialPhysics、PixelPosition 都未通过同时保护 R
 - Fixed protocol: manifest SHA `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`, 50/16/16, B3_PACKED, seed `20260901`, batch `8`, AdamW `lr=1e-4`, `weight_decay=0`, uv MSE only, 1500-step screen and gate-controlled continuation to 7500.
 - Screening gate versus the same frozen CNO: Rel-L2 improvement >0%, MVPE improvement >0%, TKE degradation ≤5%. No locked-final, Codabench, LOCAL5, extra features or H2.
 - Current state: runner implementation/tests complete; FE-00 checkpoint resolved and remote smoke passed all frozen/zero-init/shape checks; formal detached launch pending.
+
+### `T1-ID-HYBRID-CNO-POINT-H1-S20260902` — COMPLETED / STOP_HYBRID_POINT_H1_EARLY
+
+- The frozen FE-00 CNO plus zero-initialized LOCAL3 Point residual head completed the preregistered 1500-update screen; no 7500 continuation was run.
+- Same-frozen-CNO dev v9 errors (Rel-L2 / TKE / MVPE): backbone `0.19082105 / 0.64406884 / 0.14425756`; candidate `0.14110152 / 0.70690584 / 0.10270503`.
+- Candidate relative changes (improvement positive, lower error is better): Rel-L2 `+26.056%`, TKE `-9.756%` (error worsened 9.756%), MVPE `+28.804%`. Rel-L2 and MVPE passed; TKE degradation exceeded the protected 5% limit, so the gate failed only on TKE.
+- Fixed protocol: manifest SHA `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`; 50/16/16; B3_PACKED; seed `20260901`; batch `8`; AdamW `1e-4`, weight decay `0`; uv MSE-only Point-head training; frozen CNO parameters excluded from optimizer.
+- FE-00 checkpoint SHA `499ec748cc5db1b7f3ad24029a464e921ad31c3d383b69626ec540eba392903e`; `last@1500` SHA `fb6735bff296cc53f028b894b74691697f7475f5bbfda9ae8ee0dcd70d1e3bd2`; runner SHA `9b3d3382496208496ddfa9ac382134095400f957fb4390bfc50904ebe7735b15`.
+- Locked-final and Codabench were not accessed. H2, LOCAL5, joint training and loss changes are not authorized by this result.
+- Handoff: `docs/coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1.md`; remote evidence remains under `/home/chyfuture/realpde_runs/hybrid_cno_point_h1_s20260902/artifacts/` and small review files under `../artifacts/hybrid_cno_point_h1_s20260902_review/`.

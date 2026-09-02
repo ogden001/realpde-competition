@@ -4,7 +4,7 @@ Updated: 2026-09-02
 
 ## Current Stage
 
-Point Modeling: **POINT-LOCAL3-BALANCED-L001 COMPLETED / STOP_BALANCED_LOCAL3_EARLY**.
+Point Modeling: **H1 COMPLETED / STOP_HYBRID_POINT_H1_EARLY**.
 The bounded random-init loss-balance experiment (`MSE + 0.001*TKE`) failed its
 1500-step screen; no old LOCAL3 checkpoint was reused and no locked-final or
 Codabench access occurred.
@@ -26,6 +26,14 @@ code commit or complete dirty-diff SHA.
 Handoff: `docs/coordination/CHATGPT_HANDOFF_FEATURE_FUSION_FF00.md`
 
 ## Latest Completed
+
+`T1-ID-HYBRID-CNO-POINT-H1-S20260902` — `DONE` /
+`STOP_HYBRID_POINT_H1_EARLY`.
+
+- Frozen FE-00 CNO + zero-initialized LOCAL3 Point head at 1500 updates:
+  Rel-L2 `+26.056%`, MVPE `+28.804%`, TKE error `-9.756%` relative improvement
+  (9.756% worsening). The protected TKE degradation limit was exceeded.
+- Handoff: `docs/coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1.md`.
 
 `FF-00-FUSION-PROTOCOL-S20260902` — Fusion Protocol & Baseline Freeze — `COMPLETED` /
 `REVIEW_REQUIRED`.
@@ -83,23 +91,18 @@ Handoff: `docs/coordination/CHATGPT_HANDOFF_FEATURE_FUSION_FF00.md`
 
 ## Current Task
 
-The detached job on `gpu` completed at 1500 updates with relative improvements
-Rel-L2 `-7.286%`, TKE `+14.240%`, MVPE `+1.504%`; because lower error is
-better, TKE improved and passed its gate condition. The only failed condition
-was Rel-L2, giving decision `STOP_BALANCED_LOCAL3_EARLY`. Handoff:
-`docs/coordination/CHATGPT_HANDOFF_POINT_LOCAL3_BALANCED_L001.md`. No further
-Point experiment is authorized by this result.
+The latest detached job on `gpu`, `T1-ID-HYBRID-CNO-POINT-H1-S20260902`,
+completed at 1500 updates. Relative to the same frozen FE-00 CNO it improved
+Rel-L2 by `26.056%` and MVPE by `28.804%`, but worsened TKE error by `9.756%`.
+The protected 5% TKE condition therefore failed, giving
+`STOP_HYBRID_POINT_H1_EARLY`. Handoff:
+`docs/coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1.md`. No continuation to
+7500, H2, LOCAL5 or joint training is authorized.
 
-The next explicitly authorized bounded task is
-`T1-ID-HYBRID-CNO-POINT-H1-S20260902`: frozen CLEAN FE-00 CNO plus a
-zero-initialized LOCAL3 Point residual head. It is registered as `IN_PROGRESS`;
-checkpoint resolution and runner implementation are complete, and remote smoke
-passed all frozen/zero-init/shape checks. Formal detached launch is next. No
-joint training, locked-final or Codabench.
-
-No execution task is active. FF-00 is complete and awaits ChatGPT/Sol review of the
-accepted provenance exception and proposed Fusion protocol. Do not start FF-01,
-FF-02 or FF-03.
+No execution task is active. H1 is complete and awaits ChatGPT/Sol review; do not
+start H2, LOCAL5, joint training, or any loss change. FF-00 is also complete and
+awaits ChatGPT/Sol review of the accepted provenance exception and proposed Fusion
+protocol. Do not start FF-01, FF-02 or FF-03.
 
 ## Execution State
 
@@ -129,3 +132,7 @@ The registry and several tools are presently uncommitted local work. Until a com
 FF-00 handoff status: completed with `BASELINE_PROVENANCE_EXCEPTION_ACCEPTED`; the
 historical source commit remains `UNKNOWN / NOT RECOVERED`, and the conclusion is
 `REVIEW_REQUIRED`. There is no active execution task.
+
+H1 handoff: `docs/coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1.md`. The
+candidate improved Rel-L2/MVPE but failed the protected TKE criterion; no
+continuation or downstream Point experiment is authorized.
