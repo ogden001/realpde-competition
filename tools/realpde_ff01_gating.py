@@ -291,7 +291,8 @@ def train(args: argparse.Namespace) -> None:
     kit_root = args.kit_root.resolve()
     if args.eval_split != "dev":
         raise ValueError("FF-01 is frozen to the dev split")
-    sys.path.insert(0, str(repo / "tools"))
+    tool_dir = (repo / "tools") if repo else Path(__file__).resolve().parent
+    sys.path.insert(0, str(tool_dir))
     from realpde_loss_official_v9 import loss_parts  # type: ignore
     manifest_payload = json.loads(manifest.read_text(encoding="utf-8"))
 
