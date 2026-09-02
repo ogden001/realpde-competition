@@ -40,10 +40,13 @@ def _load_module(path: Path):
 
 def _direct_predict(checkpoint: Path, kit_root: Path, trainer: Path, inputs: np.ndarray) -> np.ndarray:
     sys.path.insert(0, str(trainer.parent))
-    from realpde_p0a_n2_full import P0AConfig, _forward, _load_p0a_cno
+    from realpde_p0a_n2_full import P0AConfig, _forward
     payload = validate_checkpoint_for_submission(checkpoint)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = _load_p0a_cno(kit_root, checkpoint, device)
+    sys.path.insert(0, str(kit_root))
+    from rpde_baselines.model.cno import CNO3d
+    model = CNO3d(in_dim=20, out_dim=3, out_dim_mult=1, in_size=64, N_layers=3).to(device)
+    model.load_state_dict(payload["model_state_dict"], strict=True)
     model.eval()
     config = P0AConfig(**payload["feature_config"])
     with torch.inference_mode():
