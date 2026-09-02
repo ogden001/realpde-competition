@@ -4,9 +4,30 @@ Updated: 2026-09-02
 
 ## Current Stage
 
-Clean offline research: candidate/feature screening under the frozen Track 1 ID protocol.
+Feature Engineering: **CLOSED / REVIEW_REQUIRED**. The Feature Discovery catalog is
+frozen; no new Feature or Fusion experiment is authorized in this stage.
 
 ## Latest Completed
+
+`FE-FINAL-REVIEW-S20260902` — Feature Engineering final review — `CLOSED` /
+`REVIEW_REQUIRED`.
+
+- Consolidates `T1-ID-FE-DATA01-B1-S20260902`,
+  `T1-ID-FE-SPATIAL-DATA01-S20260902`,
+  `T1-ID-FE-INCR-PERSIST-RIDGE-S20260902`,
+  `T1-ID-FE-INCR-FROZEN-CNO-E0-RIDGE-S20260902`, and historical FE-01/FE-02.
+- Final labels: Temporal `SIGNAL_POSITIVE_BUT_FUSION_NOT_JUSTIFIED`; Spatial
+  `WEAK_SIGNAL_POSITIVE_BUT_FUSION_NOT_JUSTIFIED`; Temporal+Spatial has the best
+  Rel/MVPE residual signal but its TKE trade-off prevents automatic promotion.
+- PERSIST improved Rel-L2/TKE/MVPE consistently. Frozen strong CNO retained Rel/MVPE
+  residual signal but every ridge correction worsened TKE; Raw-Control ridge also
+  worsened TKE, so this is not evidence that the Features contain no information.
+- Historical FE-01/FE-02 outcomes are fusion-implementation evidence only. Required
+  interpretation label: `FEATURE_VALUE_POSITIVE_BUT_FUSION_HISTORY_NEGATIVE`.
+- GitHub-readable final review: `docs/coordination/CHATGPT_HANDOFF_FE_FINAL_REVIEW.md`.
+- This closure did not run inference, ridge, training, locked-final/private-test access or
+  Codabench. A future Fusion reopening must be a separately authorized project whose goal
+  is “利用 Temporal/Spatial residual signal，同时保护 TKE/fluctuation structure”。
 
 `T1-ID-FE-INCR-FROZEN-CNO-E0-RIDGE-S20260902` — `DONE` / `REVIEW_REQUIRED`.
 
@@ -33,11 +54,15 @@ Clean offline research: candidate/feature screening under the frozen Track 1 ID 
 
 ## Current Task
 
-No execution task is active. Ask ChatGPT/Sol to read the latest GitHub handoff and review under Track 1 V3 protocol.
+No execution task is active. Feature Engineering is closed pending review. Ask
+ChatGPT/Sol to read `docs/coordination/CHATGPT_HANDOFF_FE_FINAL_REVIEW.md` and review
+under Track 1 V3 protocol.
 
 ## Execution State
 
 `REVIEW_REQUIRED`
+
+Feature Engineering stage: `CLOSED / REVIEW_REQUIRED`.
 
 Ask ChatGPT/Sol to read the latest GitHub handoff and review under Track 1 V3 protocol.
 
