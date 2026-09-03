@@ -12,7 +12,7 @@
    - 本文件
    - `docs/coordination/CHATGPT_HANDOFF_T1_P0A_N2_FULL15300_CODABENCH.md`
 3. 运行：
-   `pytest -q tests/test_p0a_full_training.py tests/test_sota_full_night.py`
+   `pytest -q tests/test_p0a_full_training.py tests/test_sota_full_night.py tests/test_runtime_context.py`
 4. 只解析真实环境路径并设置：`DATA_ROOT`、`KIT_ROOT`、`RESUME_CHECKPOINT`、`OUT_ROOT`。
    - `RESUME_CHECKPOINT` 必须是 full-data update `15300` 的 `model_last.pth`；
    - SHA256 必须为 `3ea4e4def03ae2f1d970975e4217358e1d762b88a69bdddfdf844d551baaa3e4`；
@@ -20,7 +20,7 @@
    - 上一次失败 artifact 保留不动；本次必须使用新的 `OUT_ROOT`，例如 `.../sota_full_night_20260904_retry1`。
 5. 在已验证的 CUDA/container 环境中 detached 启动：
    `bash tools/run_sota_full_night_20260904.sh`
-6. 启动后只检查一次：launcher 已进入 `RUNNING`。记录 PID、命令、launcher log、`OUT_ROOT`，然后停止轮询。
+6. 启动后只检查一次：launcher 已进入 `RUNNING`。记录 PID、命令、launcher log、`OUT_ROOT`，并把 `runtime_snapshot.json` 中的 GPU、82/3383、scorer SHA、15300 checkpoint resume 信息一并反馈，然后停止轮询。
 
 ## Constraints
 
@@ -37,9 +37,11 @@
 
 `OUT_ROOT` 最终应包含：
 
+- `runtime_snapshot.json`
 - `preflight.json`
 - `smoke_full_15300/`
 - `full_15300_to_43260/`
+  - `artifact_manifest.json`
 - `full_night_summary.json`
 - `launcher_status.json`
 
@@ -47,4 +49,4 @@
 
 ## Stop
 
-完成一次启动检查并记录 `RUNNING` 后，Codex 停止主动工作。明早由 ChatGPT/Sol review `full_night_summary.json` 和已落盘 checkpoints，再进入 SPS / package / submission。
+完成一次启动检查并记录 `RUNNING` 后，Codex 停止主动工作。明早由 ChatGPT/Sol review `full_night_summary.json`、`artifact_manifest.json` 和已落盘 checkpoints，再进入 SPS / package / submission。
