@@ -5,36 +5,66 @@
 在规划、修改代码或解读实验之前，必须阅读：
 
 1. 工作区根目录的 `MEMORY.md`；
-2. 本仓库的 `README.md` 与本任务相关的 `docs/` 文档；
-3. 当前交接状态优先阅读 `docs/coordination/STATUS.md`；以及
-4. 按任务相关范围阅读 `docs/track1_experiment_registry.md`。
+2. `docs/CHATGPT_CODEX_WORK_PROTOCOL.md`；
+3. 本任务所属优化方向的 `README.md` 与 `NEXT_ACTION.md`；
+4. 本任务明确引用的其他 `docs/` 证据文档。
 
-`STATUS.md` 是简短的交接索引，不能替代实验注册表或 `MEMORY.md`。`submission_log.md` 只记录真实的 Codabench 提交。
+需要跨方向状态时再读取 `docs/coordination/STATUS.md` 和全局概要/注册表，不要用共享总表替代本方向文档。
 
 ## ChatGPT–Codex 协作
 
-将用户提供的 `NEXT_ACTION` 视为当前的有界任务。它必须明确，或 Codex 必须依据现有协议确定：目标、允许的数据/资源预算、禁止动作和验收条件。不得扩张任务范围。
+ChatGPT / Sol 负责技术方向、实验设计、核心训练/评估/分析逻辑、结果复核和下一步决策。
 
-每个实质性实验或候选，都要向 `docs/track1_experiment_registry.md` 追加可核验事实：实验 ID、状态（`DONE`、`REVIEW_REQUIRED`、`BLOCKED` 或 `RUNNING`）、commit SHA 或明确的脏工作树说明、split/manifest SHA、精确命令和关键配置、artifact ID 或仓库相对路径、核心指标/观察，以及 `GO` / `STOP` / `REVIEW_REQUIRED` 结论。不得覆盖既有结论。
+Codex / Luna-medium 负责明确任务的工程落地、环境适配、smoke test、执行、结果记录和提交。不得自行扩大实验范围，不自行设计下一轮实验。
 
-任务结束时，更新 `docs/coordination/STATUS.md` 中的最近完成项、当前状态、允许范围和 review handoff。只有证据充分时才更新注册表中的稳定结论。不得将数据集、checkpoint、凭证、绝对私有路径或生成的 submission archive 写入 Git。
+每个优化方向在自己的 `docs/` 目录维护：
+- `README.md`：长期技术记忆，记录全部实验，包括有效、失败、`NO-GO` 和 `STOP`；
+- `NEXT_ACTION.md`：当前施工单，必须短、明确、原子化。
+
+`NEXT_ACTION.md` 默认只包含 Goal、Tasks、Constraints、Deliverables、Stop。具体优化方向的 `NEXT_ACTION.md` 不放在 `docs/coordination/`。
+
+## Git 与并行执行
+
+远端仓库统一使用 `main`。除非用户明确要求，不为普通实验创建 branch。
+
+开始任务前：
+1. 检查当前工作区是否有未知未提交改动；
+2. 执行 `git pull --rebase origin main`；
+3. 再开始任务。
+
+未知未提交改动不得擅自 stash、reset、restore、clean 或覆盖，应先报告。
+
+多个 Codex 可以并行，但不得同时操作同一个本地工作目录。并行执行应使用独立的本地 clone/工作目录，全部跟踪同一个 `origin/main`。
+
+每个 Codex 只修改本方向 `docs/` 和直接相关代码/脚本。不要顺手修改其他方向，不要使用 `git add .` 把其他管线文件带入提交。
+
+提交前再次同步 `origin/main`。若 rebase 出现实质性冲突，停止并报告，不自行猜测解决。完成后 commit、push，并确认工作树干净；无法提交的文件必须明确报告。
+
+## 实验记录
+
+每个实质性实验都应记录到本方向 `README.md`，至少包含：
+- 实验目的与关键配置；
+- 可复现命令或脚本入口；
+- 核心指标/观察；
+- `KEEP` / `REVIEW` / `NO-GO` / `STOP` 结论；
+- 必要的 artifact 或证据路径。
+
+失败实验同样记录，避免重复试错。
+
+`docs/track1_experiment_registry.md`、`docs/realpde整体优化概要.md` 等共享文档用于跨方向汇总，不要求每个并行实验都即时修改。只有任务明确要求或形成稳定跨方向结论时再更新。
+
+不得将数据集、checkpoint、凭证、绝对私有路径或生成的 submission archive 写入 Git。
 
 ## 长时任务
 
-启动长时间 CPU/GPU 任务前，先完成实现与 smoke test；说明主机、命令、日志和 artifact 路径，以及监控命令。以 detached 方式启动 Runner，一次性确认其 PID/日志，记录 `RUNNING` 后停止轮询。仅在后续得到明确请求时回收结果。
+启动长时间 CPU/GPU 任务前，先完成实现与 smoke test，并明确实验配置、评估方法和分析输出。
 
-不要假设 GitHub push/pull 可用，也不要假设外部 ChatGPT 会话能读取这个私有仓库。应在此记录本地事实，并向用户报告尚未推送的协调改动。
+以 detached 方式启动 Runner，记录主机、命令、日志、PID 和 artifact 路径。确认 `RUNNING` 后停止持续轮询，仅在后续得到明确请求时回收结果。
 
 ## Git Docs 作为长期技术记忆
 
-Git `docs/` 是 ChatGPT/Sol、Codex 与研发人员共享的长期技术记忆。聊天上下文是短期的，不能替代 Git 中沉淀的阶段性结论。
+Git `docs/` 是 ChatGPT/Sol、Codex 与研发人员共享的长期技术记忆，聊天上下文不能替代 Git 中沉淀的结论。
 
-信息流为：实验/分析事实 → 具体实验记录 → 稳定的阶段性结论 → 对应方向概要 → `docs/realpde整体优化概要.md`。具体记录保留完整配置、命令、溯源和指标；概要保持简短，并链接回这些证据。
+方向内的信息流为：实验事实 → 本方向 `README.md` → 稳定方向结论。跨方向稳定结论再汇总到整体概要。
 
-ChatGPT/Sol 负责技术方向、实验设计和结果复核，包括 `KEEP` / `REVIEW` / `NO-GO` / `STOP` 判断与优先级。形成重要稳定结论后，应指出需要沉淀的结论和需要更新的概要文档。Codex 负责执行事实和 artifact、详细记录，以及在结论确认后增量更新概要。只有一级方向发生实质变化时，才更新整体概要。
-
-当 ChatGPT/Sol 的实验复核明确给出 `Docs impact` 时，Codex 应在当前任务收尾时按其中指定的方向和文档完成增量更新；如果 `Docs impact = NO`，则不要为了形式更新概要。
-
-不要因为进行中的运行、中间 checkpoint 或不稳定观察更新概要。以下情况应更新：证据确认某方法有效、出现值得避免重复的失败/停止路线、形成关键技术认识、优先级变化、一个探索阶段结束，或结果改变了下一步路线。不要把概要写成实验流水账，也不要复制长报告。被新证据推翻的结论应直接更新；重要的 `NO-GO` / `STOP` 结论应保留简短记录，避免重复实验。
-
-开始某个已有方向的新任务前，先阅读其概要，再读取本有界任务需要的详细证据。若拟议实验重复已记录的 `NO-GO` / `STOP`，或与既有结论冲突，应主动指出，而不是静默重跑。
+开始已有方向的新任务前，先读该方向 `README.md`。如果拟议实验重复已记录的 `NO-GO` / `STOP`，或与既有结论冲突，应主动指出，而不是静默重跑。
