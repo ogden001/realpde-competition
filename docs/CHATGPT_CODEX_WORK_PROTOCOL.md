@@ -115,22 +115,106 @@ Codex 不根据伪代码自行补全或重写这些核心实验逻辑。Codex �
 
 环境适配不得改变实验定义、数据 split、核心超参数或评价协议。若环境问题必须修改实验语义，Codex 应停止并报告，由 ChatGPT / Sol 决策和修改代码。
 
-## 6. 长时 GPU 任务
+## 6. Runtime Context 与 Artifact 规则
+
+当任务依赖远程 GPU 机器上的真实环境、数据目录、starting kit、checkpoint 或历史 artifact 时，不再由 ChatGPT / Sol 根据聊天记录猜测这些事实。
+
+仓库提供轻量工具：
+
+`tools/realpde_runtime_context.py`
+
+### Runtime Snapshot
+
+在以下情况之一发生时，应优先刷新 runtime snapshot：
+- 新的 SOTA / 长训练任务依赖远程 GPU 环境；
+- continuation 依赖某个历史 checkpoint；
+- 任务依赖特定数据规模、scorer 或 artifact 是否存在；
+- 上一次执行因路径、checkpoint、数据或环境事实不成立而停止。
+
+snapshot 至少应记录：
+- GPU、CUDA/PyTorch 等运行环境事实；
+- 数据根目录、trajectory 数、window 数、空间 shape；
+- starting-kit 路径与 `scoring.py` SHA256；
+- 已扫描 checkpoint 的路径、SHA256、iteration、feature config、loss config、是否包含 optimizer state。
+
+示例：
+
+```bash
+python tools/realpde_runtime_context.py snapshot \
+  --data-root "$DATA_ROOT" \
+  --kit-root "$KIT_ROOT" \
+  --checkpoint "$RESUME_CHECKPOINT" \
+  --artifact-root "$ARTIFACT_ROOT" \
+  --output "$OUT_ROOT/runtime_snapshot.json"
+```
+
+runtime snapshot 默认保存在远程 artifact 目录，不要求提交绝对机器路径到 Git。Codex 应把影响实验设计的关键事实反馈给 ChatGPT / Sol。若这些事实决定实验是否成立，应先反馈 snapshot，再由 ChatGPT / Sol 最终确定实验任务。
+
+### Artifact Manifest
+
+凡长训练、长评估或会被后续 continuation 复用的 run，结束后应生成：
+
+`artifact_manifest.json`
+
+至少记录：
+- run metadata 与 terminal status；
+- 实际落盘 checkpoint；
+- 每个 checkpoint 的 update、SHA256；
+- 是否包含 optimizer state；
+- feature/loss config；
+- 哪些 checkpoint 可以安全 resume。
+
+可使用：
+
+```bash
+python tools/realpde_runtime_context.py manifest --run-dir "$RUN_DIR"
+```
+
+后续 handoff / README 必须明确区分：
+- **metrics-only evaluation point**；
+- **inference-only checkpoint**；
+- **resumable checkpoint**。
+
+不得因为某个 update 有 dev 指标，就假设该 update 存在可恢复 checkpoint。
+
+### Continuation 资产选择
+
+continuation 应优先基于 snapshot / artifact manifest 中已经确认存在的资产，不根据目录名或历史文字推断。
+
+必要时可用语义 resolver，例如：
+
+```bash
+python tools/realpde_runtime_context.py resolve \
+  --snapshot runtime_snapshot.json \
+  --iteration 15300 \
+  --feature-set P0-A \
+  --require-optimizer-state
+```
+
+若没有唯一匹配资产，应停止并报告，不得自行换成相邻 update。
+
+对于历史 checkpoint continuation，checkpoint 内已经记录并被历史训练实际使用的 feature config、loss config、optimizer state 等语义优先。当前代码或当前数据重新推导出的值只用于兼容性检查，不得在没有明确实验设计的情况下重定义历史训练语义。
+
+## 7. 长时 GPU 任务
 
 凡预计消耗 30 分钟以上 GPU 的实验，启动前应尽量满足：
 - 实验配置已固定；
 - 评估方法已固定；
 - 分析输出已定义；
+- runtime snapshot 已覆盖关键远程事实；
 - smoke test 已通过。
 
 Codex 启动长时任务后，只需记录命令、日志、PID、artifact 路径和 `RUNNING` 状态，不持续轮询，除非用户明确要求。
 
-## 7. 决策边界
+长时任务完成后，应确保 `artifact_manifest.json` 已生成，并在 handoff 中记录 resumable checkpoint 清单。
+
+## 8. 决策边界
 
 Codex 可以自主处理：
 - 明确的工程错误；
 - 路径、依赖、环境适配；
-- 不改变实验语义的代码修复。
+- 不改变实验语义的代码修复；
+- runtime snapshot 和 artifact manifest 的事实盘点。
 
 Codex 不应自主处理：
 - 更换模型结构；
@@ -139,15 +223,18 @@ Codex 不应自主处理：
 - 增加新特征；
 - 改变实验变量；
 - 扩展实验矩阵；
+- 用其他 checkpoint 替代任务指定 checkpoint；
 - 启动下一轮研究。
 
 遇到这些情况应停止并报告，由 ChatGPT / Sol 决策。
 
-## 8. 最终原则
+## 9. 最终原则
 
 **一个远端 `main`，多个独立本地执行管线。**
 
 **方向目录隔离任务和实验历史，`README.md` 保存长期记忆，`NEXT_ACTION.md` 驱动下一步。**
+
+**远程环境事实先盘点，再设计依赖这些事实的实验；长任务结束后留下可机器读取的 artifact manifest。**
 
 **ChatGPT / Sol = Research Lead + Experiment Designer + Core Experiment Code Author + Reviewer**
 
