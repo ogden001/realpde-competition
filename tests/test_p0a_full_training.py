@@ -13,7 +13,10 @@ from realpde_p0a_n2_full import (  # noqa: E402
     N2_WEIGHTS,
     load_resume_checkpoint,
     manifest_paths,
+    milestone_checkpoint_path,
     save_checkpoint,
+    terminal_state,
+    validate_milestone_updates,
 )
 
 
@@ -122,3 +125,38 @@ def test_manifest_paths_uses_data_root_override(tmp_path):
     (tmp_path / "b.h5").touch()
 
     assert manifest_paths(manifest, tmp_path, "dev") == [tmp_path / "b.h5"]
+
+
+def test_milestones_must_be_after_resume_and_at_or_before_target(tmp_path):
+    values = validate_milestone_updates([31100, 36500, 37850, 40560, 43260], start=15300, target=43260)
+    assert values == (31100, 36500, 37850, 40560, 43260)
+    assert milestone_checkpoint_path(tmp_path, 31100) == tmp_path / "model_update_31100.pth"
+
+    with pytest.raises(ValueError, match="milestone"):
+        validate_milestone_updates([15300], start=15300, target=43260)
+    with pytest.raises(ValueError, match="milestone"):
+        validate_milestone_updates([43261], start=15300, target=43260)
+
+
+def test_time_cap_is_valid_terminal_only_when_explicitly_allowed():
+    assert terminal_state(
+        stop_reason="time_cap",
+        completed_update=40123,
+        target_update=43260,
+        initial_update=15300,
+        allow_time_cap=True,
+    ) == "TIME_CAPPED"
+    assert terminal_state(
+        stop_reason="time_cap",
+        completed_update=40123,
+        target_update=43260,
+        initial_update=15300,
+        allow_time_cap=False,
+    ) == "STOPPED"
+    assert terminal_state(
+        stop_reason="updates_complete",
+        completed_update=43260,
+        target_update=43260,
+        initial_update=15300,
+        allow_time_cap=True,
+    ) == "DONE"
