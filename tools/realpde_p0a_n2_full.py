@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Resumable P0-A + N2 continuation runner for Track 1.
 
-This is the compact continuation path recovered from the historical full-data
-runner. It reuses the current P0-A builder and official-v9 loss/scorer helpers,
-restores both model and AdamW state, then explicitly reapplies the requested LR.
+The runner supports two explicit modes:
+- validation continuation from a frozen manifest; or
+- all-released-data competition continuation.
+
+It restores model and AdamW state, reapplies the requested LR, preserves exact
+milestone checkpoints, and records the last truly completed optimizer update.
 """
 from __future__ import annotations
 
@@ -27,7 +30,7 @@ from realpde_p0_features import P0FeatureBuilder, P0FeatureConfig
 
 
 MAX_GPU_GIB = 23.5
-MAX_TRAIN_SECONDS = 5 * 60 * 60 + 40 * 60
+MAX_TRAIN_SECONDS = 5 * 60 * 60 + 55 * 60
 # Historical full-run checkpoints store exactly these four non-zero N2 terms.
 # Keep this schema stable so old optimizer/model resumes remain compatible.
 N2_WEIGHTS = {"mse": 1.0, "tke": 0.05, "rel": 0.027514, "mvpe": 0.009757}
@@ -61,6 +64,45 @@ def manifest_paths(manifest: Path, data_root: Path, split: str) -> list[Path]:
     if missing:
         raise FileNotFoundError(f"manifest files missing: {missing[:3]}")
     return paths
+
+
+def released_paths(data_root: Path, max_trajectories: int | None = None) -> list[Path]:
+    paths = sorted(data_root.glob("*.h5"))
+    if max_trajectories is not None:
+        if max_trajectories < 1:
+            raise ValueError("max_trajectories must be positive")
+        paths = paths[:max_trajectories]
+    if not paths:
+        raise FileNotFoundError(f"no released .h5 trajectories under {data_root}")
+    return paths
+
+
+def milestone_checkpoint_path(out_dir: Path, update: int) -> Path:
+    if update < 1:
+        raise ValueError("milestone update must be positive")
+    return out_dir / f"model_update_{update:05d}.pth"
+
+
+def validate_milestone_updates(values: list[int] | tuple[int, ...], *, start: int, target: int) -> tuple[int, ...]:
+    milestones = tuple(sorted(set(int(value) for value in values)))
+    if any(value <= start or value > target for value in milestones):
+        raise ValueError(f"milestone updates must be within ({start}, {target}]")
+    return milestones
+
+
+def terminal_state(
+    *,
+    stop_reason: str,
+    completed_update: int,
+    target_update: int,
+    initial_update: int,
+    allow_time_cap: bool,
+) -> str:
+    if stop_reason == "updates_complete" and completed_update == target_update:
+        return "DONE"
+    if stop_reason == "time_cap" and allow_time_cap and completed_update > initial_update:
+        return "TIME_CAPPED"
+    return "STOPPED"
 
 
 def save_checkpoint(
@@ -142,9 +184,18 @@ def train(args: argparse.Namespace) -> None:
         raise ValueError("batch/accumulate/save interval and lr must be positive")
     if not (args.kit_root / "scoring.py").is_file():
         raise FileNotFoundError(args.kit_root / "scoring.py")
+    if args.all_released_data and args.manifest is not None:
+        raise ValueError("--all-released-data and --manifest are mutually exclusive")
+    if not args.all_released_data and args.manifest is None:
+        raise ValueError("validation continuation requires --manifest")
 
-    train_paths = manifest_paths(args.manifest, args.data_root, "train")
-    dev_paths = manifest_paths(args.manifest, args.data_root, "dev")
+    if args.all_released_data:
+        train_paths = released_paths(args.data_root, args.max_trajectories)
+        dev_paths: list[Path] | None = None
+    else:
+        train_paths = manifest_paths(args.manifest, args.data_root, "train")
+        dev_paths = manifest_paths(args.manifest, args.data_root, "dev")
+
     x_grid, y_grid = read_grid(train_paths[0], sub_sample=2)
     config = P0FeatureConfig(
         include_p0_a=True,
@@ -179,6 +230,7 @@ def train(args: argparse.Namespace) -> None:
         )
     if args.updates <= initial_update:
         raise ValueError("--updates must exceed the resume checkpoint iteration")
+    milestones = validate_milestone_updates(args.milestone_updates, start=initial_update, target=args.updates)
 
     train_dataset = H5WindowDataset(
         train_paths,
@@ -189,6 +241,13 @@ def train(args: argparse.Namespace) -> None:
         max_windows_per_trajectory=args.max_windows_per_trajectory,
         include_pressure=False,
     )
+    if args.expected_trajectories is not None and len(train_paths) != args.expected_trajectories:
+        raise ValueError(
+            f"training trajectory count {len(train_paths)} != expected {args.expected_trajectories}"
+        )
+    if args.expected_windows is not None and len(train_dataset) != args.expected_windows:
+        raise ValueError(f"training window count {len(train_dataset)} != expected {args.expected_windows}")
+
     generator = torch.Generator().manual_seed(args.seed + initial_update)
     loader = DataLoader(
         train_dataset,
@@ -202,15 +261,17 @@ def train(args: argparse.Namespace) -> None:
     )
     max_bytes = int(args.max_gpu_gib * 1024**3)
     metadata = {
-        "run": "T1-ID-P0A-N2-LR-CONTINUATION",
+        "run": "T1-COMP-P0A-N2-FULL-CONTINUATION" if args.all_released_data else "T1-ID-P0A-N2-CONTINUATION",
         "seed": args.seed,
-        "manifest": str(args.manifest.resolve()),
-        "manifest_sha256": sha256(args.manifest),
+        "all_released_data": bool(args.all_released_data),
+        "manifest": None if args.manifest is None else str(args.manifest.resolve()),
+        "manifest_sha256": None if args.manifest is None else sha256(args.manifest),
         "scorer_sha256": sha256(args.kit_root / "scoring.py"),
         "resume_checkpoint": str(args.resume_checkpoint.resolve()),
         "resume_checkpoint_sha256": sha256(args.resume_checkpoint),
         "initial_update": initial_update,
         "updates": args.updates,
+        "milestone_updates": list(milestones),
         "lr": float(args.lr),
         "optimizer_lrs": sorted({float(group["lr"]) for group in optimizer.param_groups}),
         "micro_batch": args.micro_batch,
@@ -222,7 +283,6 @@ def train(args: argparse.Namespace) -> None:
         "feature_config": vars(config),
         "loss_weights": N2_WEIGHTS,
         "train_trajectories": len(train_paths),
-        "dev_trajectories": len(dev_paths),
         "train_windows": len(train_dataset),
         "sampler_seed": args.seed + initial_update,
         "started_at": time.time(),
@@ -243,11 +303,11 @@ def train(args: argparse.Namespace) -> None:
     old_term = signal.signal(signal.SIGTERM, request_stop)
     iterator = iter(loader)
     started = time.monotonic()
-    update = initial_update
+    completed_update = initial_update
     stop_reason = "updates_complete"
     latest_parts: dict[str, float] = {}
     try:
-        for update in range(initial_update + 1, args.updates + 1):
+        for next_update in range(initial_update + 1, args.updates + 1):
             if stop_requested:
                 stop_reason = "signal"
                 break
@@ -272,24 +332,25 @@ def train(args: argparse.Namespace) -> None:
                     aggregate[name] += float(parts[name].detach().cpu()) / args.accumulate
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
+            completed_update = next_update
             latest_parts = aggregate
             peak = int(torch.cuda.max_memory_allocated(device))
             if peak > max_bytes:
                 stop_reason = "memory_cap"
                 break
-            if update % args.save_interval == 0 or update == args.updates:
+            if completed_update % args.save_interval == 0 or completed_update == args.updates:
                 save_checkpoint(
                     args.out_dir / "model_resume.pth",
                     model=model,
                     optimizer=optimizer,
-                    update=update,
+                    update=completed_update,
                     config=config,
                     metadata=metadata,
                 )
                 append_jsonl(
                     args.out_dir / "train_metrics.jsonl",
                     {
-                        "update": update,
+                        "update": completed_update,
                         "elapsed_seconds": time.monotonic() - started,
                         "peak_gpu_bytes": peak,
                         "loss_parts": aggregate,
@@ -299,10 +360,19 @@ def train(args: argparse.Namespace) -> None:
                     args.out_dir / "status.json",
                     {
                         "state": "RUNNING",
-                        "update": update,
+                        "update": completed_update,
                         "elapsed_seconds": time.monotonic() - started,
                         "peak_gpu_bytes": peak,
                     },
+                )
+            if completed_update in milestones:
+                save_checkpoint(
+                    milestone_checkpoint_path(args.out_dir, completed_update),
+                    model=model,
+                    optimizer=optimizer,
+                    update=completed_update,
+                    config=config,
+                    metadata=metadata,
                 )
     finally:
         signal.signal(signal.SIGINT, old_int)
@@ -313,53 +383,66 @@ def train(args: argparse.Namespace) -> None:
         args.out_dir / "model_last.pth",
         model=model,
         optimizer=optimizer,
-        update=update,
+        update=completed_update,
         config=config,
         metadata=metadata,
     )
-    if stop_reason == "updates_complete" and update == args.updates:
-        save_checkpoint(
-            args.out_dir / f"model_update_{update:05d}.pth",
-            model=model,
-            optimizer=optimizer,
-            update=update,
-            config=config,
-            metadata=metadata,
-        )
-        args.batch_size = args.micro_batch
-        args.max_windows = None
-        final = evaluate(model, builder, dev_paths, args, device, args.kit_root, args.out_dir / "eval_final")
-        atomic_json(
-            args.out_dir / f"dev_{update:05d}.json",
-            {"update": update, "raw_errors": final["raw_errors"]},
-        )
+    if stop_reason == "updates_complete" and completed_update == args.updates:
+        target_checkpoint = milestone_checkpoint_path(args.out_dir, completed_update)
+        if not target_checkpoint.exists():
+            save_checkpoint(
+                target_checkpoint,
+                model=model,
+                optimizer=optimizer,
+                update=completed_update,
+                config=config,
+                metadata=metadata,
+            )
+        if dev_paths is not None:
+            args.batch_size = args.micro_batch
+            args.max_windows = None
+            final = evaluate(model, builder, dev_paths, args, device, args.kit_root, args.out_dir / "eval_final")
+            atomic_json(
+                args.out_dir / f"dev_{completed_update:05d}.json",
+                {"update": completed_update, "raw_errors": final["raw_errors"]},
+            )
 
-    final_state = "DONE" if stop_reason == "updates_complete" and update == args.updates else "STOPPED"
+    final_state = terminal_state(
+        stop_reason=stop_reason,
+        completed_update=completed_update,
+        target_update=args.updates,
+        initial_update=initial_update,
+        allow_time_cap=args.allow_time_cap,
+    )
     atomic_json(
         args.out_dir / "status.json",
         {
             "state": final_state,
             "stop_reason": stop_reason,
-            "update": update,
+            "update": completed_update,
             "elapsed_seconds": time.monotonic() - started,
             "peak_gpu_bytes": peak,
             "memory_cap_bytes": max_bytes,
             "last_train_loss_parts": latest_parts,
         },
     )
-    if final_state != "DONE":
-        raise RuntimeError(f"continuation stopped before target: reason={stop_reason}, update={update}")
+    if final_state == "STOPPED":
+        raise RuntimeError(f"continuation stopped before accepted terminal state: reason={stop_reason}, update={completed_update}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", type=Path, required=True)
-    parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--manifest", type=Path)
+    parser.add_argument("--all-released-data", action="store_true")
     parser.add_argument("--kit-root", type=Path, required=True)
     parser.add_argument("--resume-checkpoint", type=Path, required=True)
     parser.add_argument("--expected-start-update", type=int)
+    parser.add_argument("--expected-trajectories", type=int)
+    parser.add_argument("--expected-windows", type=int)
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--updates", type=int, required=True)
+    parser.add_argument("--milestone-updates", type=int, nargs="*", default=())
     parser.add_argument("--lr", type=float, required=True)
     parser.add_argument("--max-train-seconds", type=float, default=5400.0)
     parser.add_argument("--max-gpu-gib", type=float, default=12.0)
@@ -369,6 +452,8 @@ def main() -> None:
     parser.add_argument("--save-interval", type=int, default=100)
     parser.add_argument("--seed", type=int, default=20260901)
     parser.add_argument("--max-windows-per-trajectory", type=int)
+    parser.add_argument("--max-trajectories", type=int)
+    parser.add_argument("--allow-time-cap", action="store_true")
     args = parser.parse_args()
     train(args)
 
