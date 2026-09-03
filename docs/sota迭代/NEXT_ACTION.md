@@ -7,9 +7,12 @@
 ## Tasks
 
 1. 确认工作区无未知未提交改动，执行 `git pull --rebase origin main`。
-2. 阅读 `docs/CHATGPT_CODEX_WORK_PROTOCOL.md` 和本文件；运行：
-   `pytest -q tests/test_sota_lr_screen.py tests/test_p0a_full_training.py`
-3. 只解析真实环境路径并设置：`DATA_ROOT`、`MANIFEST`、`KIT_ROOT`、`RESUME_CHECKPOINT`、`OUT_ROOT`。`RESUME_CHECKPOINT` 必须是 P0-A + N2 validation update `18860` 且包含 optimizer state。
+2. 阅读：
+   - `docs/CHATGPT_CODEX_WORK_PROTOCOL.md`
+   - 本文件
+   - `docs/coordination/CHATGPT_HANDOFF_P0A_N2_VALIDATION_30900.md`
+   然后运行：`pytest -q tests/test_sota_lr_screen.py tests/test_p0a_full_training.py`
+3. 只解析真实环境路径并设置：`DATA_ROOT`、`MANIFEST`、`KIT_ROOT`、`RESUME_CHECKPOINT`、`OUT_ROOT`。`RESUME_CHECKPOINT` 必须是 P0-A + N2 validation update `18860` 且包含 optimizer state。优先在既有 late-validation artifact `p0a_n2_simreal_validation_20260903/continuation_10300_to30900/run/` 中定位；不得改用别的 update。最终由 preflight 校验 checkpoint iteration。
 4. 在当前已验证的 CUDA / container 环境中启动：
    `bash tools/run_sota_lr_screen_20260904.sh`
    建议用 `nohup` / detached 方式，并把 launcher stdout/stderr 写到 `OUT_ROOT` 之外的独立日志文件。
