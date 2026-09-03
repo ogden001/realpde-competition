@@ -3,6 +3,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import h5py
+import numpy as np
 import pytest
 import torch
 
@@ -11,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from realpde_p0_features import P0FeatureConfig  # noqa: E402
 from realpde_p0a_n2_full import (  # noqa: E402
     N2_WEIGHTS,
+    historical_p0a_spacing,
     load_resume_checkpoint,
     manifest_paths,
     milestone_checkpoint_path,
@@ -25,6 +28,39 @@ EXPECTED_N2 = {"mse": 1.0, "tke": 0.05, "rel": 0.027514, "mvpe": 0.009757}
 
 def test_continuation_uses_historical_four_key_n2_schema():
     assert N2_WEIGHTS == EXPECTED_N2
+
+
+def test_historical_p0a_spacing_matches_full15300_runner_semantics(tmp_path):
+    path = tmp_path / "grid.h5"
+    x = np.tile(np.arange(128, dtype=np.float32) * 0.1, (64, 1))
+    y = np.tile((np.arange(64, dtype=np.float32) * -0.2)[:, None], (1, 128))
+    with h5py.File(path, "w") as handle:
+        handle.create_dataset("x", data=x)
+        handle.create_dataset("y", data=y)
+
+    dx, dy = historical_p0a_spacing([path])
+
+    assert dx == pytest.approx(0.1)
+    assert dy == pytest.approx(-0.2)
+    # A naive adjacent difference after ::2 downsampling would be 0.2/-0.4.
+    # The historical 15,300 checkpoint was trained with the original-grid spacing.
+    assert dx != pytest.approx(0.2)
+    assert dy != pytest.approx(-0.4)
+
+
+def test_historical_p0a_spacing_rejects_mixed_grids(tmp_path):
+    paths = []
+    for index, dx in enumerate((0.1, 0.11)):
+        path = tmp_path / f"grid_{index}.h5"
+        x = np.tile(np.arange(128, dtype=np.float32) * dx, (64, 1))
+        y = np.tile((np.arange(64, dtype=np.float32) * -0.2)[:, None], (1, 128))
+        with h5py.File(path, "w") as handle:
+            handle.create_dataset("x", data=x)
+            handle.create_dataset("y", data=y)
+        paths.append(path)
+
+    with pytest.raises(ValueError, match="spacing differs"):
+        historical_p0a_spacing(paths)
 
 
 def test_resume_accepts_historical_four_key_n2_checkpoint(tmp_path):
