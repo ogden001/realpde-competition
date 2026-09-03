@@ -101,9 +101,19 @@ ChatGPT 和 Codex 默认都直接与 `main` 同步：
 - eval/scorer 脚本；
 - analysis 脚本。
 
-实验逻辑由 ChatGPT / Sol 设计；Codex 负责根据真实环境做最小适配，例如路径、CUDA、conda、远端主机和 checkpoint 位置。
+凡涉及**实验语义**的代码，默认由 ChatGPT / Sol 直接实现并进入 Git，不只提供伪代码让 Codex 自行翻译。包括但不限于：
+- loss 与指标计算；
+- feature 构造与 fusion；
+- 模型结构与 forward 语义；
+- checkpoint / optimizer resume 语义；
+- LR schedule 与训练阶段切换；
+- 数据 split、采样和窗口协议；
+- A/B 变量控制、停止条件与 checkpoint 规则；
+- official scorer、结果分析与关键实验校验。
 
-环境适配不得改变实验定义、数据 split、核心超参数或评价协议。
+Codex 不根据伪代码自行补全或重写这些核心实验逻辑。Codex 主要负责真实环境中的最小工程适配、集成、测试和执行，例如路径、CUDA、conda/container、远端主机、checkpoint 实际位置、日志和 detached runner。
+
+环境适配不得改变实验定义、数据 split、核心超参数或评价协议。若环境问题必须修改实验语义，Codex 应停止并报告，由 ChatGPT / Sol 决策和修改代码。
 
 ## 6. 长时 GPU 任务
 
@@ -139,8 +149,8 @@ Codex 不应自主处理：
 
 **方向目录隔离任务和实验历史，`README.md` 保存长期记忆，`NEXT_ACTION.md` 驱动下一步。**
 
-**ChatGPT / Sol = Research Lead + Experiment Designer + Script Author + Reviewer**
+**ChatGPT / Sol = Research Lead + Experiment Designer + Core Experiment Code Author + Reviewer**
 
-**Codex / Luna-medium = Repo-aware Engineer + Runner**
+**Codex / Luna-medium = Repo-aware Integration Engineer + Runner**
 
 **Remote GPU = Compute Worker**
