@@ -8,6 +8,7 @@
 | 900896 | `submission_cno_realft_4700_20260825.zip` | 2026-08-25 15:27 | 70.04628 | 93.258780 | 68.856072 | 92.016287 | 88.618744 | 10.578370 | Real-finetuned CNO. |
 | 903976 | `submission_cno_tke1200_bounds_rel00.zip` | 2026-08-27 15:44 | 75.58455 | 93.542062 | 70.934325 | 92.167656 | 87.236663 | 27.780536 | Current best known Codabench result. |
 | 907047 | `8-29提交.zip` | 2026-08-29 13:47 | 74.48384 | 91.868766 | 66.666667 | 89.885887 | 91.959120 | 27.374631 | UNet local-proxy candidate; hidden physical scores worse than CNO. |
+| — | `submission.zip` (P0-A + N2 full, 15,300 updates) | 2026-09-03 | 71.153839 | 93.023539 | 78.355520 | 91.894417 | 88.430528 | 11.431650 | All-82-trajectory competition refit. TKE improved strongly versus the best prior CNO, but SPS fell sharply and final score is lower. See [detailed handoff](coordination/CHATGPT_HANDOFF_T1_P0A_N2_FULL15300_CODABENCH.md). |
 
 ## Local packages prepared on 2026-08-29
 
@@ -63,4 +64,5 @@ best_local_bound: abs=0.0075, rel=0.01
 - Do not optimize the self-written equal-weight final estimate. Codabench states the `final_score` combination is not published.
 - UNet postprocessing can look strong on released validation data but generalize poorly on hidden data.
 - CNO currently has better hidden physical scores, especially Rel-L2, TKE, and MVPE.
-- Prefer simple CNO packages until a new candidate improves hidden physical subscores.
+- P0-A + N2 full demonstrates a strong online TKE gain, but SPS must be protected independently; physical subscore gains alone do not guarantee a better final score.
+- Prefer simple CNO packages until a new candidate improves the official final score or demonstrates a better protected multi-metric trade-off.
