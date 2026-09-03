@@ -11,46 +11,89 @@
 
 ### Codex / Luna-medium
 负责仓库和环境内的工程执行：
-- 阅读任务文件和相关代码；
+- 阅读本方向任务文件和相关代码；
 - 做必要的环境适配；
-- 实现或落地已明确的改动；
+- 落地已明确的改动；
 - smoke test；
-- 启动训练/评估/分析；
-- 记录事实、产物和 commit。
+- 启动训练、评估和分析；
+- 记录实验事实、结果和 commit。
 
 Codex 不承担开放式研究规划，不自行扩大实验范围，不自行设计下一轮实验。
 
 ## 2. Git 协作规则
 
-本仓库默认直接使用 `main` 作为 ChatGPT、Codex 和用户之间的共享工作分支。
+远端仓库统一使用 `main`，不为普通优化实验创建长期实验 branch。
 
-除非用户明确要求，或任务存在明显隔离需求：
-- ChatGPT 不创建新 branch；
-- Codex 不创建新 branch 或 worktree；
-- 不为普通文档、小型代码修改或单次实验额外建立分支。
+ChatGPT 和 Codex 默认都直接与 `main` 同步：
+- ChatGPT 的文档、任务和明确代码修改直接写入 `main`；
+- Codex 完成任务后 commit 并 push 到 `main`；
+- 除非用户明确要求，不创建 branch。
 
-开始任务前，Codex 应先确认当前位于 `main`，检查工作树状态并同步 `origin/main`。若存在未知未提交改动，不得擅自 stash、reset、restore、clean 或覆盖，应先报告。
+任务开始前，Codex 应：
+1. 确认当前工作区没有未知未提交改动；
+2. 执行 `git pull --rebase origin main`；
+3. 再开始本方向任务。
 
-任务完成后，原则上应 commit 并 push 到 `main`，并确认工作树干净；若确有文件不能提交，必须明确列出文件和原因，不得默默留下脏工作区。
+遇到未知未提交改动，不得擅自 stash、reset、restore、clean 或覆盖，应先报告。
 
-ChatGPT 直接写 GitHub 时也默认写入 `main`，从而保持：
+任务提交前再次同步 `origin/main`。如果 rebase 出现实质性冲突，停止并报告，不自行猜测解决。
 
-**GitHub main = Codex 本地 main = ChatGPT 下一轮读取的项目状态**。
+多个 Codex 可以并行，但不得同时操作同一个本地工作目录。并行 Codex 应使用彼此独立的本地 clone/工作目录，全部跟踪同一个 `origin/main`。
 
-## 3. NEXT_ACTION 规则
+## 3. 优化方向文档
 
-`docs/coordination/NEXT_ACTION.md` 是 Codex 当前施工单，必须简单、明确、原子化。
+每个优化方向在自己的 `docs/` 目录维护两类核心文件：
 
-默认只包含：
+- `README.md`：该方向的长期技术记忆；
+- `NEXT_ACTION.md`：该方向当前唯一施工单。
+
+例如：
+- `docs/loss/README.md` 与 `docs/loss/NEXT_ACTION.md`；
+- `docs/feature_engineering/README.md` 与 `docs/feature_engineering/NEXT_ACTION.md`；
+- 对于子方向，可使用类似 `docs/model/point_modeling/README.md` 与 `NEXT_ACTION.md` 的结构。
+
+### README.md
+必须持续记录该方向做过的实验，包括：
+- 实验目的和关键配置；
+- 结果指标；
+- 有效结果；
+- 失败结果、`NO-GO`、`STOP`；
+- 当前稳定结论；
+- 后续建议。
+
+失败实验也必须记录，避免重复试错。
+
+方向 `README.md` 是该方向实验历史和结论的主要事实源。跨方向总表、整体概要或实验注册表只在需要全局汇总时更新，不要求每个并行实验都即时修改共享文件。
+
+### NEXT_ACTION.md
+必须简单、明确、原子化，默认只包含：
 1. Goal
 2. Tasks
 3. Constraints
 4. Deliverables
 5. Stop
 
-避免长背景、重复历史、开放式判断和复杂流程。需要的历史上下文通过已有专项文档引用，不复制到任务单中。
+避免长背景、重复历史、开放式判断和复杂流程。需要的上下文通过本方向 `README.md` 或具体证据文档引用。
 
-## 4. 实验脚本规则
+`docs/coordination/` 只用于跨方向状态、handoff 和协调信息，不放具体优化方向的 `NEXT_ACTION.md`。
+
+## 4. 并行优化管线
+
+多个优化方向可以同时执行，但每个 Codex 只负责一个明确方向。
+
+默认只修改：
+- 本方向的 `docs/` 目录；
+- 本方向直接相关的代码、配置和脚本。
+
+不要顺手修改其他方向文件，也不要使用 `git add .` 把其他管线的改动带入提交。
+
+以下共享文件默认不由并行 Codex 随意修改，除非任务明确要求：
+- 根目录 `AGENTS.md`；
+- 根目录 `README.md`；
+- `docs/realpde整体优化概要.md`；
+- 跨方向协调或总表文档。
+
+## 5. 实验脚本规则
 
 关键实验尽量在启动前把实验定义固化到 Git 中，包括必要的：
 - config；
@@ -62,7 +105,7 @@ ChatGPT 直接写 GitHub 时也默认写入 `main`，从而保持：
 
 环境适配不得改变实验定义、数据 split、核心超参数或评价协议。
 
-## 5. 长时 GPU 任务
+## 6. 长时 GPU 任务
 
 凡预计消耗 30 分钟以上 GPU 的实验，启动前应尽量满足：
 - 实验配置已固定；
@@ -72,7 +115,7 @@ ChatGPT 直接写 GitHub 时也默认写入 `main`，从而保持：
 
 Codex 启动长时任务后，只需记录命令、日志、PID、artifact 路径和 `RUNNING` 状态，不持续轮询，除非用户明确要求。
 
-## 6. 决策边界
+## 7. 决策边界
 
 Codex 可以自主处理：
 - 明确的工程错误；
@@ -90,16 +133,14 @@ Codex 不应自主处理：
 
 遇到这些情况应停止并报告，由 ChatGPT / Sol 决策。
 
-## 7. 最终原则
+## 8. 最终原则
 
-工作流保持为：
+**一个远端 `main`，多个独立本地执行管线。**
+
+**方向目录隔离任务和实验历史，`README.md` 保存长期记忆，`NEXT_ACTION.md` 驱动下一步。**
 
 **ChatGPT / Sol = Research Lead + Experiment Designer + Script Author + Reviewer**
-
-**Git = Shared Memory + Experiment Protocol + Task Queue**
 
 **Codex / Luna-medium = Repo-aware Engineer + Runner**
 
 **Remote GPU = Compute Worker**
-
-目标是减少 Codex 的开放式推理负担，让其以中等推理强度稳定执行短、明确、可验收的任务。
