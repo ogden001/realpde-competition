@@ -1,0 +1,25 @@
+# Modeling 优化概要
+
+## 1. 整体思路
+
+以官方三通道 CNO 为主性能锚点；任何新范式都要在冻结 ID protocol 下，与其匹配的对照同时比较 Rel-L2、TKE、MVPE、runtime 与稳定性。
+
+## 2. 当前结论
+
+| 技术方向 | 内容概要 | 关键实验结果 | 状态 | 详细文档 |
+|---|---|---|---|---|
+| CNO 主线 | CNO 当前拥有最好已知 Codabench 结果，优于曾上线的 UNet 后处理候选的隐藏物理子分。 | CNO `75.58455`；UNet `74.48384`。 | KEEP | [Submission log](../submission_log.md) |
+| 纯 Point MLP | 无空间上下文的 Point 模型未通过既定 dev gate。 | Point residual 对 PERSIST 的 Rel-L2/MVPE 未达门槛。 | STOP | [Point-V0](../coordination/CHATGPT_HANDOFF_POINT_V0.md) |
+| LOCAL3 Point | LOCAL3 与降 TKE 权重的 bounded 变体均未在 1500-step screen 通过。 | LOCAL3 Rel-L2/MVPE 均退化；`λ_TKE=0.001` 仍未改善 Rel-L2。 | STOP | [LOCAL3](../coordination/CHATGPT_HANDOFF_POINT_V1_LOCAL3.md), [balanced loss](../coordination/CHATGPT_HANDOFF_POINT_LOCAL3_BALANCED_L001.md) |
+| CNO + Point H1 | 原始 H1 的 TKE 代价触发早停；train-selected `alpha=0.5` 缩放通过 aggregate gate，但 trajectory-level TKE 保护不稳。 | Rel/MVPE 16/16 trajectory 改善；满足 TKE 保护仅 3/16。 | REVIEW | [scale](../coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1_SCALE.md), [stability](../coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1_SCALE_STABILITY.md) |
+
+## 3. TODO
+
+| 技术方向 | 内容概要 | 优先级 |
+|---|---|---|
+| H1 | 等待 ChatGPT/Sol 对 scale stability 的单一、受限 NEXT_ACTION；不自动启动 H2、joint training 或 LOCAL5。 | P0 |
+
+## 4. 相关文档
+
+- [协调状态](../coordination/STATUS.md)
+- [Track 1 实验注册表](../track1_experiment_registry.md)
