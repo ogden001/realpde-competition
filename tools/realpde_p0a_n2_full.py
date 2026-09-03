@@ -21,13 +21,16 @@ import torch
 from torch.utils.data import DataLoader
 
 import realpde_loss_official_v9 as core
-from realpde_b1_p0a_n2 import N2_WEIGHTS, evaluate, forward
+from realpde_b1_p0a_n2 import evaluate, forward
 from realpde_p0_data import H5WindowDataset, read_grid
 from realpde_p0_features import P0FeatureBuilder, P0FeatureConfig
 
 
 MAX_GPU_GIB = 23.5
 MAX_TRAIN_SECONDS = 5 * 60 * 60 + 40 * 60
+# Historical full-run checkpoints store exactly these four non-zero N2 terms.
+# Keep this schema stable so old optimizer/model resumes remain compatible.
+N2_WEIGHTS = {"mse": 1.0, "tke": 0.05, "rel": 0.027514, "mvpe": 0.009757}
 
 
 def sha256(path: Path) -> str:
