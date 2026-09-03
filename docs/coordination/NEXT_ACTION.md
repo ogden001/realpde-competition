@@ -4,7 +4,7 @@
 把新的 ChatGPT–Codex 协作规则写入 Codex 长期执行记忆。
 
 ## Tasks
-1. 阅读 `docs/coordination/CHATGPT_CODEX_WORK_PROTOCOL.md`。
+1. 阅读 `docs/CHATGPT_CODEX_WORK_PROTOCOL.md`。
 2. 更新根目录 `AGENTS.md`，只补充以下规则：
    - Codex 默认按 Luna-medium 的执行能力设计任务；
    - `NEXT_ACTION.md` 必须短、明确、原子化；
