@@ -9,10 +9,15 @@ optimizer step, alpha selection, checkpoint update, locked-final access, or
 Codabench access. The aggregate replay exactly reproduces the prior H1 Scale
 handoff values. Stability label: `H1_SCALE_STABILITY_SUPPORTIVE`.
 
-Rel-L2 and MVPE each win on 16/16 trajectories. TKE wins on 2/16; its median
+Rel-L2 and MVPE each win on 16/16 trajectories. TKE wins on 2/16 and TKE is
+within the `>=-5%` protection threshold on 3/16 trajectories; its median
 improvement is negative, so the aggregate TKE error worsening is broad rather
-than driven by a small number of trajectories. Rel/MVPE/TKE joint counts are
-16/16, 2/16, and 16/16 respectively for the requested conditions.
+than driven by a small number of trajectories. The requested joint counts are
+Rel+MVPE `16/16`, all-three-positive `2/16`, and
+Rel>0+MVPE>0+TKE>=-5% `3/16`.
+
+The prior `16/16` text for the last count was a documentation-generation
+error: it reflected the aggregate TKE gate, not a trajectory-level count.
 
 ## Evidence
 
