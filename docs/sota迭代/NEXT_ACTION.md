@@ -2,7 +2,7 @@
 
 ## Goal
 
-无人值守完成 P0-A + N2 validation late-stage LR A/B，为明天 full-data SOTA continuation 决定是否在平台期降学习率。
+无人值守继续 P0-A + N2 全量 82 trajectory 模型，从 update `15300` 尽量训练到 `43260`，产出明早可 review 的多 checkpoint submission candidates。
 
 ## Tasks
 
@@ -10,36 +10,39 @@
 2. 阅读：
    - `docs/CHATGPT_CODEX_WORK_PROTOCOL.md`
    - 本文件
-   - `docs/coordination/CHATGPT_HANDOFF_P0A_N2_VALIDATION_30900.md`
-   然后运行：`pytest -q tests/test_sota_lr_screen.py tests/test_p0a_full_training.py`
-3. 只解析真实环境路径并设置：`DATA_ROOT`、`MANIFEST`、`KIT_ROOT`、`RESUME_CHECKPOINT`、`OUT_ROOT`。`RESUME_CHECKPOINT` 必须是 P0-A + N2 validation update `18860` 且包含 optimizer state。优先在既有 late-validation artifact `p0a_n2_simreal_validation_20260903/continuation_10300_to30900/run/` 中定位；不得改用别的 update。最终由 preflight 校验 checkpoint iteration。
-4. 在当前已验证的 CUDA / container 环境中启动：
-   `bash tools/run_sota_lr_screen_20260904.sh`
-   建议用 `nohup` / detached 方式，并把 launcher stdout/stderr 写到 `OUT_ROOT` 之外的独立日志文件。
-5. 启动后只做一次检查：进程已启动，`launcher_status.json` 为 `RUNNING`。记录 PID、命令、launcher log、`OUT_ROOT`。
-6. 在 `docs/sota迭代/README.md` 追加一条简短 `RUNNING` 记录并 commit/push `main`，然后停止轮询。
+   - `docs/coordination/CHATGPT_HANDOFF_T1_P0A_N2_FULL15300_CODABENCH.md`
+3. 运行：
+   `pytest -q tests/test_p0a_full_training.py tests/test_sota_full_night.py`
+4. 只解析真实环境路径并设置：`DATA_ROOT`、`KIT_ROOT`、`RESUME_CHECKPOINT`、`OUT_ROOT`。
+   - `RESUME_CHECKPOINT` 必须是 full-data update `15300` 的 `model_last.pth`；
+   - SHA256 必须为 `3ea4e4def03ae2f1d970975e4217358e1d762b88a69bdddfdf844d551baaa3e4`；
+   - 必须包含 optimizer state。
+5. 在已验证的 CUDA/container 环境中 detached 启动：
+   `bash tools/run_sota_full_night_20260904.sh`
+6. 启动后只检查一次：launcher 已进入 `RUNNING`。记录 PID、命令、launcher log、`OUT_ROOT`，然后停止轮询。
 
 ## Constraints
 
-- A/B 固定为同一 `18860` resume：Control `LR=1e-5`，Decay `LR=5e-6`，都训练到 `22960`。
-- 固定 P0-A、N2、CNO、50/16 split、seed `20260901`、micro-batch `4`、accumulate `2`。
-- launcher 会校验 frozen manifest SHA、v9 scorer SHA、resume iteration 和 optimizer state；任一失败立即停止，不绕过检查。
+- 固定 P0-A、四项 N2、CNO、seed `20260901`、LR `1e-5`、micro-batch `4`、accumulate `2`。
+- 正式训练必须严格为 `82 trajectories / 3383 windows`；preflight 或 runner 任一校验失败立即停止，不绕过。
+- 目标 update `43260`；硬训练时间上限 `21300s`（5h55m）。时间到时允许安全停止并保存最后真实完成的 update。
+- 必须保留 milestones：`31100 / 36500 / 37850 / 40560 / 43260`；另保留 `model_last.pth`。
+- 不根据 full-data training loss 自行选择 checkpoint。
+- 今晚不做 LR screen、H1、FF-01、新 Loss、SPS、locked-final/private-test 或 Codabench。
 - 只允许路径、CUDA、conda/container 等环境适配；不得改变实验定义。
-- 今晚不做 full-data 长训、SPS、H1、FF-01、新 Loss、locked-final/private-test 或 Codabench。
 
 ## Deliverables
 
-无人值守脚本最终应在 `OUT_ROOT` 产生：
+`OUT_ROOT` 最终应包含：
 
 - `preflight.json`
-- `smoke_decay_lr5e6/`
-- `control_lr1e5/`
-- `decay_lr5e6/`
-- `lr_ab_summary.json`
+- `smoke_full_15300/`
+- `full_15300_to_43260/`
+- `full_night_summary.json`
 - `launcher_status.json`
 
-其中最终状态只能是 `REVIEW_REQUIRED` 或 `FAILED`，脚本不自动选择赢家。
+最终 launcher 状态只能是 `REVIEW_REQUIRED` 或 `FAILED`，不自动选择 submission checkpoint。
 
 ## Stop
 
-完成一次启动检查并记录 `RUNNING` 后，Codex 停止主动工作，不持续轮询，不启动下一轮实验。明早由 ChatGPT/Sol review `lr_ab_summary.json` 后决定 full-data continuation 和后续 SPS / submission。
+完成一次启动检查并记录 `RUNNING` 后，Codex 停止主动工作。明早由 ChatGPT/Sol review `full_night_summary.json` 和已落盘 checkpoints，再进入 SPS / package / submission。
