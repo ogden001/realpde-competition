@@ -16,7 +16,8 @@
 4. 只解析真实环境路径并设置：`DATA_ROOT`、`KIT_ROOT`、`RESUME_CHECKPOINT`、`OUT_ROOT`。
    - `RESUME_CHECKPOINT` 必须是 full-data update `15300` 的 `model_last.pth`；
    - SHA256 必须为 `3ea4e4def03ae2f1d970975e4217358e1d762b88a69bdddfdf844d551baaa3e4`；
-   - 必须包含 optimizer state。
+   - 必须包含 optimizer state；
+   - 上一次失败 artifact 保留不动；本次必须使用新的 `OUT_ROOT`，例如 `.../sota_full_night_20260904_retry1`。
 5. 在已验证的 CUDA/container 环境中 detached 启动：
    `bash tools/run_sota_full_night_20260904.sh`
 6. 启动后只检查一次：launcher 已进入 `RUNNING`。记录 PID、命令、launcher log、`OUT_ROOT`，然后停止轮询。
@@ -24,6 +25,7 @@
 ## Constraints
 
 - 固定 P0-A、四项 N2、CNO、seed `20260901`、LR `1e-5`、micro-batch `4`、accumulate `2`。
+- continuation 必须复现 full@15300 历史 P0-A grid-spacing 数值语义；不得改 checkpoint feature_config 或绕过 spacing 校验。
 - 正式训练必须严格为 `82 trajectories / 3383 windows`；preflight 或 runner 任一校验失败立即停止，不绕过。
 - 目标 update `43260`；硬训练时间上限 `21300s`（5h55m）。时间到时允许安全停止并保存最后真实完成的 update。
 - 必须保留 milestones：`31100 / 36500 / 37850 / 40560 / 43260`；另保留 `model_last.pth`。
