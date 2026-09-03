@@ -294,3 +294,10 @@ FE 结论：Temporal、SpatialPhysics、PixelPosition 都未通过同时保护 R
 - CNO checkpoint SHA `499ec748cc5db1b7f3ad24029a464e921ad31c3d383b69626ec540eba392903e`; H1 checkpoint SHA `fb6735bff296cc53f028b894b74691697f7475f5bbfda9ae8ee0dcd70d1e3bd2`; scale runner SHA `6dde2508786836221359094b01a2ccb919dc0a937ca97efe5684bca6b916a5a8`.
 - `dev accessed: YES` only after train selection; locked-final and Codabench: NO. H2, joint training, per-channel/per-horizon scaling, loss changes and new experiments remain unauthorized.
 - Handoff: `docs/coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1_SCALE.md`; review evidence remains under `../artifacts/hybrid_cno_point_h1_scale_s20260902_review/` and the remote run path.
+
+### `T1-ID-HYBRID-CNO-POINT-H1-SCALE-STABILITY-S20260903` — COMPLETED / REVIEW_REQUIRED
+
+- Fixed replay-only stability audit of the prior train-selected `alpha=0.5`; no training, optimizer step, alpha sweep, checkpoint update, locked-final access or Codabench.
+- Same frozen CNO/H1 checkpoints and manifest; remote saved `dev_replay.npz` was scored in `realpde-pytorch-h5py:0831` with the official v9 scorer. Aggregate replay exactly matched Rel/TKE/MVPE `0.19082105/0.64406884/0.14425756` and `0.15642738/0.66956341/0.11520854`.
+- Stability label: `H1_SCALE_STABILITY_SUPPORTIVE`. Trajectory win rates Rel/TKE/MVPE `100.0%/12.5%/100.0%`; medians `16.788%/-21.491%/36.430%`; paired trajectory bootstrap (10,000, seed `20260901`) 95% CIs `[15.953,21.943]` / `[-29.985,-14.339]` / `[35.183,37.478]` percent.
+- Joint counts: Rel+MVPE `16/16`; all three positive `2/16`; Rel>0, MVPE>0, TKE improvement≥-5% `16/16`. Evidence: `../artifacts/hybrid_cno_point_h1_scale_stability_s20260903/`; handoff `docs/coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1_SCALE_STABILITY.md`.
