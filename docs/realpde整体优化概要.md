@@ -8,6 +8,7 @@
 
 | 优化方向 | 核心问题 | 当前概要结论 | 优先级 | 方向概要 |
 |---|---|---|---|---|
+| 线上 SOTA 迭代 | 如何利用每日提交机会持续刷新正式分数 | 每天汇总截至当天已经论证清楚的 KEEP/GO 优化项，形成单一 competition candidate；完成全量训练、SPS、smoke、打包和正式提交。当前主线为 P0-A + N2 full continuation + SPS recovery。 | P0 | [SOTA 迭代](sota迭代/README.md) |
 | 物理过程理解 | 任务边界与可用物理约束 | 正式 runtime 只能依赖当前 20 帧 `u/v` 和 tensor shape；`p` 为兼容占位，外部工况/几何信息不可作为推理特征。 | P2 | [Physics](physics/physics概要.md) |
 | 建模范式与模型结构 | 采用什么预测范式 | CNO 是当前比赛性能锚点；纯 Point/LOCAL3 路线已停止。H1 保留稳定 Rel-L2/MVPE 信号，但 trajectory-level TKE 保护不足，暂不自动扩展。 | P0 | [Modeling](modeling/modeling概要.md) |
 | 特征工程 | 哪些信息有价值、如何融合 | Feature Discovery 已关闭；P0-A 已证明 runtime-safe Temporal/Spatial/统计特征能改善主模型，但后续重点应转向 fusion 与 TKE 保护，而不是继续扩展特征目录。 | P1 | [Feature Engineering](feature_engineering/feature_engineering概要.md) |
