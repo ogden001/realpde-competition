@@ -40,6 +40,34 @@ ChatGPT 和 Codex 默认都直接与 `main` 同步：
 
 多个 Codex 可以并行，但不得同时操作同一个本地工作目录。并行 Codex 应使用彼此独立的本地 clone/工作目录，全部跟踪同一个 `origin/main`。
 
+### 执行冻结与版本锁定
+
+当 ChatGPT / Sol 完成本次 GPU / 长时任务的代码、测试、launcher 和 `NEXT_ACTION.md` 后，应明确给出：
+
+- `READY_FOR_EXECUTION`
+- `REQUIRED_COMMIT = <sha>`
+
+从 `READY_FOR_EXECUTION` 到 Codex 完成启动检查期间，ChatGPT / Sol 默认不再修改该任务的核心代码、launcher 或实验定义。若必须修改，应撤销上一版执行授权并给出新的 `REQUIRED_COMMIT`。
+
+Codex 在正式 tests / smoke / launch 前必须执行：
+
+```bash
+git fetch origin
+git pull --rebase origin main
+git rev-parse HEAD
+git rev-parse origin/main
+git merge-base --is-ancestor "$REQUIRED_COMMIT" HEAD
+```
+
+启动条件：
+- `HEAD == origin/main`；
+- `REQUIRED_COMMIT` 是当前 `HEAD` 的祖先；
+- runtime snapshot / preflight / tests / smoke 满足本任务要求。
+
+任一条件不满足，停止并报告，不启动 GPU 长任务。
+
+实验 handoff 必须记录**实际执行 commit SHA**。运行中的任务不因 `main` 后续出现与该任务无关的新 commit 而自动停止或切换代码；是否需要重启由 ChatGPT / Sol 根据 diff 决定。
+
 ## 3. 优化方向文档
 
 每个优化方向在自己的 `docs/` 目录维护两类核心文件：
@@ -235,6 +263,8 @@ Codex 不应自主处理：
 **方向目录隔离任务和实验历史，`README.md` 保存长期记忆，`NEXT_ACTION.md` 驱动下一步。**
 
 **远程环境事实先盘点，再设计依赖这些事实的实验；长任务结束后留下可机器读取的 artifact manifest。**
+
+**GPU 长任务以 `READY_FOR_EXECUTION + REQUIRED_COMMIT` 锁定启动版本，handoff 记录实际执行 commit。**
 
 **ChatGPT / Sol = Research Lead + Experiment Designer + Core Experiment Code Author + Reviewer**
 
