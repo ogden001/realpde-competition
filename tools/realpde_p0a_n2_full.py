@@ -19,13 +19,14 @@ import sys
 import time
 from pathlib import Path
 
+import h5py
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
 import realpde_loss_official_v9 as core
 from realpde_b1_p0a_n2 import evaluate, forward
-from realpde_p0_data import H5WindowDataset, read_grid
+from realpde_p0_data import H5WindowDataset
 from realpde_p0_features import P0FeatureBuilder, P0FeatureConfig
 
 
@@ -75,6 +76,40 @@ def released_paths(data_root: Path, max_trajectories: int | None = None) -> list
     if not paths:
         raise FileNotFoundError(f"no released .h5 trajectories under {data_root}")
     return paths
+
+
+def historical_p0a_spacing(paths: list[Path]) -> tuple[float, float]:
+    """Reproduce the exact grid-spacing semantics used to train full@15,300.
+
+    The historical full runner loaded velocity fields with ``::2`` spatial
+    subsampling, but intentionally computed P0-A derivative spacing as
+    ``(x[0,2]-x[0,0])/2`` and ``(y[2,0]-y[0,0])/2`` on the original grid.
+    For a regular grid this equals the original-grid adjacent spacing, not the
+    spacing between adjacent cells after subsampling. Continuations must keep
+    this numerical convention because the checkpoint was trained with it.
+    """
+    if not paths:
+        raise ValueError("P0-A spacing requires at least one trajectory")
+    reference: tuple[float, float] | None = None
+    for path in paths:
+        with h5py.File(path, "r") as handle:
+            if "x" not in handle or "y" not in handle:
+                raise KeyError(f"{path} lacks x/y needed to restore historical P0-A spacing")
+            x, y = handle["x"], handle["y"]
+            if x.ndim != 2 or y.ndim != 2 or x.shape[1] < 3 or y.shape[0] < 3:
+                raise ValueError(f"{path} has invalid x/y grid shape for historical P0-A spacing")
+            spacing = (
+                float(x[0, 2] - x[0, 0]) / 2.0,
+                float(y[2, 0] - y[0, 0]) / 2.0,
+            )
+        if spacing[0] == 0.0 or spacing[1] == 0.0:
+            raise ValueError(f"zero historical P0-A spacing in {path}")
+        if reference is None:
+            reference = spacing
+        elif not np.allclose(reference, spacing, rtol=1e-6, atol=1e-9):
+            raise ValueError(f"P0-A spacing differs in {path}: {spacing} vs {reference}")
+    assert reference is not None
+    return reference
 
 
 def milestone_checkpoint_path(out_dir: Path, update: int) -> Path:
@@ -196,12 +231,12 @@ def train(args: argparse.Namespace) -> None:
         train_paths = manifest_paths(args.manifest, args.data_root, "train")
         dev_paths = manifest_paths(args.manifest, args.data_root, "dev")
 
-    x_grid, y_grid = read_grid(train_paths[0], sub_sample=2)
+    dx, dy = historical_p0a_spacing(train_paths)
     config = P0FeatureConfig(
         include_p0_a=True,
         include_p0_b=False,
-        dx=float(x_grid[0, 1] - x_grid[0, 0]),
-        dy=float(y_grid[1, 0] - y_grid[0, 0]),
+        dx=dx,
+        dy=dy,
     )
 
     args.out_dir.mkdir(parents=True)
