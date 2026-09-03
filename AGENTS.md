@@ -15,6 +15,12 @@
 
 将用户提供的 `NEXT_ACTION` 视为当前的有界任务。它必须明确，或 Codex 必须依据现有协议确定：目标、允许的数据/资源预算、禁止动作和验收条件。不得扩张任务范围。
 
+- Codex 默认按 Luna-medium 的执行能力设计任务。
+- `NEXT_ACTION.md` 必须短、明确、原子化。
+- ChatGPT/Sol 负责实验设计和核心训练/评估/分析脚本。
+- Codex 负责环境适配、执行、smoke test、记录结果。
+- Codex 不做开放式研究，不自行扩大实验范围。
+
 每个实质性实验或候选，都要向 `docs/track1_experiment_registry.md` 追加可核验事实：实验 ID、状态（`DONE`、`REVIEW_REQUIRED`、`BLOCKED` 或 `RUNNING`）、commit SHA 或明确的脏工作树说明、split/manifest SHA、精确命令和关键配置、artifact ID 或仓库相对路径、核心指标/观察，以及 `GO` / `STOP` / `REVIEW_REQUIRED` 结论。不得覆盖既有结论。
 
 任务结束时，更新 `docs/coordination/STATUS.md` 中的最近完成项、当前状态、允许范围和 review handoff。只有证据充分时才更新注册表中的稳定结论。不得将数据集、checkpoint、凭证、绝对私有路径或生成的 submission archive 写入 Git。
