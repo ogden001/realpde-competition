@@ -111,6 +111,39 @@ def spatial_grad_rel_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Ten
     return 0.5 * rel_l2_loss_torch(pred_dx, targ_dx) + 0.5 * rel_l2_loss_torch(pred_dy, targ_dy)
 
 
+def mvpe_rel_loss_torch(pred: torch.Tensor, target: torch.Tensor, sub_s_real: int = 2) -> torch.Tensor:
+    """Differentiable counterpart of this repository's local MVPE proxy.
+
+    Probe locations and time averaging deliberately mirror
+    ``mvpe_rel_l2_per_sample`` in realpde_calibrate_bounds.py.  This is not
+    claimed to be the unpublished Codabench implementation.
+    """
+    d, center_x, center_y, n_probe = 16, 10, 32, 9
+    _, _, h, w, _ = pred.shape
+    probe_center_y = int(center_y / sub_s_real)
+    interval_y = min(2, int(h / (n_probe + 1)))
+    probe_y = [
+        probe_center_y + interval_y * j
+        for j in range(-(n_probe - 1) // 2, n_probe - (n_probe - 1) // 2)
+    ]
+    probe_y = [y for y in probe_y if 0 <= y < h]
+    terms = []
+    for i in range(4):
+        probe_x = int(((i + 1) * d + center_x) / sub_s_real) if int((2 * d + center_x) / sub_s_real) < w else int((0.5 * (i + 2) * d + center_x) / sub_s_real)
+        if 0 <= probe_x < w and probe_y:
+            terms.append(rel_l2_loss_torch(pred[:, :, probe_y, probe_x, :2].mean(dim=1), target[:, :, probe_y, probe_x, :2].mean(dim=1)))
+    return torch.stack(terms).mean() if terms else pred.new_tensor(0.0)
+
+
+def mean_rel_loss_torch(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    return rel_l2_loss_torch(pred[..., :2].mean(dim=1), target[..., :2].mean(dim=1))
+
+
+def fluctuation_rel_loss_torch(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    pred_uv, target_uv = pred[..., :2], target[..., :2]
+    return rel_l2_loss_torch(pred_uv - pred_uv.mean(dim=1, keepdim=True), target_uv - target_uv.mean(dim=1, keepdim=True))
+
+
 def physics_loss(pred: torch.Tensor, target: torch.Tensor, weights: dict[str, float]) -> tuple[torch.Tensor, dict[str, float]]:
     pred_uv = pred[..., :2]
     target_uv = target[..., :2]
@@ -122,6 +155,9 @@ def physics_loss(pred: torch.Tensor, target: torch.Tensor, weights: dict[str, fl
     temp = temporal_rel_loss(pred_uv, target_uv)
     grad = spatial_grad_rel_loss(pred_uv, target_uv)
     p_zero = torch.mean(pred[..., 2] ** 2) if pred.shape[-1] > 2 else pred.new_tensor(0.0)
+    mvpe = mvpe_rel_loss_torch(pred_uv, target_uv)
+    mean = mean_rel_loss_torch(pred_uv, target_uv)
+    fluct = fluctuation_rel_loss_torch(pred_uv, target_uv)
     loss = (
         weights["point"] * point
         + weights["mse"] * mse
@@ -129,6 +165,9 @@ def physics_loss(pred: torch.Tensor, target: torch.Tensor, weights: dict[str, fl
         + weights["temporal"] * temp
         + weights["grad"] * grad
         + weights["p_zero"] * p_zero
+        + weights.get("mvpe", 0.0) * mvpe
+        + weights.get("mean", 0.0) * mean
+        + weights.get("fluct", 0.0) * fluct
     )
     parts = {
         "loss": float(loss.detach().cpu()),
@@ -138,6 +177,9 @@ def physics_loss(pred: torch.Tensor, target: torch.Tensor, weights: dict[str, fl
         "temporal_rel": float(temp.detach().cpu()),
         "grad_rel": float(grad.detach().cpu()),
         "p_zero": float(p_zero.detach().cpu()),
+        "mvpe_rel": float(mvpe.detach().cpu()),
+        "mean_rel": float(mean.detach().cpu()),
+        "fluct_rel": float(fluct.detach().cpu()),
     }
     return loss, parts
 
@@ -210,6 +252,9 @@ def main():
     cli.add_argument("--temporal", type=float, default=0.05)
     cli.add_argument("--grad", type=float, default=0.03)
     cli.add_argument("--p-zero", type=float, default=0.01)
+    cli.add_argument("--mvpe", type=float, default=0.0, help="Weight for the local, differentiable MVPE proxy.")
+    cli.add_argument("--mean", type=float, default=0.0, help="Weight for velocity mean-flow relative L2.")
+    cli.add_argument("--fluct", type=float, default=0.0, help="Weight for velocity fluctuation relative L2.")
     args_cli = cli.parse_args()
 
     set_seed(args_cli.seed)
@@ -271,6 +316,9 @@ def main():
         "temporal": args_cli.temporal,
         "grad": args_cli.grad,
         "p_zero": args_cli.p_zero,
+        "mvpe": args_cli.mvpe,
+        "mean": args_cli.mean,
+        "fluct": args_cli.fluct,
     }
     abs_widths = np.array(
         [0.005, 0.0075, 0.010, 0.0125, 0.015, 0.0175, 0.020, 0.025, 0.030, 0.040],

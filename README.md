@@ -13,6 +13,7 @@
 
 ## 仓库内容
 
+- `docs/track1_experiment_registry.md`：Track 1 冻结 ID 划分、可复用 baseline 和全局实验记忆；它区分 Clean Offline Research 与 Official Warm-start / Competition 两条实验线。新的 loss、架构、FE 或训练策略实验先读此文件。
 - `tools/realpde_tke_finetune.py`：CNO 物理损失微调脚本。
 - `tools/realpde_arch_finetune.py`：通用架构微调脚本，支持 UNet 等模型。
 - `tools/realpde_calibrate_bounds.py`：本地评估与区间 bounds 扫描脚本。
