@@ -10,10 +10,52 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
 from realpde_p0_features import P0FeatureConfig  # noqa: E402
 from realpde_p0a_n2_full import (  # noqa: E402
+    N2_WEIGHTS,
     load_resume_checkpoint,
     manifest_paths,
     save_checkpoint,
 )
+
+
+EXPECTED_N2 = {"mse": 1.0, "tke": 0.05, "rel": 0.027514, "mvpe": 0.009757}
+
+
+def test_continuation_uses_historical_four_key_n2_schema():
+    assert N2_WEIGHTS == EXPECTED_N2
+
+
+def test_resume_accepts_historical_four_key_n2_checkpoint(tmp_path):
+    model = torch.nn.Linear(2, 1)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
+    model(torch.ones(1, 2)).sum().backward()
+    optimizer.step()
+    checkpoint = tmp_path / "historical_resume.pth"
+    config = P0FeatureConfig(include_p0_a=True, include_p0_b=False, dx=0.1, dy=-0.1)
+    torch.save(
+        {
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            "iteration": 18860,
+            "feature_set": "P0-A",
+            "feature_config": {"dx": 0.1, "dy": -0.1},
+            "loss_weights": EXPECTED_N2,
+        },
+        checkpoint,
+    )
+
+    restored_model = torch.nn.Linear(2, 1)
+    restored_optimizer = torch.optim.AdamW(restored_model.parameters(), lr=5e-6)
+    iteration = load_resume_checkpoint(
+        checkpoint,
+        model=restored_model,
+        optimizer=restored_optimizer,
+        config=config,
+        lr_override=5e-6,
+    )
+
+    assert iteration == 18860
+    assert restored_optimizer.state_dict()["state"]
+    assert {group["lr"] for group in restored_optimizer.param_groups} == {5e-6}
 
 
 def test_resume_can_override_lr_without_losing_optimizer_state(tmp_path):
