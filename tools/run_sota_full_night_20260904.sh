@@ -11,6 +11,7 @@ cd "$ROOT_DIR"
 
 SMOKE_DIR="$OUT_ROOT/smoke_full_15300"
 RUN_DIR="$OUT_ROOT/full_15300_to_43260"
+RUNTIME_SNAPSHOT_JSON="$OUT_ROOT/runtime_snapshot.json"
 PREFLIGHT_JSON="$OUT_ROOT/preflight.json"
 SUMMARY_JSON="$OUT_ROOT/full_night_summary.json"
 STATUS_JSON="$OUT_ROOT/launcher_status.json"
@@ -38,6 +39,12 @@ on_error() {
   exit "$rc"
 }
 trap on_error ERR
+
+python tools/realpde_runtime_context.py snapshot \
+  --data-root "$DATA_ROOT" \
+  --kit-root "$KIT_ROOT" \
+  --checkpoint "$RESUME_CHECKPOINT" \
+  --output "$RUNTIME_SNAPSHOT_JSON"
 
 python tools/sota_full_night.py preflight \
   --data-root "$DATA_ROOT" \
@@ -87,9 +94,12 @@ python tools/realpde_p0a_n2_full.py \
   --seed 20260901 \
   --allow-time-cap
 
+python tools/realpde_runtime_context.py manifest \
+  --run-dir "$RUN_DIR"
+
 python tools/sota_full_night.py summarize \
   --run-dir "$RUN_DIR" \
   --output "$SUMMARY_JSON"
 
-write_status "REVIEW_REQUIRED" "see $SUMMARY_JSON"
+write_status "REVIEW_REQUIRED" "see $SUMMARY_JSON and $RUN_DIR/artifact_manifest.json"
 trap - ERR
