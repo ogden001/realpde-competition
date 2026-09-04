@@ -97,6 +97,8 @@
 
 当前最强工程主线已经比较清楚：**CNO + P0-A runtime-safe features + N2 objective**。它在固定 50/16 validation 上同时改善 Rel-L2、TKE、MVPE，并在 Codabench 上把 TKE 提升到 `78.355520`；但最终分仍受 SPS 明显拖累。
 
+**Task Formulation 已出现一个明确的粗筛正结果：Mean / Fluctuation（MF）在 matched 3000-update CLEAN 对照中三项 raw error 均优于 Direct CNO。** MF@3000 相对 Direct@3000 的 Rel-L2 / TKE / MVPE 分别改善 `6.541% / 1.971% / 14.019%`，trajectory wins 为 `16/16 / 8/16 / 15/16`。因此 MF 第一阶段结论已定为 **`PROMISING_PARKED`**：方向价值已经确认，但按“60 分原则”当前不再继续做 RMS decoupling、spectrum、MF-02 等机制级精修，先转向其它一级方向。
+
 数据基线也已经完成一次独立审计：对全部 82 条 PIV 做 input-side split audit 后结论为 `SPLIT_OK`，当前 50/16/16 没有明显分布切偏，Final 也不存在清晰 Train coverage gap。因此后续无需因为 split 怀疑而重划数据，研发仍以 50 Train / 16 Dev 为主。唯一长期注意事项是 Train `6300_0.h5` 与 Final `7575_0.h5` 的 Past20 输入完全重复，因此未来若正式评估 locked-final，应同时报告 `Final-all16` 与 `Final-unique15`。
 
 这说明当前工作应同时存在两种模式：
@@ -128,7 +130,7 @@
 
 | 一级方向 | 核心问题 | 主要子方向 | 当前状态 | 战略优先级 |
 |---|---|---|---|---|
-| **1. Task Formulation** | 我们是不是把任务定义得过于简单？ | Direct 20→20、Residual/Delta、Mean+Fluctuation、Multi-horizon、coarse-to-fine | Direct 20→20 为当前主线；其它 formulation 尚未系统比较 | **P0 Exploration** |
+| **1. Task Formulation** | 我们是不是把任务定义得过于简单？ | Direct 20→20、Residual/Delta、Mean+Fluctuation、Multi-horizon、coarse-to-fine | **Mean/Fluctuation 第一阶段已验证 `PROMISING_PARKED`；MF@3000 相对 Direct@3000 三项 raw error 均改善。其它 formulation 尚未系统比较。** | **PARKED after first-pass** |
 | **2. Sim2Real / CFD 利用** | 训练阶段是否真正利用了赛题最独特的 CFD+PIV 资产？ | CFD pretraining objective、CFD→PIV degradation/domain randomization、latent alignment、teacher/student | 目前主要依赖官方 warm-start / pretrain，系统性 Sim2Real 设计不足 | **P0 Exploration** |
 | **3. Generalization / OOD** | 模型是否对当前数据分布尾部与未知工况足够稳健？ | trajectory profile、bad-case linkage、leave-condition-out、edge-condition holdout、稳健模型选择 | 82 条 input-side split audit 已完成且 `SPLIT_OK`；下一步重点从“怀疑 split”转向模型 robustness | **P1 Exploration** |
 | **4. Model Architecture** | 一个 CNO 是否同时承担了太多时空与尺度建模职责？ | CNO/FNO/Transformer family、Local+Global、Spatial+Temporal、Multi-scale、dual-path | CNO 是当前性能锚点；Point/LOCAL3 已停止；结构空间仍未充分打开 | **P1 Exploration** |
@@ -143,20 +145,45 @@
 
 ### 3.1 Task Formulation
 
-当前主线是直接：
+当前线上主线仍是直接：
 
 `past 20 frames → future 20 frames`
 
-这一路线简单、稳定，但它默认让一个网络同时学习平均流、瞬态波动和长短期时间演化。
+但 **Mean + Fluctuation decomposition 已经完成第一阶段公平验证，并从“候选假设”升级为明确正方向。** 该 formulation 显式拆成：
 
-后续值得重新打开的 formulation：
+`X(t) = mean(X) + X'(t)`
 
-1. **Residual / Delta forecasting**：预测相对 persistence、最后一帧、temporal mean 或 coarse predictor 的增量。
-2. **Mean + Fluctuation decomposition**：显式拆成 `X(t)=mean(X)+X'(t)`，分别建模 mean flow 与 turbulent fluctuation。
-3. **Multi-horizon**：短期、中期、长期 horizon 分阶段或多头预测。
-4. **Coarse-to-fine**：先预测大尺度结构，再恢复细尺度 fluctuation。
+分别建模平均状态与零均值波动场。
 
-其中 **Mean + Fluctuation** 当前价值最高，因为 H1、Temporal/Spatial correction 多次出现“Rel-L2/MVPE 改善但 TKE 受损”的共同模式。
+固定 CLEAN 50/16、P0-A、N2、相同 seed / optimizer continuation 的 matched 3000-update 对照：
+
+| Model | Rel-L2 | TKE | MVPE |
+|---|---:|---:|---:|
+| Direct@3000 | 0.175829 | 0.594649 | 0.151631 |
+| MF@3000 | **0.164327** | **0.582928** | **0.130374** |
+
+MF@3000 相对 Direct@3000：
+
+- Rel-L2：`-6.541%`，trajectory wins `16/16`；
+- TKE：`-1.971%`，trajectory wins `8/16`；
+- MVPE：`-14.019%`，trajectory wins `15/16`。
+
+当前稳定判断：
+
+1. **MF 方向本身有明确价值。** Rel-L2 与 MVPE 是明显的大台阶收益，TKE aggregate 也同向改善。
+2. **早期 MF@1500 明显 under-converged。** 后续分析显示继续训练的主要收益来自 Mean reconstruction，Fluctuation 也改善但稳定性较弱。
+3. **TKE 是 MF 后续第二阶段的主要薄弱项。** RMS/amplitude objective 曾出现 `15/16` trajectory TKE wins，但会损伤 Mean/MVPE；简单 scorer-aligned TKE、高能区 weighting、conditional/spatial gain 未形成可保留方案。
+4. **按“60 分原则”现在停止继续精修。** 当前状态为 **`PROMISING_PARKED`**。不自动继续 RMS decoupling、spectrum、MF-02、temporal head 等实验，先完成 CFD/Pretraining、Model Architecture、Loss 等其它一级方向的粗筛。
+
+因此 Task Formulation 的当前结论不是“MF 仍待验证”，而是：**MF 已证明值得保留，第一阶段收益已经拿到；未来第二阶段若重新打开，目标是保持 Mean/MVPE 优势的同时继续提高 Fluctuation/TKE。**
+
+其它 formulation 仍可在后续 breadth-first 阶段按需粗筛：
+
+- **Residual / Delta forecasting**：预测相对 persistence、最后一帧、temporal mean 或 coarse predictor 的增量；
+- **Multi-horizon**：短期、中期、长期 horizon 分阶段或多头预测；
+- **Coarse-to-fine**：先预测大尺度结构，再恢复细尺度 fluctuation。
+
+详细证据见 [Modeling](modeling/modeling概要.md)、[MF Direction Closeout](coordination/CHATGPT_HANDOFF_MF_DIRECTION_CLOSEOUT.md) 和 [Experiment Registry](track1_experiment_registry.md)。
 
 ### 3.2 Sim2Real / CFD 利用
 
@@ -320,7 +347,8 @@ P0-A + N2 full 15,300 updates：
 |---|---|---|
 | **Distribution-tail / bad-case robustness** | Split audit 已确认数据划分本身无明显偏置，下一步应解释为什么某些 tail trajectories 仍会造成 TKE/Rel/MVPE 失败 | 联合 `Dataset Profile × trajectory metrics × horizon behavior`，定位模型机制问题；不重划 split |
 | **Sim2Real / CFD 数据利用** | 赛题独有的数据资产，目前主要只通过官方 checkpoint 间接使用 | 系统梳理 CFD pretrain / degradation / alignment 可行性 |
-| **Mean / Fluctuation / Spectral 重构** | 多个实验反复出现 Rel/MVPE 与 TKE trade-off | 作为下一代 task/objective 的重点候选 |
+| **Mean / Fluctuation 重构** | 第一阶段已确认是明确正方向：MF@3000 相对 Direct@3000 在 Rel-L2 / TKE / MVPE 全部改善，尤其 Mean/MVPE 收益明显 | **`PROMISING_PARKED`**；保留为第二阶段重点候选，当前不继续机制级精修 |
+| **Spectral / fluctuation dynamics** | MF 的 TKE 收益小于 Rel/MVPE，波动场仍是未来可能的上限问题 | 当前只保留研究钩子，先完成其它一级方向粗筛后再决定是否进入第二阶段 |
 | **Local+Global / Spatial+Temporal 架构** | 当前单 CNO 同时承担空间、时间、尺度和 turbulence 表示 | 只做有明确假设的 bounded probe，不做盲目 sweep |
 | **Uncertainty → SPS** | 固定 bounds 可能只是 SPS 的低阶解法 | 提交前先 calibration；后续看收益决定是否模型化 |
 
@@ -344,6 +372,7 @@ P0-A + N2 full 15,300 updates：
 - 继续扩 Feature catalog；
 - 纯 Point / LOCAL3 / LOCAL5；
 - 回到旧 UNet 路线；
+- **Mean/Fluctuation 方向的 RMS decoupling、spectrum、MF-02、temporal head 等第二阶段精修，待其它一级方向完成粗筛后再回收；**
 - 无假设的大规模 architecture sweep；
 - 原 LR 继续无限长训；
 - 只扫 N2 各项 scalar 权重；
