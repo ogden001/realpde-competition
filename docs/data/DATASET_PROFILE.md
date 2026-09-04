@@ -40,29 +40,11 @@ Descriptors: `u_mean`, `u_std`, `v_mean`, `v_std`, `speed_mean`, `speed_std`,
 
 ## Train / Dev distribution summary
 
-Values are `min / p10 / median / p90 / p95 / max`; full `p25 / p75` values
-are in `profile_summary.json`. Every descriptor has overlapping raw Train/Dev
-ranges; this does not imply identical joint distributions.
-
-| Descriptor | Train | Dev |
-|---|---:|---:|
-| u_mean | 0.0447 / 0.0601 / 0.1498 / 0.2370 / 0.2589 / 0.2818 | 0.0396 / 0.0686 / 0.1435 / 0.2367 / 0.2579 / 0.2920 |
-| u_std | 0.0214 / 0.0288 / 0.0781 / 0.1353 / 0.1436 / 0.1644 | 0.0216 / 0.0352 / 0.0692 / 0.1403 / 0.1458 / 0.1520 |
-| v_mean | -0.0102 / -0.0060 / -0.0023 / 0.0010 / 0.0017 / 0.0031 | -0.0098 / -0.0057 / -0.0024 / 0.0005 / 0.0012 / 0.0027 |
-| v_std | 0.0069 / 0.0079 / 0.0095 / 0.0116 / 0.0121 / 0.0134 | 0.0070 / 0.0081 / 0.0093 / 0.0121 / 0.0128 / 0.0140 |
-| speed_mean | 0.0452 / 0.0603 / 0.1502 / 0.2372 / 0.2593 / 0.2821 | 0.0416 / 0.0703 / 0.1439 / 0.2371 / 0.2585 / 0.2923 |
-| speed_std | 0.0209 / 0.0285 / 0.0782 / 0.1354 / 0.1436 / 0.1644 | 0.0212 / 0.0349 / 0.0694 / 0.1404 / 0.1458 / 0.1520 |
-| speed_p95 | 0.0567 / 0.0766 / 0.1924 / 0.3018 / 0.3278 / 0.3570 | 0.0525 / 0.0892 / 0.1837 / 0.3017 / 0.3265 / 0.3700 |
-| delta_mean | 0.0018 / 0.0022 / 0.0028 / 0.0042 / 0.0047 / 0.0056 | 0.0018 / 0.0024 / 0.0026 / 0.0044 / 0.0048 / 0.0053 |
-| delta_std | 0.0022 / 0.0028 / 0.0038 / 0.0065 / 0.0073 / 0.0090 | 0.0022 / 0.0032 / 0.0035 / 0.0071 / 0.0078 / 0.0086 |
-| fluctuation_rms | 0.0155 / 0.0211 / 0.0565 / 0.0962 / 0.1026 / 0.1190 | 0.0156 / 0.0255 / 0.0495 / 0.1000 / 0.1037 / 0.1086 |
-| grad_mag_mean | 1.5676 / 2.2116 / 4.3175 / 7.4152 / 8.2113 / 9.5333 | 1.5105 / 2.4262 / 4.2702 / 7.6887 / 8.1355 / 9.0269 |
-| vorticity_abs_mean | 1.1062 / 1.5885 / 3.2767 / 5.7077 / 6.3612 / 7.3123 | 1.0894 / 1.7647 / 3.1771 / 5.9834 / 6.2690 / 6.9035 |
-| strain_mag_mean | 1.3005 / 1.9776 / 3.8836 / 6.7500 / 7.3642 / 8.6175 | 1.2596 / 2.1584 / 3.7752 / 7.0125 / 7.3960 / 8.2001 |
-| high_energy_area_ratio | 0.3646 / 0.3894 / 0.4235 / 0.4464 / 0.4474 / 0.4495 | 0.3635 / 0.3953 / 0.4223 / 0.4491 / 0.4494 / 0.4500 |
-| spectrum_low_ratio | 0.8707 / 0.8933 / 0.9165 / 0.9460 / 0.9525 / 0.9604 | 0.8765 / 0.8980 / 0.9200 / 0.9503 / 0.9548 / 0.9585 |
-| spectrum_mid_ratio | 0.0311 / 0.0390 / 0.0528 / 0.0747 / 0.0821 / 0.0963 | 0.0307 / 0.0387 / 0.0512 / 0.0730 / 0.0788 / 0.0890 |
-| spectrum_high_ratio | 0.0195 / 0.0252 / 0.0328 / 0.0474 / 0.0504 / 0.0527 | 0.0225 / 0.0268 / 0.0309 / 0.0462 / 0.0484 / 0.0485 |
+The original prose table was a stale transcription from an earlier profile
+revision. The underlying original trajectory CSV and the full-audit rerun
+agree for all 17 input descriptors to below `2.4e-7` per trajectory; the
+canonical Train/Dev/Final values are now kept in the Full 82-Trajectory Split
+Audit table below and in the generated summary CSV/JSON.
 
 ## Dev coverage / OOD-like assessment
 
@@ -149,6 +131,12 @@ PCA uses all 82 trajectory input vectors after one common all-82 standardization
 Using Train-only standardization and Train p5/p95 descriptor bounds, Dev has 9 `IN_DISTRIBUTION`, 3 `BOUNDARY`, and 4 `OOD_LIKE` trajectories; Final has 11, 1, and 4 respectively. Dev nearest-Train distances range from 0.582 to 1.149 (median 0.813); Final ranges from 0 to 1.775 (median 0.880). The four Final OOD-like flags are descriptor-tail combinations, not large nearest-Train gaps; no Final trajectory exceeds the distance-2 boundary. Therefore Final has no clear Train coverage gap, and the comparable Dev/Final tail fractions do not support a split-bias conclusion.
 
 The original 50/16 input descriptor rows were compared against the full-audit rerun: maximum per-trajectory absolute difference was below `2.4e-7` for both Train and Dev, confirming that the original statistical convention was preserved.
+
+The zero-distance case is `Final 7575_0.h5` → `Train 6300_0.h5`. Their exact 17-descriptor Euclidean distance is `0.0`, and the maximum absolute descriptor difference is `0.0`. A direct input-side check of all 42 Past20 `u/v` windows found `max_abs_u = 0.0`, `max_abs_v = 0.0`, and exact array equality. No Final Future20 slice was read during this check. This is an exact repeated Past20 input trajectory across two manifest entries, not a numerical-distance artifact or a Train coverage gap.
+
+### Audit closure
+
+`SPLIT_OK`: the frozen 50/16/16 split is accepted. Dataset Split Audit is closed; no re-splitting is required.
 
 ## Future20 target descriptors (historical initial profile only)
 
