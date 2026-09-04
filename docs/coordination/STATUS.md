@@ -12,6 +12,19 @@ Current priority is no longer to extend training blindly. The completed P0-A + N
 
 ## Latest Completed
 
+### Dataset baseline / split audit closed
+
+- Full 82-trajectory input-side audit conclusion: `SPLIT_OK`.
+- Keep the frozen `50 train / 16 dev / 16 locked-final` manifest; no repartition is needed.
+- AoA coverage is matched across Dev/Final, Re differences are modest, Dev and Final each contain 4/16 `OOD_LIKE` trajectories, and PCA shows no Dev/Final-exclusive region.
+- Final has no clear Train coverage gap; maximum nearest-Train descriptor distance is `1.775`, below the distance-2 boundary.
+- Cross-split duplicate audit conclusion: `DUPLICATE_AUDIT_CLEAN`.
+- One exact input duplicate exists: Train `6300_0.h5` ↔ Final `7575_0.h5`; all 42 Past20 `u/v` windows are elementwise identical. No other `<0.1` near-duplicate was found; all remaining nearest distances are `>=0.573602`.
+- The locked-final audit was input-side and target-blind: no Final Future20 target, model prediction, Rel-L2/TKE/MVPE, or checkpoint selection was used.
+- Data profiling is now frozen. Future model case analysis should reuse `docs/data/DATASET_PROFILE.md`; do not rerun profiling unless the manifest/protocol/input definition materially changes.
+- If a future Final model evaluation is explicitly authorized, report both `Final-all16` and `Final-unique15` excluding `7575_0`, because the full 16 are not strictly input-independent.
+- References: `docs/data/DATASET_PROFILE.md`, `docs/data/DUPLICATE_AUDIT.md`, `docs/data/data概要.md`.
+
 ### P0-A + N2 validation continuation to 30,900
 
 Reference: `T1-ID-P0A-N2-VALIDATION-30900-S20260903`
@@ -20,7 +33,7 @@ Reference: `T1-ID-P0A-N2-VALIDATION-30900-S20260903`
 - `OFFICIAL_WARM_START` evidence; not a clean causal baseline.
 - 10,300 → 30,900 continuation completed in the prior Codex session.
 - No training was rerun while restoring this record.
-- No locked-final/private-test access and no new Codabench submission occurred during documentation recovery.
+- No new Codabench submission occurred during documentation recovery.
 - Best Rel-L2: `0.112398 @ 27,880`.
 - Best TKE: `0.492848 @ 30,340`.
 - Best MVPE: `0.084671 @ 26,240`.
@@ -71,14 +84,18 @@ Do not promote any of them to “best submission checkpoint” from dev metrics 
 
 ## Constraints
 
-- Default Track 1 research uses the frozen 50 train / 16 dev / 16 locked-final manifest and selects only on dev.
-- Do not access locked final, private test or Codabench unless explicitly authorized.
+- Default Track 1 research uses the frozen 50 train / 16 dev / 16 locked-final manifest and performs training/checkpoint selection on Train/Dev only.
+- The locked-final input-side split audit is complete and closed. Do not use locked-final Future20 targets or locked-final model metrics for routine model selection.
+- Do not access private test or Codabench unless explicitly authorized.
 - Do not start long CPU/GPU work without an explicit bounded task.
 - Keep data, checkpoints, archives, credentials and private absolute paths out of Git.
 
 ## Key Navigation
 
 - Overall status: `docs/realpde整体优化概要.md`
+- Data summary: `docs/data/data概要.md`
+- Dataset profile: `docs/data/DATASET_PROFILE.md`
+- Duplicate audit: `docs/data/DUPLICATE_AUDIT.md`
 - Training summary: `docs/training/training概要.md`
 - 30.9k validation handoff: `docs/coordination/CHATGPT_HANDOFF_P0A_N2_VALIDATION_30900.md`
 - Submission history: `docs/submission_log.md`

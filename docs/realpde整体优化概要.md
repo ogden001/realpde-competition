@@ -39,6 +39,8 @@
 
 当前最强工程主线已经比较清楚：**CNO + P0-A runtime-safe features + N2 objective**。它在固定 50/16 validation 上同时改善 Rel-L2、TKE、MVPE，并在 Codabench 上把 TKE 提升到 `78.355520`；但最终分仍受 SPS 明显拖累。
 
+数据基线也已经完成一次独立审计：对全部 82 条 PIV 做 input-side split audit 后结论为 `SPLIT_OK`，当前 50/16/16 没有明显分布切偏，Final 也不存在清晰 Train coverage gap。因此后续无需因为 split 怀疑而重划数据，研发仍以 50 Train / 16 Dev 为主。唯一长期注意事项是 Train `6300_0.h5` 与 Final `7575_0.h5` 的 Past20 输入完全重复，因此未来若正式评估 locked-final，应同时报告 `Final-all16` 与 `Final-unique15`。
+
 这说明当前工作应同时存在两种模式：
 
 ### Exploitation：沿已知强点继续榨分
@@ -55,7 +57,7 @@
 
 - 任务本身是否应该重构；
 - CFD 是否被充分利用；
-- 离线验证是否真的覆盖 OOD 泛化；
+- 当前模型是否对 distribution-tail / hard trajectories 足够稳健；
 - 时空建模结构是否合理；
 - turbulence 是否应该用频谱、模态或 fluctuation 表示；
 - 物理约束是否只停留在 TKE；
@@ -70,7 +72,7 @@
 |---|---|---|---|---|
 | **1. Task Formulation** | 我们是不是把任务定义得过于简单？ | Direct 20→20、Residual/Delta、Mean+Fluctuation、Multi-horizon、coarse-to-fine | Direct 20→20 为当前主线；其它 formulation 尚未系统比较 | **P0 Exploration** |
 | **2. Sim2Real / CFD 利用** | 训练阶段是否真正利用了赛题最独特的 CFD+PIV 资产？ | CFD pretraining objective、CFD→PIV degradation/domain randomization、latent alignment、teacher/student | 目前主要依赖官方 warm-start / pretrain，系统性 Sim2Real 设计不足 | **P0 Exploration** |
-| **3. Generalization / OOD** | 当前 50/16 ID dev 是否足以代表未知工况？ | Leave-condition-out、edge-condition holdout、trajectory-level OOD evaluator、稳健模型选择 | 当前已有 trajectory-disjoint split，但 OOD evaluator 尚未成为正式选模层 | **P0 Exploration** |
+| **3. Generalization / OOD** | 模型是否对当前数据分布尾部与未知工况足够稳健？ | trajectory profile、bad-case linkage、leave-condition-out、edge-condition holdout、稳健模型选择 | 82 条 input-side split audit 已完成且 `SPLIT_OK`；下一步重点从“怀疑 split”转向模型 robustness | **P1 Exploration** |
 | **4. Model Architecture** | 一个 CNO 是否同时承担了太多时空与尺度建模职责？ | CNO/FNO/Transformer family、Local+Global、Spatial+Temporal、Multi-scale、dual-path | CNO 是当前性能锚点；Point/LOCAL3 已停止；结构空间仍未充分打开 | **P1 Exploration** |
 | **5. Representation** | Raw/手工特征之外，是否存在更适合流体的表示？ | Raw、runtime-safe physics feature、Frequency/Spectrum、POD/Modal、low/high-frequency decomposition | Feature Discovery 已关闭，但“表示学习”远未关闭 | **P1 Exploration** |
 | **6. Physics / Objective** | 如何同时保护平均流、波动结构和局部物理？ | Rel-L2/TKE/MVPE、Mean/Fluctuation、Vorticity/Gradient、spectral energy、multi-task physical heads | N2 已有效；TKE 与 Rel/MVPE trade-off 仍是核心矛盾 | **P0 Exploit + Explore** |
@@ -115,20 +117,30 @@
 
 ### 3.3 Generalization / OOD
 
-现有冻结 protocol：82 条 PIV，50 train / 16 dev / 16 locked-final，按完整 trajectory 隔离。这解决了 window leakage 和普通 ID 选模问题。
+现有冻结 protocol：82 条 PIV，50 train / 16 dev / 16 locked-final，按完整 trajectory 隔离。
 
-但还需要回答另一件事：
+2026-09-04 已完成一次全 82 条的 **input-side、target-blind Split Audit**：
 
-> 一个在现有 dev 上最优的模型，是否也是未知流动条件下最稳的模型？
+- 结论：`SPLIT_OK`，无需重新划分；
+- AoA 在 Dev / Final 的覆盖完全一致，Re 仅有轻微分布差异；
+- Dev 与 Final 均有 `4/16 OOD_LIKE`，tail-case 比例一致；
+- PCA 中 Train / Dev / Final 相互交错，没有 Dev / Final 独占的联合分布区域；
+- Final 最大 nearest-Train descriptor distance 为 `1.775`，低于 distance-2 boundary，没有明显 Train coverage gap；
+- cross-split duplicate audit 仅发现一组 exact pair：Train `6300_0.h5` ↔ Final `7575_0.h5`，42 个 Past20 `u/v` windows 完全一致；除此之外无 `<0.1` near-duplicate。
 
-建议未来建立独立的 **OOD Validation Layer**：
+因此 Generalization/OOD 的核心问题已经从：
 
-- 按已知工况标签做 leave-group-out；
-- 做边缘工况 holdout；
-- 只用这些信息划分数据，不把它们作为 runtime feature；
-- ID dev 用于日常开发，OOD dev 用于战略模型选择与泛化诊断。
+> “50/16/16 是否切歪？”
 
-在 OOD 体系建立前，不应默认“更低的当前 dev error = 更强的 hidden generalization”。
+转成：
+
+> “哪些 distribution-tail / hard trajectories 会让当前模型的 Rel-L2、TKE、MVPE 失效，以及什么机制能提升这些 case 的 robustness？”
+
+后续优先做 **Dataset Profile × model bad-case × metric/horizon behavior** 的关联分析。Leave-condition-out / edge-condition holdout 仍可以作为战略 robustness evaluator，但不再以修复当前 split 为目的，也不应自动替代日常 50/16 protocol。
+
+日常训练和 checkpoint 选择仍只基于 Train / Dev。Locked-final 已完成 input-side audit，但 Future20 / 模型指标仍保持非日常选模信息；如果未来明确授权做 Final 模型评估，应同时报告 `Final-all16` 与 `Final-unique15`，避免 exact duplicate 夸大独立泛化证据。
+
+详细事实见 [Dataset Profile](data/DATASET_PROFILE.md) 与 [Duplicate Audit](data/DUPLICATE_AUDIT.md)。
 
 ### 3.4 Model Architecture
 
@@ -248,7 +260,7 @@ P0-A + N2 full 15,300 updates：
 
 | 战略空白 | 为什么重要 | 当前动作 |
 |---|---|---|
-| **OOD validation** | 可能改变模型选择标准，防止在当前 50/16 上形成局部最优 | 建立独立 OOD evaluator 设计，暂不改变现有 ID protocol |
+| **Distribution-tail / bad-case robustness** | Split audit 已确认数据划分本身无明显偏置，下一步应解释为什么某些 tail trajectories 仍会造成 TKE/Rel/MVPE 失败 | 联合 `Dataset Profile × trajectory metrics × horizon behavior`，定位模型机制问题；不重划 split |
 | **Sim2Real / CFD 数据利用** | 赛题独有的数据资产，目前主要只通过官方 checkpoint 间接使用 | 系统梳理 CFD pretrain / degradation / alignment 可行性 |
 | **Mean / Fluctuation / Spectral 重构** | 多个实验反复出现 Rel/MVPE 与 TKE trade-off | 作为下一代 task/objective 的重点候选 |
 | **Local+Global / Spatial+Temporal 架构** | 当前单 CNO 同时承担空间、时间、尺度和 turbulence 表示 | 只做有明确假设的 bounded probe，不做盲目 sweep |
@@ -277,6 +289,7 @@ P0-A + N2 full 15,300 updates：
 - 无假设的大规模 architecture sweep；
 - 原 LR 继续无限长训；
 - 只扫 N2 各项 scalar 权重；
+- 重新设计 50/16/16 split 或重复 Dataset Profile；
 - 以自定义 final proxy 代替官方 scorer / Codabench。
 
 ### 当前线上 SOTA 迭代
