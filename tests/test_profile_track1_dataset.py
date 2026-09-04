@@ -4,6 +4,7 @@ import h5py
 import numpy as np
 
 from tools.profile_track1_dataset import INPUT_NAMES, TARGET_NAMES, load_manifest, trajectory_row
+from tools.audit_track1_duplicates import window_starts
 
 
 def make_h5(frames=60, height=4, width=5):
@@ -36,3 +37,8 @@ def test_manifest_loader_requires_all_three_audit_splits(tmp_path):
     loaded = load_manifest(manifest)
 
     assert set(("train", "dev", "final")) <= loaded.keys()
+
+
+def test_duplicate_audit_uses_formal_window_protocol():
+    assert list(window_starts(868, 20, 20, 20)) == list(range(0, 840, 20))
+    assert list(window_starts(607, 20, 20, 20)) == list(range(0, 580, 20))
