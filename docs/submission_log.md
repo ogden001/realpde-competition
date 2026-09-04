@@ -16,9 +16,10 @@ Therefore:
 |---:|---|---|---:|---:|---:|---:|---:|---:|---|
 | 897948 | `submission_cno_baseline.zip` | 2026-08-23 13:37 | 64.52290 | 88.581214 | 65.718217 | 81.677206 | 88.663276 | 5.192310 | Historical teammate submission; exact package provenance may be incomplete. |
 | 900896 | `submission_cno_realft_4700_20260825.zip` | 2026-08-25 15:27 | 70.04628 | 93.258780 | 68.856072 | 92.016287 | 88.618744 | 10.578370 | Historical teammate submission; exact package provenance may be incomplete. |
-| 903976 | `submission_cno_tke1200_bounds_rel00.zip` | 2026-08-27 15:44 | 75.58455 | 93.542062 | 70.934325 | 92.167656 | 87.236663 | 27.780536 | Current best known online score; historical teammate package, so exact bounds recipe is not assumed from filename alone. |
+| 903976 | `submission_cno_tke1200_bounds_rel00.zip` | 2026-08-27 15:44 | 75.58455 | 93.542062 | 70.934325 | 92.167656 | 87.236663 | 27.780536 | Historical teammate online anchor; exact bounds recipe is not assumed from filename alone. |
 | 907047 | `8-29提交.zip` | 2026-08-29 13:47 | 74.48384 | 91.868766 | 66.666667 | 89.885887 | 91.959120 | 27.374631 | Historical teammate submission; UNet local-proxy candidate. |
-| — | `submission.zip` (P0-A + N2 full, 15,300 updates) | 2026-09-03 | 71.153839 | 93.023539 | 78.355520 | 91.894417 | 88.430528 | 11.431650 | User-owned all-82-trajectory P0-A + N2 refit. TKE improved strongly versus the best prior CNO, but SPS fell sharply and final score is lower. See [detailed handoff](coordination/CHATGPT_HANDOFF_T1_P0A_N2_FULL15300_CODABENCH.md). |
+| — | `submission.zip` (P0-A + N2 full, 15,300 updates) | 2026-09-03 | 71.153839 | 93.023539 | 78.355520 | 91.894417 | 88.430528 | 11.431650 | User-owned all-82-trajectory P0-A + N2 refit. TKE improved strongly versus the best prior CNO, but SPS fell sharply. See [detailed handoff](coordination/CHATGPT_HANDOFF_T1_P0A_N2_FULL15300_CODABENCH.md). |
+| — | `full43260_abs0075_rel002/submission.zip` | 2026-09-04 | **76.149726** | **93.434384** | **77.588799** | **92.519561** | **86.998134** | **27.545059** | **Current SOTA.** P0-A + N2 full@43,260 with explicit SPS bounds `half_width = 0.0075 + 0.02*abs(prediction)`. Checkpoint SHA256 `50b692e236d5df9285a5cee976a51e3457a7eeed0f87d55b6568745077645d71`; ZIP SHA256 `f8a79ec1114b4e7f05edc9bc95c6810c5250ca27b5044ca387044c0671d9fc98`. |
 
 ## Local packages prepared on 2026-08-29
 
@@ -76,4 +77,5 @@ best_local_bound: abs=0.0075, rel=0.01
 - CNO currently has better hidden physical scores, especially Rel-L2, TKE, and MVPE.
 - P0-A + N2 full demonstrates a strong online TKE gain, but SPS must be protected independently; physical subscore gains alone do not guarantee a better final score.
 - Pre-fork historical bounds information is weak evidence unless the original artifact is recovered; rebuild current SPS calibration from the frozen validation protocol and official scorer.
+- The 2026-09-04 submission confirms explicit SPS calibration can recover SPS from `11.431650` to `27.545059` while preserving strong physical scores, producing a new overall SOTA `76.149726`.
 - Prefer simple CNO packages until a new candidate improves the official final score or demonstrates a better protected multi-metric trade-off.
