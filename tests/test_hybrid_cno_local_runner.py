@@ -36,3 +36,13 @@ def test_metric_helpers_make_matched_deltas_and_wins():
     assert delta["a"]["rel_l2_pct"] == pytest.approx(50.0)
     assert delta["a"]["mvpe_pct"] == pytest.approx(-33.3333333333)
     assert wins == {"rel_l2": 1, "tke": 1, "mvpe": 1}
+
+
+def test_global_and_local_parameters_are_each_in_optimizer_once():
+    global_model = torch.nn.Linear(3, 3)
+    local = runner.LocalResidualBranch()
+    opt = runner.make_optimizer(global_model, local, lr=1e-5)
+    all_ids = [id(p) for p in global_model.parameters()] + [id(p) for p in local.parameters()]
+    opt_ids = [id(p) for group in opt.param_groups for p in group["params"]]
+    assert len(opt_ids) == len(set(opt_ids))
+    assert set(opt_ids) == set(all_ids)

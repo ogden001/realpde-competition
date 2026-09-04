@@ -84,6 +84,82 @@ def compare_trajectory_metrics(baseline: dict[str, dict[str, float]], candidate:
     return delta, wins
 
 
+def optimizer_audit(global_model: nn.Module, local: LocalResidualBranch, optimizer: torch.optim.Optimizer) -> dict:
+    global_params = [p for p in global_model.parameters() if p.requires_grad]
+    local_params = [p for p in local.parameters() if p.requires_grad]
+    expected = global_params + local_params
+    actual = [p for group in optimizer.param_groups for p in group["params"]]
+    ids = [id(p) for p in actual]
+    global_ids, local_ids = {id(p) for p in global_params}, {id(p) for p in local_params}
+    return {
+        "global_parameter_tensors": len(global_params), "local_parameter_tensors": len(local_params),
+        "optimizer_global_parameter_tensors": sum(id(p) in global_ids for p in actual),
+        "optimizer_local_parameter_tensors": sum(id(p) in local_ids for p in actual),
+        "missing_params": len({id(p) for p in expected} - set(ids)),
+        "duplicate_params": len(ids) - len(set(ids)),
+        "passed": set(ids) == {id(p) for p in expected} and len(ids) == len(set(ids)),
+    }
+
+
+def make_optimizer(global_model: nn.Module, local: LocalResidualBranch, lr: float) -> torch.optim.Optimizer:
+    audit_params = [p for p in global_model.parameters() if p.requires_grad] + [p for p in local.parameters() if p.requires_grad]
+    if len({id(p) for p in audit_params}) != len(audit_params):
+        raise RuntimeError("duplicate trainable parameters")
+    return torch.optim.AdamW(audit_params, lr=lr)
+
+
+def restore_global_optimizer_state(optimizer: torch.optim.Optimizer, payload: dict, global_model: nn.Module, lr: float) -> None:
+    """Copy Direct's optimizer moments to global params; local starts fresh."""
+    old_state = payload.get("optimizer_state_dict")
+    if old_state is None: return
+    old_optimizer = torch.optim.AdamW(global_model.parameters(), lr=lr)
+    old_optimizer.load_state_dict(old_state)
+    for param in global_model.parameters():
+        if param in old_optimizer.state:
+            optimizer.state[param] = {key: value.detach().clone() if torch.is_tensor(value) else value for key, value in old_optimizer.state[param].items()}
+
+
+def run_preflight(args: argparse.Namespace) -> None:
+    if args.preflight_out is None: raise ValueError("--preflight-out is required with --preflight")
+    if args.preflight_out.exists() and any(args.preflight_out.iterdir()): raise FileExistsError(args.preflight_out)
+    args.preflight_out.mkdir(parents=True, exist_ok=True); set_seed(args.seed)
+    train_paths = core.read_manifest(args.manifest, "train")[1]
+    device = torch.device(args.device if args.device == "cpu" or torch.cuda.is_available() else "cpu")
+    model, builder = build_global(args.kit_root, args.checkpoint, train_paths, device); local = LocalResidualBranch(args.local_hidden).to(device)
+    optimizer = make_optimizer(model, local, args.lr); audit = optimizer_audit(model, local, optimizer)
+    if not audit["passed"]: raise RuntimeError(f"optimizer audit failed: {audit}")
+    loader_args = argparse.Namespace(batch_size=args.batch_size, workers=0, max_windows=None, seed=args.seed)
+    _, loader = core.loader(train_paths, loader_args, shuffle=False); x, y, _, _ = next(iter(loader)); x, y = x.to(device), y.to(device)
+    model.eval(); local.eval()
+    with torch.no_grad():
+        global_output = forward(model, builder, x); local_output0 = local(x); full0 = fuse_prediction(global_output, x, local)
+    step0 = {"full_equals_global": bool(torch.equal(full0, global_output)), "local_output_zero": bool(local_output0.abs().max() == 0), "local_output_rms": float(local_output0.pow(2).mean().sqrt())}
+    if not step0["full_equals_global"] or not step0["local_output_zero"]: raise RuntimeError(f"step0 failed: {step0}")
+    before = local.output.weight.detach().clone(); model.train(); local.train();
+    step_metrics = []
+    for step in range(1, 4):
+        prediction = forward(model, builder, x, local); parts = core.loss_parts(prediction, y); loss = sum(N2_WEIGHTS[k] * parts[k] for k in N2_WEIGHTS)
+        optimizer.zero_grad(set_to_none=True); loss.backward()
+        if step == 1:
+            grad = {"final_weight_norm": float(local.output.weight.grad.norm()), "final_bias_norm": float(local.output.bias.grad.norm())}
+            if not local.output.weight.grad.abs().sum(): raise RuntimeError("final projection gradient is zero")
+        optimizer.step()
+        with torch.no_grad(): out = local(x)
+        step_metrics.append({"step": step, "loss": float(loss.detach()), "final_weight_delta_from_init": float((local.output.weight.detach() - before).norm()), "local_output_rms": float(out.pow(2).mean().sqrt())})
+    # Recreate the exact initial local parameters from the frozen seed/order.
+    upstream = {}
+    # The input delta is compared to the known initialization clone captured before steps.
+    initial_local = LocalResidualBranch(args.local_hidden).to(device)
+    set_seed(args.seed); _tmp_model, _tmp_builder = build_global(args.kit_root, args.checkpoint, train_paths, device); initial_local = LocalResidualBranch(args.local_hidden).to(device)
+    upstream["input_weight_delta_after_3_steps"] = float((local.input.weight.detach() - initial_local.input.weight.detach()).norm())
+    if upstream["input_weight_delta_after_3_steps"] <= 0: raise RuntimeError("upstream local Conv did not update")
+    roundtrip = args.preflight_out / "roundtrip.pth"; torch.save(local.state_dict(), roundtrip); reloaded = LocalResidualBranch(args.local_hidden).to(device); reloaded.load_state_dict(torch.load(roundtrip, map_location=device, weights_only=False))
+    with torch.no_grad(): roundtrip_error = float((reloaded(x) - local(x)).abs().max())
+    evidence = {"passed": True, "optimizer_audit": audit, "step0": step0, "step1_gradient": grad, "steps": step_metrics, "upstream": upstream, "checkpoint_roundtrip_max_abs": roundtrip_error, "device": str(device), "locked_final_accessed": False, "codabench": False}
+    if roundtrip_error != 0.0: raise RuntimeError(f"roundtrip failed: {roundtrip_error}")
+    save_json(args.preflight_out / "preflight.json", evidence)
+
+
 def build_global(kit_root: Path, checkpoint: Path, train_paths: list[Path], device: torch.device) -> tuple[nn.Module, direct.P0FeatureBuilder]:
     builder, _ = direct.build_features(train_paths, device)
     model = direct.cno_direct(kit_root, len(builder.feature_names), device)
@@ -144,6 +220,11 @@ def run(args: argparse.Namespace) -> None:
     if args.out_dir.exists() and any(args.out_dir.iterdir()):
         raise FileExistsError(args.out_dir)
     args.out_dir.mkdir(parents=True, exist_ok=True)
+    if args.preflight_evidence is None:
+        raise ValueError("--preflight-evidence is required for formal training")
+    preflight = json.loads(args.preflight_evidence.read_text(encoding="utf-8"))
+    if not preflight.get("passed"):
+        raise RuntimeError("refusing formal training: preflight did not pass")
     set_seed(args.seed)
     _, train_paths = core.read_manifest(args.manifest, "train")
     _, dev_paths = core.read_manifest(args.manifest, "dev")
@@ -151,9 +232,8 @@ def run(args: argparse.Namespace) -> None:
     model, builder = build_global(args.kit_root, args.checkpoint, train_paths, device)
     local = LocalResidualBranch(hidden=args.local_hidden).to(device)
     payload = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
-    if "optimizer_state_dict" in payload and args.restore_optimizer:
-        optimizer.load_state_dict(payload["optimizer_state_dict"])
+    optimizer = make_optimizer(model, local, args.lr)
+    if args.restore_optimizer: restore_global_optimizer_state(optimizer, payload, model, args.lr)
     metadata = {
         "experiment_id": args.experiment_id, "reference": "T1-ID-MF-DIRECT3000-CLOSEOUT-S20260901",
         "architecture": "Direct CNO P0-A global + Conv3d local residual; prediction=global+local",
@@ -166,6 +246,7 @@ def run(args: argparse.Namespace) -> None:
         "train_trajectories": len(train_paths), "dev_trajectories": len(dev_paths), "locked_final_accessed": False,
         "codabench": False, "device": str(device), "global_parameters": sum(p.numel() for p in model.parameters()),
         "local_parameters": sum(p.numel() for p in local.parameters()), "runner_sha256": sha256(Path(__file__)),
+        "optimizer_audit": optimizer_audit(model, local, optimizer), "preflight_evidence": str(args.preflight_evidence),
     }
     save_json(args.out_dir / "run_metadata.json", metadata)
     if args.smoke:
@@ -213,8 +294,10 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=8); parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--max-windows", type=int, default=None); parser.add_argument("--lr", type=float, default=1e-5)
     parser.add_argument("--local-hidden", type=int, default=16); parser.add_argument("--restore-optimizer", action="store_true")
-    parser.add_argument("--smoke", action="store_true")
-    run(parser.parse_args())
+    parser.add_argument("--smoke", action="store_true"); parser.add_argument("--preflight", action="store_true"); parser.add_argument("--preflight-out", type=Path); parser.add_argument("--preflight-evidence", type=Path)
+    args = parser.parse_args()
+    if args.preflight: run_preflight(args)
+    else: run(args)
 
 
 if __name__ == "__main__": main()
