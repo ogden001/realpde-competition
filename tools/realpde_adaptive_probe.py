@@ -279,7 +279,7 @@ def run_training(*, data_root: Path, kit_root: Path, checkpoint: Path, manifest:
         return sum({"point": 1.0, "mse": .05, "tke": .12, "temporal": .04, "grad": .02, "p_zero": .01}.get(k, 0.0) * v
                    for k, v in corrector_loss(base_pred + pred_delta.permute(0, 2, 3, 4, 1), y, pred_delta.permute(0, 2, 3, 4, 1)).items()) + .15 * corrector_loss(base_pred + pred_delta.permute(0, 2, 3, 4, 1), y, pred_delta.permute(0, 2, 3, 4, 1))["residual_mse"] + .05 * corrector_loss(base_pred + pred_delta.permute(0, 2, 3, 4, 1), y, pred_delta.permute(0, 2, 3, 4, 1))["delta_penalty"]
 
-    corr_rows = _train_module(corrector, batches_corrector(), updates_corrector, 1e-4, 1e-5, corr_loss, raw_log)
+    corr_rows = _train_module(corrector, batches_corrector, updates_corrector, 1e-4, 1e-5, corr_loss, raw_log)
 
     def batches_head():
         for x, y, _, _ in loader:
@@ -295,7 +295,7 @@ def run_training(*, data_root: Path, kit_root: Path, checkpoint: Path, manifest:
         pred, target = pair
         return gaussian_nll(target, pred, sigma.permute(0, 2, 3, 4, 1))
 
-    head_rows = _train_module(head, batches_head(), updates_head, 1e-3, 1e-5, nll_loss, out_dir / "head_training.log")
+    head_rows = _train_module(head, batches_head, updates_head, 1e-3, 1e-5, nll_loss, out_dir / "head_training.log")
     metadata = {"seed": seed, "full": full, "updates_corrector": updates_corrector, "updates_head": updates_head,
                 "batch_size": batch_size, "device": str(device), "checkpoint": str(checkpoint),
                 "checkpoint_sha256": _sha256(checkpoint), "manifest": str(manifest), "train_windows": len(ds),
