@@ -2,16 +2,19 @@
 
 ## 1. 整体思路
 
-以官方三通道 CNO 为主性能锚点；任何新范式都要在冻结 ID protocol 下，与其匹配的对照同时比较 Rel-L2、TKE、MVPE、runtime 与稳定性。
+以当前 CNO 主线为性能锚点；任何新范式都要在冻结 ID protocol 下，与其匹配的对照同时比较 Rel-L2、TKE、MVPE、runtime 与稳定性。
+
+表示学习要区分“某个具体 representation 实现失败”和“representation 方向整体关闭”。Sim2Real Round 2 只否定了 official CFD `sim_pretrain` frozen representation 作为 PIV forecasting 主增量来源，不等价于否定所有频谱、模态、PIV self-supervised 或新 backbone representation。
 
 ## 2. 当前结论
 
 | 技术方向 | 内容概要 | 关键实验结果 | 状态 | 详细文档 |
 |---|---|---|---|---|
-| CNO 主线 | CNO 当前拥有最好已知 Codabench 结果，优于曾上线的 UNet 后处理候选的隐藏物理子分。 | CNO `75.58455`；UNet `74.48384`。 | KEEP | [Submission log](../submission_log.md) |
+| CNO 主线 | CNO 当前拥有最好已知 Codabench 结果。 | 当前 SOTA：`P0-A + N2 + CNO + full@43260 + explicit SPS bounds`，Final `76.149726`。 | KEEP | [SOTA](../sota迭代/README.md) / [Submission log](../submission_log.md) |
 | 纯 Point MLP | 无空间上下文的 Point 模型未通过既定 dev gate。 | Point residual 对 PERSIST 的 Rel-L2/MVPE 未达门槛。 | STOP | [Point-V0](../coordination/CHATGPT_HANDOFF_POINT_V0.md) |
 | LOCAL3 Point | LOCAL3 与降 TKE 权重的 bounded 变体均未在 1500-step screen 通过。 | LOCAL3 Rel-L2/MVPE 均退化；`λ_TKE=0.001` 仍未改善 Rel-L2。 | STOP | [LOCAL3](../coordination/CHATGPT_HANDOFF_POINT_V1_LOCAL3.md), [balanced loss](../coordination/CHATGPT_HANDOFF_POINT_LOCAL3_BALANCED_L001.md) |
 | CNO + Point H1 | 原始 H1 的 TKE 代价触发早停；train-selected `alpha=0.5` 缩放通过 aggregate gate，但 trajectory-level TKE 保护不稳。 | Rel/MVPE 16/16 trajectory 改善；满足 TKE 保护仅 3/16。 | REVIEW | [scale](../coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1_SCALE.md), [stability](../coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1_SCALE_STABILITY.md) |
+| Official CFD frozen representation | official `sim_pretrain` CNO 主干冻结，仅训练同预算 tiny probe；与同架构 random frozen CNO 对照。 | CFD rep 的 Rel-L2/TKE/MVPE 为 `0.9026/32.0180/1.1509`，random control 为 `0.7680/13.0809/0.7800`，三项均明显更差。 | **STOP** | [REP-01](../coordination/CHATGPT_HANDOFF_SIM2REAL_REP01.md) |
 | MF-01 Mean/Fluctuation | 输出层 temporal mean + zero-mean fluctuation factorization。 | 1500 updates: Rel-L2 `-2.72%`、MVPE `-2.80%`，但 TKE `+1.79%`；该 checkpoint 后续被证明明显 under-converged。 | HISTORICAL_SCREEN | [MF-01 handoff](../coordination/CHATGPT_HANDOFF_MF01.md), [deep analysis](../coordination/CHATGPT_HANDOFF_MF01_DEEP_ANALYSIS.md) |
 | MF Energy Campaign 01 | MF-01 fixed-factor probes: TKE weight 2x, scalar conditional gain, spatial gain。 | E2/E3 Rel-L2 `-2.624%/-2.644%` 和 MVPE `-3.314%/-3.488%` vs MF-01，但 TKE wins 仅 `4/16` 和 `3/16`；gain 基本未学出有效校准。 | NO-GO / REVIEW | [Campaign handoff](../coordination/CHATGPT_HANDOFF_MF_ENERGY_CAMPAIGN01.md) |
 | MF Energy Campaign 02 | Scorer-aligned TKE、RMS、high-energy weighting、frozen conditional/spatial gain。 | E5 有 `15/16` TKE wins 但损伤 MVPE；E4 弱；E6 损伤 MVPE 与 high-energy cases；E7/E8 gain 近 identity。 | NO-GO / REVIEW | [Campaign02 handoff](../coordination/CHATGPT_HANDOFF_MF_ENERGY_CAMPAIGN02.md) |
@@ -40,13 +43,28 @@ Mean / Fluctuation（MF）已完成 breadth-first 第一阶段验证，当前结
 
 因此，未来若重新打开 MF，首要问题不是重新证明“有没有价值”，而是：**如何在保持 Mean/MVPE 优势的同时继续提高 Fluctuation/TKE。**
 
+### 2.2 CFD Representation 收口结论
+
+Sim2Real Round 2 的 REP-01 结论是 **`CFD_REPRESENTATION_NOT_SUPPORTED`**。
+
+需要保留两个边界：
+
+1. 这只否定 official CFD `sim_pretrain` frozen representation + tiny probe 这条具体低成本路线；
+2. latent pooled mean 的 CFD↔PIV gap 虽然比 raw field 更小，但没有转化为 downstream PIV forecasting 增量，因此“latent 更接近”不能单独作为 representation 成功标准。
+
+按照 60 分原则，不继续设计更复杂的 CFD teacher/student、adversarial alignment 或专门 CFD self-supervised Campaign。其它与 CFD 无关的 Representation 方向仍保持开放。
+
 ## 3. TODO
 
 | 技术方向 | 内容概要 | 优先级 |
 |---|---|---|
 | H1 | 等待 ChatGPT/Sol 对 scale stability 的单一、受限 NEXT_ACTION；不自动启动 H2、joint training 或 LOCAL5。 | P0 |
+| CFD representation | 当前 `STOP / PARKED`；仅在出现可靠 calibration、新 OOD failure linkage 或新的明确机制时重新打开。 | PARKED |
 
 ## 4. 相关文档
 
+- [Sim2Real / CFD 利用概要](../sim2real/sim2real概要.md)
+- [REP-01](../coordination/CHATGPT_HANDOFF_SIM2REAL_REP01.md)
+- [Round 2 Decision](../coordination/CHATGPT_HANDOFF_SIM2REAL_ROUND2_DECISION.md)
 - [协调状态](../coordination/STATUS.md)
 - [Track 1 实验注册表](../track1_experiment_registry.md)
