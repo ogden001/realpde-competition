@@ -5,20 +5,44 @@
 ### ChatGPT / Sol
 负责需要较强研究判断的工作：
 - 技术方向与优先级；
-- 实验设计与变量控制；
-- 训练、评估、分析脚本的核心逻辑；
+- 科学假设、实验设计与变量控制；
+- 明确定义模型 / Loss / Feature / 数据 / 评估的实验语义；
+- 冻结 baseline、唯一变量、预算、Gate、停止条件和禁止项；
+- 根据语义风险决定核心代码由 ChatGPT 直接实现，还是交给 Codex 做 bounded 实现；
 - 结果复核与下一步决策。
 
 ### Codex / Luna-medium
-负责仓库和环境内的工程执行：
+负责仓库和环境内的工程实现与执行：
 - 阅读本方向任务文件和相关代码；
-- 做必要的环境适配；
-- 落地已明确的改动；
-- smoke test；
+- 在实验语义已经明确的前提下，完成 bounded 代码实现；
+- 做必要的仓库 / 环境适配；
+- unit test / TDD / smoke test；
 - 启动训练、评估和分析；
 - 记录实验事实、结果和 commit。
 
-Codex 不承担开放式研究规划，不自行扩大实验范围，不自行设计下一轮实验。
+Codex 可以写实验代码，但不承担开放式研究规划，不自行改变实验含义，不自行扩大实验范围，不自行设计下一轮实验。
+
+### 代码作者选择原则
+
+不机械规定“实验代码必须由 ChatGPT 写”或“必须由 Codex 写”。默认按 **语义风险** 和 **工程上下文复杂度** 选择：
+
+**优先由 ChatGPT / Sol 直接实现：**
+- 改动很小、接口清楚，但数学 / 实验语义高度关键；
+- 一处翻译歧义就可能污染实验结论；
+- 例如小型 loss / metric 公式、projection / decomposition、关键 scorer helper、简单 feature 定义、明确的 protocol 常量。
+
+**优先由 Codex 实现：**
+- 科学语义已经被 ChatGPT 完整冻结；
+- 主要难点是理解现有 repo、复用 pipeline、checkpoint / dataloader / runner 接口、测试和真实环境集成；
+- 属于单变量、边界清楚的 bounded 实验改动。
+
+**混合模式：**
+- ChatGPT 给出精确数学定义、invariant / equivalence test、baseline 与 Gate；
+- Codex 在现有代码结构中完成最小集成，并用测试证明实现符合定义。
+
+若实现过程中出现会改变实验语义的歧义，Codex 必须停止并报告，不自行选择新的定义。
+
+核心原则：**谁敲代码不是关键，ChatGPT / Sol 拥有实验语义和研究决策权；Codex 拥有 repo-aware 实现、验证和执行权。**
 
 ### 新一级研究会话的默认入口
 
@@ -57,12 +81,40 @@ ChatGPT 和 Codex 默认都直接与 `main` 同步：
 
 ### 执行冻结与版本锁定
 
-当 ChatGPT / Sol 完成本次 GPU / 长时任务的代码、测试、launcher 和 `NEXT_ACTION.md` 后，应明确给出：
+GPU / 长时任务启动前，必须同时冻结两件事：
+
+1. **实验契约**：Goal、baseline、唯一变量、数学 / forward 语义、数据与初始化、Loss、预算、checkpoint 规则、评估、Gate、停止条件、禁止项；
+2. **实际执行代码版本**：启动时使用的 Git commit。
+
+根据实现方式分两种模式。
+
+#### 模式 A：ChatGPT 已完成核心实现
+
+当 ChatGPT / Sol 已完成本次任务所需的核心代码、测试 / launcher 和 `NEXT_ACTION.md` 后，应明确给出：
 
 - `READY_FOR_EXECUTION`
 - `REQUIRED_COMMIT = <sha>`
 
 从 `READY_FOR_EXECUTION` 到 Codex 完成启动检查期间，ChatGPT / Sol 默认不再修改该任务的核心代码、launcher 或实验定义。若必须修改，应撤销上一版执行授权并给出新的 `REQUIRED_COMMIT`。
+
+#### 模式 B：Codex 负责 bounded 实现并无人值守执行
+
+如果 ChatGPT / Sol 已经完整冻结实验语义，但决定让 Codex 根据现有 repo 完成实现，可明确给出：
+
+- `IMPLEMENT_AND_EXECUTE_AUTHORIZED`
+- 必要时给出 `REQUIRED_BASE_COMMIT = <sha>`
+
+Codex 可以在该实验契约内完成代码、TDD / unit test、smoke、commit 和 push；若所有预注册测试与 preflight 通过，可直接启动预授权的 GPU / 长时任务，不要求用户再次在线确认。
+
+正式启动前 Codex 必须记录：
+
+- `EXECUTION_COMMIT = <sha>`
+- 实现相对实验契约没有语义漂移；
+- 关键 invariant / equivalence / smoke 已通过。
+
+如果实现需要改变模型定义、Loss、Feature、split、初始化、预算、Gate 或其他实验语义，授权立即失效，停止并报告。
+
+### 启动前版本检查
 
 Codex 在正式 tests / smoke / launch 前必须执行：
 
@@ -71,13 +123,25 @@ git fetch origin
 git pull --rebase origin main
 git rev-parse HEAD
 git rev-parse origin/main
+```
+
+模式 A 还必须执行：
+
+```bash
 git merge-base --is-ancestor "$REQUIRED_COMMIT" HEAD
+```
+
+模式 B 若指定了 `REQUIRED_BASE_COMMIT`，则执行：
+
+```bash
+git merge-base --is-ancestor "$REQUIRED_BASE_COMMIT" HEAD
 ```
 
 启动条件：
 - `HEAD == origin/main`；
-- `REQUIRED_COMMIT` 是当前 `HEAD` 的祖先；
-- runtime snapshot / preflight / tests / smoke 满足本任务要求。
+- required commit / base commit（若有）是当前 `HEAD` 的祖先；
+- runtime snapshot / preflight / tests / smoke 满足本任务要求；
+- 实验契约没有发生未经授权的变化。
 
 任一条件不满足，停止并报告，不启动 GPU 长任务。
 
@@ -144,19 +208,33 @@ git merge-base --is-ancestor "$REQUIRED_COMMIT" HEAD
 - eval/scorer 脚本；
 - analysis 脚本。
 
-凡涉及**实验语义**的代码，默认由 ChatGPT / Sol 直接实现并进入 Git，不只提供伪代码让 Codex 自行翻译。包括但不限于：
-- loss 与指标计算；
-- feature 构造与 fusion；
-- 模型结构与 forward 语义；
+### 实验语义必须由 ChatGPT / Sol 冻结
+
+不论最终代码由谁实现，以下内容不得留给 Codex 开放式决定：
+- loss 与指标的数学定义；
+- feature 构造与 fusion 语义；
+- 模型结构 / prediction target / forward 的核心语义；
 - checkpoint / optimizer resume 语义；
-- LR schedule 与训练阶段切换；
+- LR schedule 与训练阶段切换规则；
 - 数据 split、采样和窗口协议；
-- A/B 变量控制、停止条件与 checkpoint 规则；
-- official scorer、结果分析与关键实验校验。
+- A/B 唯一变量、预算、停止条件与 checkpoint 规则；
+- official scorer、结果分析口径与关键实验 Gate。
 
-Codex 不根据伪代码自行补全或重写这些核心实验逻辑。Codex 主要负责真实环境中的最小工程适配、集成、测试和执行，例如路径、CUDA、conda/container、远端主机、checkpoint 实际位置、日志和 detached runner。
+### 实现可以由 ChatGPT 或 Codex 完成
 
-环境适配不得改变实验定义、数据 split、核心超参数或评价协议。若环境问题必须修改实验语义，Codex 应停止并报告，由 ChatGPT / Sol 决策和修改代码。
+**ChatGPT 直接实现模式**适合小而关键的实验语义代码。ChatGPT 应尽量同时提供 reference behavior / invariant test，Codex 再负责真实 repo 和环境中的集成、测试和执行。
+
+**Codex bounded 实现模式**适合语义已经完全明确、但需要较多 repo 上下文的改动。Codex 可以阅读现有实现、选择最小代码落点、写 unit test / TDD、完成 runner / checkpoint / dataloader / evaluation 集成，只要不改变冻结的实验契约。
+
+对于类似 Mean / Fluctuation projection、loss 公式、metric 这类语义敏感点，如果由 Codex 实现，应优先用以下方式约束：
+- 精确数学定义；
+- zero-mean / shape / reconstruction 等 invariant test；
+- baseline-preserving initialization / numerical-equivalence smoke（若适用）；
+- matched control。
+
+Codex 不得因为实现方便而自行换一种数学定义。若当前 repo 结构无法在合理最小改动内满足实验契约，停止并报告，不做“近似实现”。
+
+环境适配不得改变实验定义、数据 split、核心超参数或评价协议。若环境问题必须修改实验语义，Codex 应停止并报告，由 ChatGPT / Sol 决策。
 
 ## 6. Runtime Context 与 Artifact 规则
 
@@ -241,11 +319,13 @@ python tools/realpde_runtime_context.py resolve \
 ## 7. 长时 GPU 任务
 
 凡预计消耗 30 分钟以上 GPU 的实验，启动前应尽量满足：
-- 实验配置已固定；
+- 实验契约已固定；
 - 评估方法已固定；
 - 分析输出已定义；
 - runtime snapshot 已覆盖关键远程事实；
-- smoke test 已通过。
+- unit / invariant / smoke test 已通过。
+
+对于已经明确 `IMPLEMENT_AND_EXECUTE_AUTHORIZED` 的 bounded 无人值守任务，只要实现没有语义漂移、测试 / preflight 通过、版本锁定条件成立，Codex 可以按预授权直接启动，不需要等待用户再次确认。
 
 Codex 启动长时任务后，只需记录命令、日志、PID、artifact 路径和 `RUNNING` 状态，不持续轮询，除非用户明确要求。
 
@@ -256,17 +336,22 @@ Codex 启动长时任务后，只需记录命令、日志、PID、artifact 路�
 Codex 可以自主处理：
 - 明确的工程错误；
 - 路径、依赖、环境适配；
+- 实验契约内的 bounded 代码实现；
 - 不改变实验语义的代码修复；
+- unit test / TDD / invariant / equivalence smoke；
 - runtime snapshot 和 artifact manifest 的事实盘点。
 
-Codex 不应自主处理：
-- 更换模型结构；
-- 修改 loss 设计；
+Codex 可以**实现** ChatGPT 已明确授权的模型结构、Loss、Feature 或 prediction target 改动，但不得自主**决定或改变**这些研究变量。
+
+Codex 不应自主决定：
+- 更换或扩展模型结构；
+- 修改 loss 设计或权重；
 - 修改数据 split；
 - 增加新特征；
-- 改变实验变量；
+- 改变实验变量、预算、Gate；
 - 扩展实验矩阵；
 - 用其他 checkpoint 替代任务指定 checkpoint；
+- 因中途指标自行调参；
 - 启动下一轮研究。
 
 遇到这些情况应停止并报告，由 ChatGPT / Sol 决策。
@@ -281,10 +366,12 @@ Codex 不应自主处理：
 
 **远程环境事实先盘点，再设计依赖这些事实的实验；长任务结束后留下可机器读取的 artifact manifest。**
 
-**GPU 长任务以 `READY_FOR_EXECUTION + REQUIRED_COMMIT` 锁定启动版本，handoff 记录实际执行 commit。**
+**实验先冻结语义，再决定由谁写代码；代码作者不是研究决策者。**
 
-**ChatGPT / Sol = Research Lead + Experiment Designer + Core Experiment Code Author + Reviewer**
+**对于 bounded 无人值守实验，ChatGPT 冻结实验契约，Codex 可以实现、测试并按预授权直接执行；任何语义漂移都必须停止。**
 
-**Codex / Luna-medium = Repo-aware Integration Engineer + Runner**
+**ChatGPT / Sol = Research Lead + Experiment Semantic Owner + Reviewer + Selective Core Code Author**
+
+**Codex / Luna-medium = Repo-aware Implementation Engineer + Test / Integration Engineer + Runner**
 
 **Remote GPU = Compute Worker**
