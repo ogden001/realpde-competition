@@ -130,6 +130,8 @@ class AdaptiveUncertaintyHead(nn.Module):
         self.input = nn.Conv3d(in_channels, hidden, 3, padding=1)
         self.blocks = nn.Sequential(*(_ResidualBlock3D(hidden) for _ in range(blocks)))
         self.output = nn.Conv3d(hidden, 2, 1)
+        nn.init.zeros_(self.output.weight)
+        nn.init.constant_(self.output.bias, math.log(0.02))
 
     def forward(self, features: Tensor) -> Tensor:
         raw = self.output(self.blocks(torch.nn.functional.gelu(self.input(features))))
@@ -146,15 +148,16 @@ def _tke(x: Tensor) -> Tensor:
     return 0.5 * uv.square().mean(dim=1).sum(dim=-1)
 
 
-def corrector_loss(prediction: Tensor, target: Tensor, delta: Tensor) -> dict[str, Tensor]:
-    uv, yuv = prediction[..., :2], target[..., :2]
+def corrector_loss(base_prediction: Tensor, target: Tensor, delta: Tensor) -> dict[str, Tensor]:
+    corrected = base_prediction + delta
+    uv, yuv = corrected[..., :2], target[..., :2]
     temporal = _rel(uv[:, 1:] - uv[:, :-1], yuv[:, 1:] - yuv[:, :-1])
     grad_p = uv[..., 1:, :] - uv[..., :-1, :]
     grad_y = yuv[..., 1:, :] - yuv[..., :-1, :]
     return {
         "point": _rel(uv, yuv), "mse": (uv - yuv).square().mean(), "tke": _rel(_tke(uv), _tke(yuv)),
-        "temporal": temporal, "grad": _rel(grad_p, grad_y), "p_zero": prediction[..., 2].square().mean(),
-        "residual_mse": (delta[..., :2] - (target[..., :2] - prediction[..., :2])).square().mean(),
+        "temporal": temporal, "grad": _rel(grad_p, grad_y), "p_zero": corrected[..., 2].square().mean(),
+        "residual_mse": (delta[..., :2] - (target[..., :2] - base_prediction[..., :2])).square().mean(),
         "delta_penalty": delta[..., :2].square().mean(),
     }
 
@@ -228,7 +231,8 @@ def _train_module(module: nn.Module, batches, updates: int, lr: float,
 
 def run_training(*, data_root: Path, kit_root: Path, checkpoint: Path, manifest: Path, out_dir: Path,
                  updates_corrector: int = 2400, updates_head: int = 1400, batch_size: int = 8,
-                 workers: int = 2, seed: int = 20260905, full: bool = False) -> dict:
+                 workers: int = 2, seed: int = 20260905, full: bool = False,
+                 gate_passed: bool = False) -> dict:
     """Run one frozen validation-family or all-82 training stage.
 
     The caller supplies all paths.  Full mode is deliberately explicit and
@@ -265,6 +269,7 @@ def run_training(*, data_root: Path, kit_root: Path, checkpoint: Path, manifest:
     raw_log = out_dir / "training.log"
     corrector = ResidualCorrector3D(hidden=64, blocks=2).to(device)
     head = AdaptiveUncertaintyHead(hidden=32, blocks=2).to(device)
+    corrected_head = AdaptiveUncertaintyHead(hidden=32, blocks=2).to(device) if gate_passed and not full else None
 
     def batches_corrector():
         for x, y, _, _ in loader:
@@ -276,33 +281,42 @@ def run_training(*, data_root: Path, kit_root: Path, checkpoint: Path, manifest:
 
     def corr_loss(pred_delta, pair):
         base_pred, y = pair
-        return sum({"point": 1.0, "mse": .05, "tke": .12, "temporal": .04, "grad": .02, "p_zero": .01}.get(k, 0.0) * v
-                   for k, v in corrector_loss(base_pred + pred_delta.permute(0, 2, 3, 4, 1), y, pred_delta.permute(0, 2, 3, 4, 1)).items()) + .15 * corrector_loss(base_pred + pred_delta.permute(0, 2, 3, 4, 1), y, pred_delta.permute(0, 2, 3, 4, 1))["residual_mse"] + .05 * corrector_loss(base_pred + pred_delta.permute(0, 2, 3, 4, 1), y, pred_delta.permute(0, 2, 3, 4, 1))["delta_penalty"]
+        delta = pred_delta.permute(0, 2, 3, 4, 1)
+        parts = corrector_loss(base_pred, y, delta)
+        weights = {"point": 1.0, "mse": .05, "tke": .12, "temporal": .04, "grad": .02, "p_zero": .01,
+                   "residual_mse": .15, "delta_penalty": .05}
+        return sum(weights[key] * value for key, value in parts.items())
 
     corr_rows = _train_module(corrector, batches_corrector, updates_corrector, 1e-4, 1e-5, corr_loss, raw_log)
 
-    def batches_head():
+    def batches_head(use_corrected: bool = False):
         for x, y, _, _ in loader:
             x, y = x.to(device), y.to(device)
             with torch.no_grad():
                 base_pred = base_api.forward(base, builder, x)
                 uv_features = torch.cat([x, flow_features(base_pred[..., :2])], dim=-1).permute(0, 4, 1, 2, 3)
                 delta = corrector(adaptive_features(x, base_pred).permute(0, 4, 1, 2, 3)).permute(0, 2, 3, 4, 1)
-                final = base_pred + delta
+                final = base_pred + delta if use_corrected else base_pred
             yield uv_features, (final[..., :2], y[..., :2])
 
     def nll_loss(sigma, pair):
         pred, target = pair
         return gaussian_nll(target, pred, sigma.permute(0, 2, 3, 4, 1))
 
-    head_rows = _train_module(head, batches_head, updates_head, 1e-3, 1e-5, nll_loss, out_dir / "head_training.log")
+    head_rows = []
+    if not full:
+        head_rows = _train_module(head, lambda: batches_head(False), updates_head, 1e-3, 1e-5, nll_loss, out_dir / "head_training.log")
+    corrected_rows = []
+    if corrected_head is not None:
+        corrected_rows = _train_module(corrected_head, lambda: batches_head(True), updates_head, 1e-3, 1e-5, nll_loss, out_dir / "corrected_head_training.log")
     metadata = {"seed": seed, "full": full, "updates_corrector": updates_corrector, "updates_head": updates_head,
                 "batch_size": batch_size, "device": str(device), "checkpoint": str(checkpoint),
                 "checkpoint_sha256": _sha256(checkpoint), "manifest": str(manifest), "train_windows": len(ds),
                 "dx": cfg.dx, "dy": cfg.dy}
-    _save_probe(out_dir / "probe.pth", corrector=corrector, base_head=head, corrected_head=None, metadata=metadata,
+    metadata["gate_passed"] = gate_passed
+    _save_probe(out_dir / "probe.pth", corrector=corrector, base_head=None if full else head, corrected_head=corrected_head, metadata=metadata,
                 base_state_dict={key: value.detach().cpu() for key, value in base.state_dict().items()})
-    (out_dir / "metrics.json").write_text(json.dumps({"corrector": corr_rows, "head": head_rows, "metadata": metadata}, indent=2), encoding="utf-8")
+    (out_dir / "metrics.json").write_text(json.dumps({"corrector": corr_rows, "head": head_rows, "corrected_head": corrected_rows, "metadata": metadata}, indent=2), encoding="utf-8")
     return metadata
 
 
@@ -316,6 +330,7 @@ def main() -> None:
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--out-dir", type=Path)
     parser.add_argument("--full", action="store_true")
+    parser.add_argument("--gate-pass", action="store_true")
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--package", action="store_true", help="package a trained probe")
@@ -338,7 +353,7 @@ def main() -> None:
             parser.error("--train requires --data-root --kit-root --checkpoint --manifest --out-dir")
         result = run_training(data_root=args.data_root, kit_root=args.kit_root, checkpoint=args.checkpoint,
                               manifest=args.manifest, out_dir=args.out_dir, batch_size=args.batch_size,
-                              workers=args.workers, full=args.full)
+                              workers=args.workers, full=args.full, gate_passed=args.gate_pass)
         print(json.dumps(result, indent=2, sort_keys=True))
     elif args.package:
         if args.probe is None or args.package_out is None:

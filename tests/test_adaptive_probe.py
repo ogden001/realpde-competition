@@ -13,6 +13,7 @@ from realpde_adaptive_probe import (  # noqa: E402
     ResidualCorrector3D,
     adaptive_features,
     corrector_loss,
+    gaussian_nll,
     evaluate_corrector_gate,
 )
 
@@ -50,6 +51,28 @@ def test_corrector_loss_is_finite_and_pressure_safe():
     parts = corrector_loss(prediction, target, delta)
     assert set(parts) == {"point", "mse", "tke", "temporal", "grad", "p_zero", "residual_mse", "delta_penalty"}
     assert all(torch.isfinite(value) for value in parts.values())
+
+
+def test_residual_mse_uses_frozen_backbone_prediction_target():
+    base = torch.zeros(1, 2, 1, 1, 3)
+    target = torch.full_like(base, 3.0)
+    delta = torch.full_like(base, 2.0)
+    parts = corrector_loss(base, target, delta)
+    assert float(parts["residual_mse"]) == pytest.approx(1.0)
+
+
+def test_fresh_uncertainty_head_starts_at_sigma_point_zero_zero_two():
+    head = AdaptiveUncertaintyHead(in_channels=15, hidden=8, blocks=2)
+    sigma = head(torch.randn(2, 15, 3, 4, 5))
+    assert torch.allclose(sigma, torch.full_like(sigma, 0.02), atol=1e-6)
+
+
+def test_uncertainty_loss_is_explicitly_base_or_corrected_prediction():
+    target = torch.ones(1, 2, 1, 1, 2)
+    sigma = torch.full_like(target, 0.02)
+    base = torch.zeros_like(target)
+    corrected = torch.full_like(target, 0.5)
+    assert not torch.equal(gaussian_nll(target, base, sigma), gaussian_nll(target, corrected, sigma))
 
 
 def test_gate_requires_all_fixed_thresholds():
