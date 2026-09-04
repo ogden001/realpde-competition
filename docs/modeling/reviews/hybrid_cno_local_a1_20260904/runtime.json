@@ -1,0 +1,12 @@
+{
+  "Direct@3000": {
+    "windows": 659,
+    "seconds_per_window": 0.05941254147190646,
+    "milliseconds_per_window": 59.41254147190646
+  },
+  "A1@3000": {
+    "windows": 659,
+    "seconds_per_window": 0.05813344040214634,
+    "milliseconds_per_window": 58.13344040214634
+  }
+}
