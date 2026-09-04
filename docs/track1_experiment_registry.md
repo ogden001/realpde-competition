@@ -196,13 +196,18 @@ FE 结论：Temporal、SpatialPhysics、PixelPosition 都未通过同时保护 R
 
 每产生一个实质性候选或完整结果，在本文件末尾追加一条；不要回写或覆盖旧结论。
 
-### `T1-ID-MF-C01-TKE2X-S20260901` / `T1-ID-MF-C01-CONDGAIN-S20260901` / `T1-ID-MF-C01-SPATIALGAIN-S20260901` — IN_PROGRESS
+### `T1-ID-MF-C01-TKE2X-S20260901` / `T1-ID-MF-C01-CONDGAIN-S20260901` / `T1-ID-MF-C01-SPATIALGAIN-S20260901` — COMPLETED / REVIEW_REQUIRED
 
 - Reference: `T1-ID-MF01-S20260904` at update 1500; existing `Control@1500` and `MF-01@1500` predictions are reused for Stage 0 only.
 - Research cleanliness: `CLEAN`; frozen 50 train / 16 dev / 16 locked-final manifest, seed `20260901`, P0-A, `sim_pretrain`, official v9 scorer.
 - Sole variables: E1 changes only N2 TKE weight `0.05 -> 0.10`; E2 adds only runtime-safe 5-scalar conditional gain `alpha=1+0.20*tanh(g)` with zero-init linear `5->1`; E3 adds only zero-init spatial `1x1 Conv2d 5->1` gain map with the same alpha range. No MF-02/spectral/independent backbone.
 - Fixed protocol: 1500 optimizer updates, evaluations/checkpoints at 500/1000/1500, AdamW `lr=1e-5`, batch `8`, same window protocol and effective batch as MF-01.
-- State: implementation and invariant tests in progress; no locked-final/private-test or Codabench access authorized.
+- Execution commit: `f4dc26d`; implementation/test commits: `b151cb1`, `f4dc26d`.
+- Results at 1500 (Rel-L2 / TKE / MVPE): E1 `0.190596 / 0.641192 / 0.158759`; E2 `0.183465 / 0.634980 / 0.155231`; E3 `0.183428 / 0.636492 / 0.154953`. Relative to MF-01: E1 `+1.161% / -0.614% / -1.117%`; E2 `-2.624% / -1.577% / -3.314%`; E3 `-2.644% / -1.343% / -3.488%` (lower error is better).
+- Trajectory wins versus MF-01 (Rel-L2 / TKE / MVPE): E1 `2/16 / 5/16 / 8/16`; E2 `16/16 / 4/16 / 14/16`; E3 `16/16 / 3/16 / 14/16`.
+- Stage 0 oracle was diagnostic-only on existing MF-01@1500 predictions; best unconstrained fixed spatial oracle Rel-L2/TKE was `0.185613 / 0.481970`, with alpha max `7.416`, so it is not a deployable result.
+- Decision: E1/E2/E3 `NO_GO` for automatic continuation; aggregate Rel/MVPE gains in E2/E3 do not have stable TKE trajectory support. No locked-final/private-test or Codabench access.
+- Evidence: `/home/chyfuture/realpde_runs/mf_energy_campaign01/` and `docs/coordination/CHATGPT_HANDOFF_MF_ENERGY_CAMPAIGN01.md`.
 
 ```markdown
 ### `T1-ID-<FACTOR>-<DATE>`
