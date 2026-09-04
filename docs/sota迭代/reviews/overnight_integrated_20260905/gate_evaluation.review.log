@@ -1,0 +1,4 @@
+  File "/runs/overnight_integrated_20260905_v3/eval_gate.py", line 4
+    sys.path.insert(0,/runs/overnight_integrated_20260905_v3/code)
+                      ^
+SyntaxError: invalid syntax
