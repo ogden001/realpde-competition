@@ -238,6 +238,16 @@ FE 结论：Temporal、SpatialPhysics、PixelPosition 都未通过同时保护 R
 - Results: at 1500, MF-01 Rel-L2/TKE/MVPE `0.188409/0.645156/0.160552` versus Control `0.193675/0.633786/0.165178`; relative changes `-2.72%/+1.79%/-2.80%`. Trajectory wins Rel/TKE/MVPE `13/16`, `7/16`, `10/16`; all-three `3/16`.
 - Decision: `MF01_NO_GO` / `REVIEW_REQUIRED`; decomposition improved mean and fluctuation diagnostics but official TKE did not improve. No MF-02 auto-launch.
 - Evidence: `/home/chyfuture/realpde_runs/mf01_control_20260904/`, `/home/chyfuture/realpde_runs/mf01_s20260904/`, and `docs/coordination/CHATGPT_HANDOFF_MF01.md`.
+
+### `T1-ID-MF-C02-*` — COMPLETED / REVIEW_REQUIRED
+
+- Research cleanliness: `CLEAN`; fixed manifest `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`, 50 train / 16 Dev; locked-final and Codabench not accessed.
+- Shared initialization: MF-01@1500, checkpoint SHA-256 `488a8118f489789d385ec90e02856ef6a8482d6fa75c252e2e5d2d1f50e72226`; seed `20260901`; P0-A; AdamW `1e-5`; batch 8; workers 2; +1500 updates; milestones 500/1000/1500; official v9 scorer SHA `a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39`.
+- Sole variables: C0 matched continuation; E4 `+0.02*L_tke_rel`; E5 `+0.02*L_rms_rel`; E6 `+0.02*L_hifluc`; E7 only conditional gain head trainable; E8 only spatial gain head trainable. E7/E8 zero-init replay max prediction difference `0.0` versus MF-01@1500.
+- +1500 raw Dev results (Rel/TKE/MVPE): C0 `0.164327/0.582928/0.130374`; E4 `0.165204/0.578876/0.131071`; E5 `0.165113/0.580655/0.133421`; E6 `0.153459/0.580184/0.144576`; E7 `0.191385/0.655003/0.163086`; E8 `0.191383/0.654982/0.163086`.
+- Trajectory wins versus C0 (Rel/TKE/MVPE): C0 versus MF `16/10/16`; E4 `4/3/7`; E5 `4/15/4`; E6 `12/6/1`; E7 `0/7/1`; E8 `0/7/1`. E5 is the only TKE-stable signal but fails protected MVPE; all arms are `NO_GO` for automatic continuation.
+- Gain diagnostics: E7 alpha `0.997376/0.997424/0.997442/0.997451/0.997461`, std `2.15e-5`; E8 `0.997082/0.997433/0.997456/0.997462/0.997468`, std `4.22e-5` (min/p25/median/p75/max). Both `GAIN_REMAINS_EFFECTIVELY_IDENTITY`.
+- Evidence: remote `/home/chyfuture/realpde_runs/mf_energy_campaign02/`; local small artifacts `../artifacts/mf_energy_campaign02_20260904/`; detailed conclusions in `docs/coordination/CHATGPT_HANDOFF_MF_ENERGY_CAMPAIGN02.md`.
 ```
 
 ## 6. 全局维护规则

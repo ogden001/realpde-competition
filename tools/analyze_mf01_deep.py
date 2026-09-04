@@ -106,7 +106,8 @@ def main():
     corr={k:spearman([float(r[k]) for r in rows],[float(r["delta_tke"]) for r in rows]) for k in ["fluctuation_rms_input","delta_mean_input","grad_mag_mean_input","vorticity_abs_mean_input","strain_mag_mean_input","nearest_train_distance"]}
     alpha=[float(r["alpha_star"]) for r in rows]
     spatial_summary={}
-    selected=[r["trajectory"] for r in rows[:3]]+[r["trajectory"] for r in rows[-3:][::-1]]
+    required = ["26700_0", "24150_10", "20325_20", "20325_5", "10125_0", "8850_20"]
+    selected = list(dict.fromkeys(required + [r["trajectory"] for r in rows[:3]] + [r["trajectory"] for r in rows[-3:][::-1]]))
     for tid in selected:
         target, control, mf=group_maps[tid]; improvement=np.abs(target-control)-np.abs(target-mf); q20=np.percentile(target,20); q80=np.percentile(target,80)
         spatial_summary[tid]={"target_tke_p20":float(q20),"target_tke_p80":float(q80),"high_target_region_fraction":float(np.mean(target>=q80)),"low_target_region_fraction":float(np.mean(target<=q20)),"improvement_mean_high_target":float(np.mean(improvement[target>=q80])),"improvement_mean_low_target":float(np.mean(improvement[target<=q20])),"improvement_mean_global":float(np.mean(improvement)),"mf_error_minus_control_error_high_target":float(np.mean(np.abs(target-mf)[target>=q80]-np.abs(target-control)[target>=q80])),"mf_error_minus_control_error_low_target":float(np.mean(np.abs(target-mf)[target<=q20]-np.abs(target-control)[target<=q20]))}
