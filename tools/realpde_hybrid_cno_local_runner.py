@@ -88,7 +88,12 @@ def build_global(kit_root: Path, checkpoint: Path, train_paths: list[Path], devi
     builder, _ = direct.build_features(train_paths, device)
     model = direct.cno_direct(kit_root, len(builder.feature_names), device)
     payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
-    direct.adapt_input_weight(model, payload, len(builder.feature_names))
+    state = payload.get("model_state_dict", payload)
+    input_key = "lift.inter_CNOBlock.convolution.weight"
+    if input_key in state and state[input_key].shape[1] == len(builder.feature_names):
+        model.load_state_dict(state, strict=True)
+    else:
+        direct.adapt_input_weight(model, payload, len(builder.feature_names))
     if any(not torch.isfinite(p).all() for p in model.parameters()):
         raise FloatingPointError("non-finite Direct checkpoint")
     return model, builder
