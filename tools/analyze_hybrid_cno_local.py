@@ -69,6 +69,9 @@ def run(args: argparse.Namespace) -> None:
     base_npz, cand_npz = np.load(args.baseline), np.load(args.candidate)
     base, cand, target = base_npz["prediction"], cand_npz["prediction"], cand_npz["target"]
     if base.shape != cand.shape or target.shape != cand.shape: raise ValueError(f"shape mismatch: {base.shape}, {cand.shape}, {target.shape}")
+    import sys
+    sys.path.insert(0, str(args.kit_root))
+    import scoring
     _, dev_paths = core.read_manifest(args.manifest, "dev")
     base_rows = metric_rows(args.baseline_trajectory)
     cand_rows = metric_rows(args.candidate_trajectory)
@@ -98,6 +101,8 @@ def run(args: argparse.Namespace) -> None:
         for row in rows: plot_case(args.out_dir, f"{group}_{row['trajectory_id']}", base, cand, target, residual, name_to_index.get(row["trajectory_id"], 0))
     base_overall = {m: float(np.mean([r[m] for r in base_rows.values()])) for m in METRICS}
     cand_overall = {m: float(np.mean([r[m] for r in cand_rows.values()])) for m in METRICS}
+    base_overall = {"rel_l2": float(np.mean(scoring.rel_l2_per_sample(base, target, scoring.measured_channels(target)))), "tke": float(np.mean(scoring.tke_rel_l2_per_sample(base, target, scoring.measured_channels(target)))), "mvpe": float(scoring.mvpe_rel_l2(base, target))}
+    cand_overall = {"rel_l2": float(np.mean(scoring.rel_l2_per_sample(cand, target, scoring.measured_channels(target)))), "tke": float(np.mean(scoring.tke_rel_l2_per_sample(cand, target, scoring.measured_channels(target)))), "mvpe": float(scoring.mvpe_rel_l2(cand, target))}
     overall_delta = {m: (base_overall[m]-cand_overall[m])/max(base_overall[m],1e-12)*100 for m in METRICS}
     tke_bad = overall_delta["tke"] < -5.0
     severe_case = sum(r["mean_delta_pct"] < -20 for r in case_rows) >= 1
@@ -116,7 +121,7 @@ def core_compare(base: dict, cand: dict) -> tuple[dict, dict]:
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(); p.add_argument("--manifest", type=Path, required=True); p.add_argument("--baseline", type=Path, required=True); p.add_argument("--candidate", type=Path, required=True); p.add_argument("--baseline-trajectory", type=Path, required=True); p.add_argument("--candidate-trajectory", type=Path, required=True); p.add_argument("--descriptors", type=Path, required=True); p.add_argument("--out-dir", type=Path, required=True); run(p.parse_args())
+    p = argparse.ArgumentParser(); p.add_argument("--manifest", type=Path, required=True); p.add_argument("--kit-root", type=Path, required=True); p.add_argument("--baseline", type=Path, required=True); p.add_argument("--candidate", type=Path, required=True); p.add_argument("--baseline-trajectory", type=Path, required=True); p.add_argument("--candidate-trajectory", type=Path, required=True); p.add_argument("--descriptors", type=Path, required=True); p.add_argument("--out-dir", type=Path, required=True); run(p.parse_args())
 
 
 if __name__ == "__main__": main()
