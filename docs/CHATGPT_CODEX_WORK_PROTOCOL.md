@@ -83,7 +83,7 @@ ChatGPT 和 Codex 默认都直接与 `main` 同步：
 
 GPU / 长时任务启动前，必须同时冻结两件事：
 
-1. **实验契约**：Goal、baseline、唯一变量、数学 / forward 语义、数据与初始化、Loss、预算、checkpoint 规则、评估、Gate、停止条件、禁止项；
+1. **实验契约**：Goal、baseline、唯一变量、数学 / forward 语义、数据与初始化、Loss、预算、checkpoint 规则、评估、数据分析计划、Gate、停止条件、禁止项；
 2. **实际执行代码版本**：启动时使用的 Git commit。
 
 根据实现方式分两种模式。
@@ -236,6 +236,90 @@ Codex 不得因为实现方便而自行换一种数学定义。若当前 repo �
 
 环境适配不得改变实验定义、数据 split、核心超参数或评价协议。若环境问题必须修改实验语义，Codex 应停止并报告，由 ChatGPT / Sol 决策。
 
+### 实验数据分析框架
+
+实验结果不能只停留在 overall Rel-L2 / TKE / MVPE 等汇总指标。默认研究闭环应为：
+
+`Hypothesis → Controlled Experiment → Error Anatomy → Mechanism Hypothesis → Next Experiment`
+
+其中 `Error Anatomy`（误差解剖）用于回答“为什么好 / 为什么坏”，下一轮实验应尽量由诊断证据驱动，而不是只根据总指标猜测原因。
+
+#### 数据角色与边界
+
+- **50 train trajectories**：用于训练，也作为数据分布参考。当前模型在 train 上的 in-sample error 不能直接作为泛化证据；若需要验证某个 failure mode 是否可泛化，应优先使用 trajectory-level held-out / OOF 预测。
+- **16 dev trajectories**：默认研发分析集，可以做逐轨迹、逐预测时刻、逐空间区域、good / bad case 和机制诊断。
+- **16 locked-final trajectories**：不用于方法选择和研发 bad-case 分析。只有在模型结构、Loss、Feature、超参和 checkpoint 选择规则完全冻结后，才用于一次性 generalization audit；不得根据 final case 再回头修改方法。
+- **Input-side descriptors**：仅由可用输入 Past20 计算，例如 mean/std、TKE proxy、delta、vorticity、strain、spatial gradient、temporal spectrum 等，可用于 Train / Dev 分布、coverage 和 OOD-like 分析。
+- **Target-side descriptors**：由 Future20 真值计算，例如 true future TKE、future fluctuation RMS、future spectrum，只用于事后解释，不能混入可部署 Feature 或推理逻辑。
+
+#### Level 0：每个实验的最小分析
+
+每个正式实验至少应尽量保留：
+- official raw metrics 及相对 baseline 的 matched delta；
+- 关键 checkpoint / update 的训练与验证曲线；
+- experiment ID、split、seed、初始化、commit / scorer / manifest 等 provenance；
+- 若是 paired A/B，报告 trajectory-level win count，而不只看 macro average；
+- 明确结论属于 `GO / SUPPORTIVE / NO_GO / REVIEW_REQUIRED` 中哪一类。
+
+#### Level 1：一般有意义的实验默认分析
+
+当实验会影响下一步研究决策时，优先补充以下分析，按任务相关性选择，不要求机械全做：
+
+1. **Train / Dev Case Distribution**
+   - 用 input-side descriptors 比较 50 Train 与 16 Dev 的分布；
+   - 查看 quantile、range overlap、tail coverage、nearest-neighbor distance 或低维投影；
+   - 标记 Dev case 是 `in-distribution / boundary / OOD-like`，避免把数据分布差异误判成模型机制问题。
+
+2. **By-Trajectory Analysis**
+   - 对每条 Dev trajectory 报告 baseline、candidate、delta；
+   - 排序找出典型 good case / bad case；
+   - 检查收益或退化是普遍现象，还是由少数轨迹驱动。
+
+3. **By-Horizon Analysis**
+   - 对 Future20 等时序任务，查看 `t+1 ... t+20` 的误差或关键统计量变化；
+   - 检查 long-horizon drift、variance collapse、phase / amplitude degradation 等现象。
+
+4. **By-Spatial Analysis**
+   - 对场预测任务，优先查看 target / prediction / error map，以及 candidate - baseline improvement map；
+   - 按物理相关区域或高低能量区域总结误差，判断问题是全局幅度、局部区域还是空间结构。
+
+5. **Good / Bad Case Analysis**
+   - 选择少量代表性 case 深挖，不按单个 case 定制模型；
+   - 每个 bad case 同时回答“模型为什么错”和“这个 case 在 Train 分布中的什么位置”。
+
+#### Level 2：出现指标冲突或重要 NO-GO 时的机制诊断
+
+对于高价值实验，如果出现类似 `Rel/MVPE 改善但 TKE 恶化`、平均指标改善但部分 case 明显退化、或重要假设 `NO_GO`，原则上在进入下一轮建模前先做 prediction-level 深入诊断，优先复用已有 prediction artifact，不重新训练。
+
+诊断目标不是堆更多图，而是区分不同 failure mechanism。例如：
+- `field reconstruction` 与 `energy/statistics` 是否出现背离；
+- error 是否集中在高波动、高梯度、长预测 horizon 或 OOD-like case；
+- 是全局 amplitude calibration 问题，还是 spatial / temporal / spectral structure 问题；
+- 是少数 outlier 驱动，还是跨 trajectory 稳定存在。
+
+只有诊断结果会改变下一步实验设计时，才增加对应分析；不为低价值 probe 建立庞大分析流水线。
+
+#### 特殊实验增加专项分析
+
+一般分析框架之外，不同实验类型应增加与其假设直接相关的专项诊断：
+
+- **Modeling / Prediction Target / Decomposition**：component-wise error、结构 invariant、reconstruction equivalence、分支或表示之间的误差归因。Mean / Fluctuation 类实验应额外看 Mean error、波动场误差、Fluctuation RMS、energy ratio、必要时 optimal gain / temporal spectrum。
+- **Loss 实验**：除最终指标外，关注各 loss term 的量级、梯度贡献 / 冲突、trajectory-level trade-off，以及“优化了哪个 term、伤害了哪个物理统计量”。
+- **Feature Engineering**：关注 feature 的 Train / Dev 分布、tail / OOD coverage、冗余与相关性、增量价值，以及 feature 收益是否只出现在特定 case；避免只看 concat 后总分。
+- **Training / Continuation**：关注 metric-vs-update 曲线、checkpoint stability、plateau / overfit、不同 trajectory 的稳定性，区分“继续训练有收益”与“只是在 checkpoint noise 中挑点”。
+- **OOD / Sim2Real / Generalization**：重点看 distribution distance、coverage、case cluster、nearest-neighbor / tail behavior，以及 error 与 distribution position 的关系。
+- **Calibration / SPS / Bounds**：关注 coverage-width trade-off、per-case coverage、calibration curve 和分布尾部，不把 calibration 问题误判为 backbone 问题。
+- **Inference / Runtime 优化**：除速度 / 显存外，必须做 numerical equivalence 或 metric regression 检查，确认工程优化没有改变实验语义。
+
+#### 从分析到下一轮实验
+
+ChatGPT / Sol 在重要实验后应尽量明确区分：
+- **已验证事实**：由 overall + case-level / diagnostic evidence 支持；
+- **机制假设**：由数据提示但尚未被控制实验验证；
+- **下一实验唯一变量**：用于区分最关键的竞争解释。
+
+不因为单个 bad case 设计 trajectory-specific trick，也不因为 16 Dev 的局部规律假设 private test 必然同分布。优先寻找跨 trajectory、跨 case 分布稳定成立的机制。
+
 ## 6. Runtime Context 与 Artifact 规则
 
 当任务依赖远程 GPU 机器上的真实环境、数据目录、starting kit、checkpoint 或历史 artifact 时，不再由 ChatGPT / Sol 根据聊天记录猜测这些事实。
@@ -367,6 +451,8 @@ Codex 不应自主决定：
 **远程环境事实先盘点，再设计依赖这些事实的实验；长任务结束后留下可机器读取的 artifact manifest。**
 
 **实验先冻结语义，再决定由谁写代码；代码作者不是研究决策者。**
+
+**重要实验不只看总指标；先做与假设相匹配的分层误差分析，再决定下一轮唯一变量。**
 
 **对于 bounded 无人值守实验，ChatGPT 冻结实验契约，Codex 可以实现、测试并按预授权直接执行；任何语义漂移都必须停止。**
 
