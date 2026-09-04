@@ -198,7 +198,8 @@ def run(args: argparse.Namespace) -> None:
             torch.save({"model_state_dict": model.state_dict(), "local_state_dict": local.state_dict(), "optimizer_state_dict": optimizer.state_dict(), "iteration": absolute, "metadata": metadata}, args.out_dir / f"model_update_{absolute:05d}.pth")
     torch.save({"model_state_dict": model.state_dict(), "local_state_dict": local.state_dict(), "optimizer_state_dict": optimizer.state_dict(), "iteration": args.start_update + args.updates, "metadata": metadata}, args.out_dir / "model_last.pth")
     with (args.out_dir / "update_curve.csv").open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(history[0])); writer.writeheader(); writer.writerows(history)
+        fields = list(dict.fromkeys(key for row in history for key in row))
+        writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore"); writer.writeheader(); writer.writerows(history)
     save_json(args.out_dir / "summary.json", {"metadata": metadata | {"train_windows": len(train_ds), "elapsed_seconds": time.monotonic() - started}, "history": history})
 
 
