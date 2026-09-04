@@ -249,12 +249,18 @@ FE 结论：Temporal、SpatialPhysics、PixelPosition 都未通过同时保护 R
 - Gain diagnostics: E7 alpha `0.997376/0.997424/0.997442/0.997451/0.997461`, std `2.15e-5`; E8 `0.997082/0.997433/0.997456/0.997462/0.997468`, std `4.22e-5` (min/p25/median/p75/max). Both `GAIN_REMAINS_EFFECTIVELY_IDENTITY`.
 - Evidence: remote `/home/chyfuture/realpde_runs/mf_energy_campaign02/`; local small artifacts `../artifacts/mf_energy_campaign02_20260904/`; detailed conclusions in `docs/coordination/CHATGPT_HANDOFF_MF_ENERGY_CAMPAIGN02.md`.
 
-### `T1-ID-MF-DIRECT3000-CLOSEOUT-S20260901` — IN_PROGRESS
+### `T1-ID-MF-DIRECT3000-CLOSEOUT-S20260901` — COMPLETED / PROMISING_PARKED
 
 - Sole purpose: matched Direct@1500 versus MF@1500/3000 closeout; one Direct continuation only.
 - Fixed CLEAN manifest `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`, 50 train / 16 Dev; P0-A; N2; seed `20260901`; AdamW `1e-5`; batch 8 / effective batch 8; workers 2; official v9 scorer.
 - Exact start checkpoint: `T1-ID-MF01-CONTROL-S20260904` Direct@1500, SHA-256 `5499e60a3b8146bf095070dc76d03c85eae57b5f1ec794444276bab362458ec4`.
 - Budget: +1500 updates, evaluate absolute updates 2000/2500/3000; locked-final, Codabench, SPS and full-data training prohibited.
+- Execution commit: `778ef878e1b7a896ff3d9fd0bec6f28739e464bd`; clean archive dependency SHAs are recorded in the handoff; optimizer state was restored from the Direct@1500 checkpoint.
+- Direct@3000 checkpoint: `model_update_03000.pth`, SHA-256 `9fa52c905c2603179da39e90da7689a1d65005d5c00d0df2d9fe2e310cf32aeb`.
+- Official v9 Dev raw errors (Rel-L2 / TKE / MVPE): Direct@1500 `0.193675 / 0.633786 / 0.165178`; MF@1500 `0.188409 / 0.645156 / 0.160552`; Direct@3000 `0.175829 / 0.594649 / 0.151631`; MF@3000 `0.164327 / 0.582928 / 0.130374`.
+- MF@3000 versus Direct@3000 relative delta: Rel-L2 `-6.541%`, TKE `-1.971%`, MVPE `-14.019%`; trajectory wins `16/16`, `8/16`, `15/16`.
+- Decision: `PROMISING_PARKED`; Mean/Fluctuation has clear value and is closed for breadth-first exploration. No RMS decoupling, spectrum, MF-02 or further MF detail optimization.
+- Evidence: remote `/home/chyfuture/realpde_runs/mf_direction_closeout_20260904/`; final handoff `docs/coordination/CHATGPT_HANDOFF_MF_DIRECTION_CLOSEOUT.md`.
 ```
 
 ## 6. 全局维护规则
