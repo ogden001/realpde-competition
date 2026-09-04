@@ -14,6 +14,7 @@
 | 纯 Point MLP | 无空间上下文的 Point 模型未通过既定 dev gate。 | Point residual 对 PERSIST 的 Rel-L2/MVPE 未达门槛。 | STOP | [Point-V0](../coordination/CHATGPT_HANDOFF_POINT_V0.md) |
 | LOCAL3 Point | LOCAL3 与降 TKE 权重的 bounded 变体均未在 1500-step screen 通过。 | LOCAL3 Rel-L2/MVPE 均退化；`λ_TKE=0.001` 仍未改善 Rel-L2。 | STOP | [LOCAL3](../coordination/CHATGPT_HANDOFF_POINT_V1_LOCAL3.md), [balanced loss](../coordination/CHATGPT_HANDOFF_POINT_LOCAL3_BALANCED_L001.md) |
 | CNO + Point H1 | 原始 H1 的 TKE 代价触发早停；train-selected `alpha=0.5` 缩放通过 aggregate gate，但 trajectory-level TKE 保护不稳。 | Rel/MVPE 16/16 trajectory 改善；满足 TKE 保护仅 3/16。 | REVIEW | [scale](../coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1_SCALE.md), [stability](../coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1_SCALE_STABILITY.md) |
+| Hybrid CNO + Local A1 | P0-A CNO global + raw Past20 u/v lightweight Conv3D local residual；zero-init 后 joint training。 | 有效 rerun 中 TKE 在 matched@2000/2500/3000 均略优；A1@2500 三指标仅约 `+0.68%/+0.20%/+0.67%`；A1@3000 为 Rel `-0.286%`、TKE `+0.498%`、MVPE `-2.277%`，wins `2/16,10/16,1/16`。 | **WEAK_SIGNAL_PARKED** | [Sol review](reviews/hybrid_cno_local_a1_rerun_20260904/SOL_REVIEW.md) |
 | Official CFD frozen representation | official `sim_pretrain` CNO 主干冻结，仅训练同预算 tiny probe；与同架构 random frozen CNO 对照。 | CFD rep 的 Rel-L2/TKE/MVPE 为 `0.9026/32.0180/1.1509`，random control 为 `0.7680/13.0809/0.7800`，三项均明显更差。 | **STOP** | [REP-01](../coordination/CHATGPT_HANDOFF_SIM2REAL_REP01.md) |
 | MF-01 Mean/Fluctuation | 输出层 temporal mean + zero-mean fluctuation factorization。 | 1500 updates: Rel-L2 `-2.72%`、MVPE `-2.80%`，但 TKE `+1.79%`；该 checkpoint 后续被证明明显 under-converged。 | HISTORICAL_SCREEN | [MF-01 handoff](../coordination/CHATGPT_HANDOFF_MF01.md), [deep analysis](../coordination/CHATGPT_HANDOFF_MF01_DEEP_ANALYSIS.md) |
 | MF Energy Campaign 01 | MF-01 fixed-factor probes: TKE weight 2x, scalar conditional gain, spatial gain。 | E2/E3 Rel-L2 `-2.624%/-2.644%` 和 MVPE `-3.314%/-3.488%` vs MF-01，但 TKE wins 仅 `4/16` 和 `3/16`；gain 基本未学出有效校准。 | NO-GO / REVIEW | [Campaign handoff](../coordination/CHATGPT_HANDOFF_MF_ENERGY_CAMPAIGN01.md) |
@@ -54,15 +55,31 @@ Sim2Real Round 2 的 REP-01 结论是 **`CFD_REPRESENTATION_NOT_SUPPORTED`**。
 
 按照 60 分原则，不继续设计更复杂的 CFD teacher/student、adversarial alignment 或专门 CFD self-supervised Campaign。其它与 CFD 无关的 Representation 方向仍保持开放。
 
+### 2.3 Local + Global A1 第一阶段结论
+
+A1 的第一次执行因 local branch 未进入 optimizer 而判定为 `INVALID_IMPLEMENTATION`；修复后 rerun 已通过 optimizer membership、parameter delta、branch output 与 checkpoint round-trip 等 preflight，最终证据有效。
+
+Sol 复核 matched checkpoint 后得到：
+
+- TKE 在 Direct/A1 matched@2000、2500、3000 三个点均小幅改善，说明 local correction 存在可重复的 energy/TKE 信号；
+- 但 Rel-L2 与 MVPE 不稳定，仅 A1@2500 出现三指标同时改善，幅度均小于 1%；
+- A1@3000 trajectory wins 为 Rel `2/16`、TKE `10/16`、MVPE `1/16`，说明 TKE 信号较普遍，但 reconstruction 增量不稳；
+- by-horizon 显示约 `t+3 ... t+17` 的 Rel/MVPE 主要退化，提示简单 output-level local residual 的时间/相位校准不足；
+- final local residual 真实非零，量级约为 global output 的 1% 左右；runtime 增加约 2.65%。
+
+因此当前具体实现定为 **`WEAK_SIGNAL_PARKED`**。不继续扫 local width、kernel、gate 或更多 Local residual 变体；`Local + Global` 大方向并未被整体否定，但当前优先级下降。Architecture breadth-first 下一步应测试一个机制明显不同的方向，优先 **Multi-scale / coarse+fine modeling**。
+
 ## 3. TODO
 
 | 技术方向 | 内容概要 | 优先级 |
 |---|---|---|
-| H1 | 等待 ChatGPT/Sol 对 scale stability 的单一、受限 NEXT_ACTION；不自动启动 H2、joint training 或 LOCAL5。 | P0 |
+| Architecture A2 | 测试与 Local residual 明显不同的 Multi-scale / coarse+fine 机制；保持 bounded breadth-first，不做大规模 backbone sweep。 | P0 |
+| H1 | 等待 ChatGPT/Sol 对 scale stability 的单一、受限 NEXT_ACTION；不自动启动 H2、joint training 或 LOCAL5。 | P1 |
 | CFD representation | 当前 `STOP / PARKED`；仅在出现可靠 calibration、新 OOD failure linkage 或新的明确机制时重新打开。 | PARKED |
 
 ## 4. 相关文档
 
+- [A1 Sol Review](reviews/hybrid_cno_local_a1_rerun_20260904/SOL_REVIEW.md)
 - [Sim2Real / CFD 利用概要](../sim2real/sim2real概要.md)
 - [REP-01](../coordination/CHATGPT_HANDOFF_SIM2REAL_REP01.md)
 - [Round 2 Decision](../coordination/CHATGPT_HANDOFF_SIM2REAL_ROUND2_DECISION.md)
