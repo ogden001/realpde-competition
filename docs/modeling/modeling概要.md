@@ -12,7 +12,7 @@
 | 纯 Point MLP | 无空间上下文的 Point 模型未通过既定 dev gate。 | Point residual 对 PERSIST 的 Rel-L2/MVPE 未达门槛。 | STOP | [Point-V0](../coordination/CHATGPT_HANDOFF_POINT_V0.md) |
 | LOCAL3 Point | LOCAL3 与降 TKE 权重的 bounded 变体均未在 1500-step screen 通过。 | LOCAL3 Rel-L2/MVPE 均退化；`λ_TKE=0.001` 仍未改善 Rel-L2。 | STOP | [LOCAL3](../coordination/CHATGPT_HANDOFF_POINT_V1_LOCAL3.md), [balanced loss](../coordination/CHATGPT_HANDOFF_POINT_LOCAL3_BALANCED_L001.md) |
 | CNO + Point H1 | 原始 H1 的 TKE 代价触发早停；train-selected `alpha=0.5` 缩放通过 aggregate gate，但 trajectory-level TKE 保护不稳。 | Rel/MVPE 16/16 trajectory 改善；满足 TKE 保护仅 3/16。 | REVIEW | [scale](../coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1_SCALE.md), [stability](../coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1_SCALE_STABILITY.md) |
-| MF-01 Mean/Fluctuation | 输出层 temporal mean + zero-mean fluctuation factorization。 | 1500 updates: Rel-L2 `-2.72%`、MVPE `-2.80%`，但 TKE `+1.79%`；trajectory wins Rel/TKE/MVPE `13/16, 7/16, 10/16`。 | NO-GO / REVIEW | [MF-01 handoff](../coordination/CHATGPT_HANDOFF_MF01.md) |
+| MF-01 Mean/Fluctuation | 输出层 temporal mean + zero-mean fluctuation factorization。 | 1500 updates: Rel-L2 `-2.72%`、MVPE `-2.80%`，但 TKE `+1.79%`；trajectory wins Rel/TKE/MVPE `13/16, 7/16, 10/16`。 Deep replay: MF fluctuation RMS lower in all 16 cases; ΔTKE is descriptor-tail correlated but not explained by OOD or horizon alone. | NO-GO / REVIEW | [MF-01 handoff](../coordination/CHATGPT_HANDOFF_MF01.md), [deep analysis](../coordination/CHATGPT_HANDOFF_MF01_DEEP_ANALYSIS.md) |
 
 ## 3. TODO
 
