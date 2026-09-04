@@ -43,11 +43,13 @@ Codabench 提交
 
 截至 2026-09-04：
 
-- 当前最好正式结果：`75.584550`
-- package：`submission_cno_tke1200_bounds_rel00.zip`
-- 最新 P0-A + N2 full@15,300：`71.153839`
-- P0-A + N2 的主要正向信号：线上 TKE `78.355520`
-- 当前主要问题：SPS `11.431650`，同时 full-data 训练深度尚未对齐 validation 的 late-training 区间
+- 当前最好正式结果：**`76.149726`**
+- Candidate：`P0-A + N2 + CNO + full@43260 + explicit SPS bounds`
+- Bounds：`half_width = 0.0075 + 0.02 * abs(prediction)`
+- Checkpoint SHA256：`50b692e236d5df9285a5cee976a51e3457a7eeed0f87d55b6568745077645d71`
+- Submission ZIP SHA256：`f8a79ec1114b4e7f05edc9bc95c6810c5250ca27b5044ca387044c0671d9fc98`
+- Codabench：Rel-L2 `93.434384` / TKE `77.588799` / MVPE `92.519561` / Time `86.998134` / SPS `27.545059`
+- 相对旧线上最佳 `75.584550`：Final `+0.565176`
 
 正式提交历史见：[`../submission_log.md`](../submission_log.md)。
 
@@ -55,9 +57,9 @@ Codabench 提交
 
 当前优先路线：
 
-**P0-A features + N2 loss + CNO + full-data continuation + SPS recovery**。
+**P0-A features + N2 loss + CNO + full-data late-training continuation + calibrated SPS bounds**。
 
-50/16 validation 已显示 P0-A + N2 在 10.3k 后仍持续改善，并在约 22k validation updates 后进入平台/振荡区。由于 full-data windows 更多，full-data update 数不能直接与 validation update 数一一对应，后续 competition refit 应优先按数据遍历量对齐。
+这条路线已获得线上验证：相比旧历史最佳 CNO，当前 candidate 的 TKE 明显更高，同时 Rel-L2/MVPE 基本保持强势；显式 bounds 将上一次 P0-A full@15300 的 SPS `11.431650` 恢复到 `27.545059`，最终分数刷新为 `76.149726`。
 
 当前不作为 SOTA 主线自动合并：
 
@@ -93,11 +95,10 @@ Codabench：Final / Rel-L2 / TKE / MVPE / Time / SPS
 - 精确启动命令：`DATA_ROOT=/data KIT_ROOT=/kit RESUME_CHECKPOINT=/resume/model_last.pth OUT_ROOT=/out bash tools/run_sota_full_night_20260904.sh`
 - 完成情况：elapsed `18351.24 s`；peak GPU allocation `5067694080` bytes；里程碑 `31100 / 36500 / 37850 / 40560 / 43260` 全部生成；最终 `model_last.pth` 已生成。
 - Summary：`/home/chyfuture/realpde_runs/sota_full_night_20260904_retry2/full_night_summary.json`
-- 结论：`REVIEW_REQUIRED`。不根据训练 loss 自动选择 submission checkpoint；下一步由 ChatGPT/Sol review summary 与 checkpoints 后决定 SPS / package / submission。
 
 ## 2026-09-04 SPS bounds screen
 
-实验状态：`DONE` / `REVIEW_REQUIRED`。在冻结 50/16 validation dev、P0-A + N2 validation update `30900` 上，直接使用官方 v9 `scoring.py` 的 SPS 实现扫描小范围 `abs + rel * |prediction|` bounds；未训练、未访问 locked-final/private-test、未提交 Codabench。
+实验状态：`DONE`。在冻结 50/16 validation dev、P0-A + N2 validation update `30900` 上，直接使用官方 v9 `scoring.py` 的 SPS 实现扫描小范围 `abs + rel * |prediction|` bounds；未训练、未访问 locked-final/private-test、未提交 Codabench。
 
 Validation raw errors：Rel-L2 `0.11284460`，TKE `0.50010282`，MVPE `0.08728255`。
 
@@ -111,4 +112,22 @@ Validation raw errors：Rel-L2 `0.11284460`，TKE `0.50010282`，MVPE `0.0872825
 | abs=0.0075, rel=0.01 | 38.838701 | 0.708041 |
 | **abs=0.0075, rel=0.02** | **39.112385** | **0.735240** |
 
-结论：`abs=0.0075, rel=0.02` 为当前本地 SPS 首选，相对 fallback 提升 `+22.816758`；候选间已出现宽度继续增加后的收益饱和，不继续扩 SPS 网格。下一步将同一 bounds 固定应用于 full@`43260` primary 与 full@`40560` backup，只做 package + clean smoke 后再决定 Codabench 提交。
+结论：`abs=0.0075, rel=0.02` 为本地 SPS 首选，相对 fallback 提升 `+22.816758`；候选间已出现宽度继续增加后的收益饱和，因此没有扩 SPS 网格。
+
+## 2026-09-04 Codabench new SOTA
+
+日期：`2026-09-04`
+
+Candidate：`P0-A + N2 + CNO + full@43260 + abs0075_rel002`
+
+相对上一版新增：full-data late-training 从 `15300` 深化到 `43260`，并显式输出校准后的 SPS bounds。
+
+训练 checkpoint：update `43260`，SHA256 `50b692e236d5df9285a5cee976a51e3457a7eeed0f87d55b6568745077645d71`。
+
+SPS / bounds：`half_width = 0.0075 + 0.02 * abs(prediction)`。
+
+Codabench：Final **`76.149726`** / Rel-L2 `93.434384` / TKE `77.588799` / MVPE `92.519561` / Time `86.998134` / SPS `27.545059`。
+
+结论：**KEEP / NEW SOTA**。相对旧线上最佳 `75.584550` 提升 `+0.565176`。SPS 已从用户上一版 full@15300 的 `11.431650` 恢复到 `27.545059`；TKE 仍保持明显高于旧历史最佳的水平。
+
+下一轮主要问题：在保持 Rel-L2 / MVPE / SPS 不回退的前提下，优先寻找进一步提升 TKE 或模型组合收益的方案；不浪费提交机会在无新增证据的 full@40560 backup 上。
