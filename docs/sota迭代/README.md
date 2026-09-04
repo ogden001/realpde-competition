@@ -81,3 +81,16 @@ Codabench：Final / Rel-L2 / TKE / MVPE / Time / SPS
 ```
 
 详细实验数据继续记录在对应优化方向文档和 `track1_experiment_registry.md`，本目录不重复保存大段实验报告。
+
+## 2026-09-04 Overnight full-data continuation
+
+实验状态：`DONE` / `REVIEW_REQUIRED`。基于 `695cf27` 的 fixed P0-A + N2 CNO，从 full-data update `15300` 继续训练至 `43260`；固定 82 trajectories / 3383 windows、seed `20260901`、LR `1e-5`、micro-batch `4`、accumulate `2`。Preflight 与 2-update smoke 均通过，未访问 locked-final/private-test、SPS 或 Codabench。
+
+- 远程主机/环境：RTX 3090，`realpde-pytorch-h5py:0831`
+- Resume checkpoint：`/home/chyfuture/realpde_runs/p0a_n2_full_continuation_20260902/full_12481_to15300_deadline/model_last.pth`；update `15300`；SHA-256 `3ea4e4def03ae2f1d970975e4217358e1d762b88a69bdddfdf844d551baaa3e4`
+- 输出：`/home/chyfuture/realpde_runs/sota_full_night_20260904_retry2/`
+- launcher 日志：`/home/chyfuture/realpde_runs/sota_full_night_20260904_retry2_logs/launcher.log`
+- 精确启动命令：`DATA_ROOT=/data KIT_ROOT=/kit RESUME_CHECKPOINT=/resume/model_last.pth OUT_ROOT=/out bash tools/run_sota_full_night_20260904.sh`
+- 完成情况：elapsed `18351.24 s`；peak GPU allocation `5067694080` bytes；里程碑 `31100 / 36500 / 37850 / 40560 / 43260` 全部生成；最终 `model_last.pth` 已生成。
+- Summary：`/home/chyfuture/realpde_runs/sota_full_night_20260904_retry2/full_night_summary.json`
+- 结论：`REVIEW_REQUIRED`。不根据训练 loss 自动选择 submission checkpoint；下一步由 ChatGPT/Sol review summary 与 checkpoints 后决定 SPS / package / submission。
