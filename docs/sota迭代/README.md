@@ -94,3 +94,21 @@ Codabench：Final / Rel-L2 / TKE / MVPE / Time / SPS
 - 完成情况：elapsed `18351.24 s`；peak GPU allocation `5067694080` bytes；里程碑 `31100 / 36500 / 37850 / 40560 / 43260` 全部生成；最终 `model_last.pth` 已生成。
 - Summary：`/home/chyfuture/realpde_runs/sota_full_night_20260904_retry2/full_night_summary.json`
 - 结论：`REVIEW_REQUIRED`。不根据训练 loss 自动选择 submission checkpoint；下一步由 ChatGPT/Sol review summary 与 checkpoints 后决定 SPS / package / submission。
+
+## 2026-09-04 SPS bounds screen
+
+实验状态：`DONE` / `REVIEW_REQUIRED`。在冻结 50/16 validation dev、P0-A + N2 validation update `30900` 上，直接使用官方 v9 `scoring.py` 的 SPS 实现扫描小范围 `abs + rel * |prediction|` bounds；未训练、未访问 locked-final/private-test、未提交 Codabench。
+
+Validation raw errors：Rel-L2 `0.11284460`，TKE `0.50010282`，MVPE `0.08728255`。
+
+| Bounds | SPS score | Coverage |
+|---|---:|---:|
+| fallback | 16.295627 | 0.303976 |
+| abs=0.0050, rel=0 | 33.240237 | 0.538482 |
+| abs=0.0075, rel=0 | 37.788062 | 0.669603 |
+| abs=0.0100, rel=0 | 38.735065 | 0.750755 |
+| abs=0.0125, rel=0 | 37.917093 | 0.803713 |
+| abs=0.0075, rel=0.01 | 38.838701 | 0.708041 |
+| **abs=0.0075, rel=0.02** | **39.112385** | **0.735240** |
+
+结论：`abs=0.0075, rel=0.02` 为当前本地 SPS 首选，相对 fallback 提升 `+22.816758`；候选间已出现宽度继续增加后的收益饱和，不继续扩 SPS 网格。下一步将同一 bounds 固定应用于 full@`43260` primary 与 full@`40560` backup，只做 package + clean smoke 后再决定 Codabench 提交。
