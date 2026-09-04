@@ -35,6 +35,64 @@
 
 ---
 
+## 0.5 技术探索阶段的“60 分原则”
+
+当前阶段采用 **Breadth-first / 粗放式探索优先**。这里的“60 分”不是指指标只做到 60%，而是指：一个一级方向先完成从无到有的验证，优先拿走最容易获得的约 50%～80%潜在收益；一旦证明方向有价值，就先暂停，继续探索其他一级方向，而不是过早把单一细分方向优化到 90%～95%。
+
+### 核心目标
+
+技术探索阶段首先回答：
+
+> **这个一级方向值不值得继续投资？最容易拿到的第一波收益有多大？**
+
+而不是一开始就回答：
+
+> “这个方向的最优结构、最优权重、最优 case 处理和全部机制细节是什么？”
+
+当前最稀缺的资源不仅是 GPU，更是单人协调 ChatGPT、Codex、实验结果和全局方向判断的**研究管理带宽**。因此优先减少方向内的反复交互，把时间用于覆盖更多一级搜索空间。
+
+### 默认执行节奏
+
+- 每天原则上只重点推进 **2 个一级方向**；
+- 每个新方向先做约 **1～2 小时级别的粗筛**，必要时可扩到 1.5～3 小时 Campaign；
+- 一轮通常选择 **2～4 个代表性方案**，重点比较不同机制，不先做密集超参扫描；
+- 先找“大台阶”，例如从没有 Feature 到引入有效 Feature、从普通 Loss 到新 Loss family、从现有预训练到新 pretraining strategy、从单一 backbone 到新 architecture family；
+- 在方向尚未证明明显价值前，不优先做小权重扫描、细粒度 feature routing、case-specific 修补、复杂 gradient surgery 或多轮机制雕琢。
+
+### 方向结束条件
+
+粗筛完成后，一个方向优先进入以下三种状态之一：
+
+- **`PROMISING`**：出现明显、有工程意义的正收益。记录当前最简单有效方案，先拿到第一波收益，然后 `PARK`，不自动继续深挖；
+- **`WEAK_SIGNAL / PARKED`**：有小幅或冲突性信号，但暂时不足以占用更多研究管理带宽；
+- **`NO_GO`**：没有明确收益，立即停止当前实现路线。
+
+只有在主要一级方向已经完成一轮粗筛，或某个方向出现明显“大台阶”收益时，才进入第二阶段深挖，包括更细的 loss 权重、结构消融、case/horizon/spatial mechanism、长训和 full-data scaling。
+
+### 粗筛阶段的数据分析级别
+
+粗放探索并不等于只看一个总分，但默认分析应保持轻量：
+
+1. official raw metrics / matched delta；
+2. trajectory-level win count 与是否存在明显 metric 崩坏；
+3. 简单 checkpoint / convergence curve；
+4. 必要的 provenance 与 clean-control 检查。
+
+只有两类结果默认升级到完整 Error Anatomy：
+
+- **明显强收益**：需要确认收益不是假象，并判断是否值得后续深挖；
+- **明显指标冲突**：例如一个核心指标大幅提升、另一个大幅恶化，需要快速判断这个方向是否还有低成本可救空间。
+
+对 `+1%` 左右的小收益、轻微 trade-off、少量 case 差异，不默认进入多轮 trajectory / horizon / spatial / gradient 机制研究，优先记录后 `PARK`。
+
+### 全局优先级原则
+
+> **新的大方向从 0 → 1 的收益，优先于已验证细分方向从 0.8 → 0.9 的精修。**
+
+在 Feature Engineering、Loss、Model Architecture、CFD/Pretraining、Training Strategy、Task Formulation 等主要一级方向尚未完成粗筛前，应避免在任何单一子方向连续投入大量轮次。当前阶段的目标是先画完整“收益地图”，再把第二阶段资源集中到最有价值的 2～3 个方向。
+
+---
+
 ## 1. 当前总体判断
 
 当前最强工程主线已经比较清楚：**CNO + P0-A runtime-safe features + N2 objective**。它在固定 50/16 validation 上同时改善 Rel-L2、TKE、MVPE，并在 Codabench 上把 TKE 提升到 `78.355520`；但最终分仍受 SPS 明显拖累。
@@ -289,6 +347,7 @@ P0-A + N2 full 15,300 updates：
 - 无假设的大规模 architecture sweep；
 - 原 LR 继续无限长训；
 - 只扫 N2 各项 scalar 权重；
+- 在主要一级方向尚未完成粗筛前，对单一细分方向连续多轮做机制级精修；
 - 重新设计 50/16/16 split 或重复 Dataset Profile；
 - 以自定义 final proxy 代替官方 scorer / Codabench。
 
