@@ -44,6 +44,21 @@ Codex 可以写实验代码，但不承担开放式研究规划，不自行改�
 
 核心原则：**谁敲代码不是关键，ChatGPT / Sol 拥有实验语义和研究决策权；Codex 拥有 repo-aware 实现、验证和执行权。**
 
+### 实现分工是软约束，最终结论由 Sol 审核
+
+代码作者按任务性质灵活选择，不以“Sol 写研究代码、Luna 只跑脚本”做机械划分。ChatGPT / Sol 不掌握远程 GPU 机器上的全部真实路径、环境、checkpoint 和 artifact 状态，因此凡实现高度依赖 repo / GPU runtime context 时，优先由 Codex / Luna-medium 在冻结实验语义后完成最小实现、环境适配和执行；凡数学定义、实验语义或一个小实现错误就可能直接污染结论时，优先由 ChatGPT / Sol 给出实现或 reference behavior / invariant。
+
+无论代码由谁实现，**最终科研结论默认由 ChatGPT / Sol 复核后生效**。Codex / Luna-medium 的 `PROMISING / WEAK_SIGNAL / NO_GO / KEEP / STOP` 等标签只视为执行方初步摘要，不直接成为项目决策。
+
+因此重要实验的 Codex task 应由 Sol 预先定义验收与审计标准，并要求 Codex 优先交付可复核的过程证据，而不是只交一段总结。根据实验类型，证据可包括：
+- raw metrics、matched delta、trajectory / horizon / spatial 数据；
+- branch / component output、gradient、parameter norm / delta、loss term 等机制数据；
+- checkpoint、manifest、scorer、commit、runtime snapshot 等 provenance；
+- 关键代码 commit / 文件位置，以及必要的 invariant / equivalence / smoke 结果；
+- 轻量 CSV / JSON / Markdown / representative figures，便于 Sol 直接从 GitHub 复核。
+
+如果执行方结论与过程数据冲突，以过程数据和 Sol 复核为准。若关键证据不足、实现语义未被证明、branch / loss / feature 是否真正生效无法确认，则结论应先标记为 `REVIEW_REQUIRED / INVALID / NEED_MORE_EVIDENCE`，不得仅依据 overall 指标推进或关闭方向。
+
 ### 新一级研究会话的默认入口
 
 新开 Modeling、Loss、Feature Engineering、Data、Sim2Real、OOD、Training 等一级研究会话时，ChatGPT / Sol 默认先读取当前 `main` 的三层信息，而不是只看最近一次实验：
@@ -452,12 +467,14 @@ Codex 不应自主决定：
 
 **实验先冻结语义，再决定由谁写代码；代码作者不是研究决策者。**
 
+**Codex / Luna-medium 优先交付过程证据和可审计实现，不以其总结标签替代科研结论；重要实验由 ChatGPT / Sol 基于 Git 中的证据和关键实现完成最终复核。**
+
 **重要实验不只看总指标；先做与假设相匹配的分层误差分析，再决定下一轮唯一变量。**
 
 **对于 bounded 无人值守实验，ChatGPT 冻结实验契约，Codex 可以实现、测试并按预授权直接执行；任何语义漂移都必须停止。**
 
-**ChatGPT / Sol = Research Lead + Experiment Semantic Owner + Reviewer + Selective Core Code Author**
+**ChatGPT / Sol = Research Lead + Experiment Semantic Owner + Final Reviewer + Selective Core Code Author**
 
-**Codex / Luna-medium = Repo-aware Implementation Engineer + Test / Integration Engineer + Runner**
+**Codex / Luna-medium = Repo-aware Implementation Engineer + Evidence Producer + Test / Integration Engineer + Runner**
 
 **Remote GPU = Compute Worker**
