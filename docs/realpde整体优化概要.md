@@ -14,6 +14,27 @@
 
 ---
 
+## 0. 新一级研究会话的默认阅读顺序
+
+新开 Modeling、Loss、Feature Engineering、Data、Sim2Real、OOD、Training 等一级研究会话时，不应只从本方向旧实验开始，也不应只围绕当前线上 SOTA 做局部微调。
+
+默认先按以下顺序读取 GitHub 当前 `main`：
+
+1. **战略地图**：`docs/realpde整体优化概要.md`
+2. **当前线上战况**：`docs/sota迭代/README.md`
+3. **最近正式提交**：`docs/submission_log.md`，以及当前 SOTA 主线对应的最新 coordination handoff
+4. **本方向长期记忆**：对应方向的 `README.md` / `*概要.md`
+5. **必要的实验事实**：`docs/track1_experiment_registry.md`、相关 handoff、`docs/coordination/STATUS.md`
+
+新会话必须同时回答两类问题：
+
+- **Exploration**：是否存在新的任务定义、模型结构、表示、训练或物理方法，可以打开新的性能曲线？
+- **Competition relevance**：如果新方向成立，它未来如何与当前线上主线衔接，是替换 backbone、增加 branch、改变 prediction target、改变 objective，还是作为 auxiliary component？
+
+原则是：**不能因为当前 SOTA 是 CNO 就只围绕 CNO 微调，也不能因为在做战略探索就忽略已经获得的线上和离线证据。**
+
+---
+
 ## 1. 当前总体判断
 
 当前最强工程主线已经比较清楚：**CNO + P0-A runtime-safe features + N2 objective**。它在固定 50/16 validation 上同时改善 Rel-L2、TKE、MVPE，并在 Codabench 上把 TKE 提升到 `78.355520`；但最终分仍受 SPS 明显拖累。
