@@ -212,6 +212,19 @@ FE 结论：Temporal、SpatialPhysics、PixelPosition 都未通过同时保护 R
 - Locked-final audit: not run / one-time result after lock
 - Decision: advance / no-go / diagnostic only
 - Evidence paths and exact command:
+
+### `T1-ID-MF01-CONTROL-S20260904` + `T1-ID-MF01-S20260904` — COMPLETED / REVIEW_REQUIRED
+
+- Research cleanliness: `CLEAN`; fixed manifest `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`, 50 train / 16 dev / 16 locked-final.
+- Question / sole planned variable: output-level Direct Future20 versus Mean/zero-mean-Fluctuation reconstruction; no loss, feature, branch-capacity, optimizer, LR, batch, seed or data changes.
+- Shared initialization: official `sim_pretrain/sim_cno.pth`, SHA-256 `af85374bfd06c0e386ec803d777396c21484978392213025697c5a7470106b6b`; official v9 scorer is used.
+- Fixed protocol: P0-A, N2 (`MSE + 0.05*TKE + 0.027514*Rel-L2 + 0.009757*MVPE`), AdamW `lr=1e-5`, batch `8`, workers `2`, seed `20260901`, 1500 updates, checkpoints `500/1000/1500`.
+- MF-01 initialization smoke: reconstruction max absolute error `2.3841858e-7`; pressure max absolute error `0`; fluctuation temporal-mean max absolute error `3.1590463e-7`.
+- Locked-final audit: not run. Codabench: not accessed.
+- Code: `tools/realpde_mf01.py`; test: `tests/test_mf01_output.py`.
+- Results: at 1500, MF-01 Rel-L2/TKE/MVPE `0.188409/0.645156/0.160552` versus Control `0.193675/0.633786/0.165178`; relative changes `-2.72%/+1.79%/-2.80%`. Trajectory wins Rel/TKE/MVPE `13/16`, `7/16`, `10/16`; all-three `3/16`.
+- Decision: `MF01_NO_GO` / `REVIEW_REQUIRED`; decomposition improved mean and fluctuation diagnostics but official TKE did not improve. No MF-02 auto-launch.
+- Evidence: `/home/chyfuture/realpde_runs/mf01_control_20260904/`, `/home/chyfuture/realpde_runs/mf01_s20260904/`, and `docs/coordination/CHATGPT_HANDOFF_MF01.md`.
 ```
 
 ## 6. 全局维护规则
