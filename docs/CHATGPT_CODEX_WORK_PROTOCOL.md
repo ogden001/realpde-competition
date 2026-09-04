@@ -20,6 +20,21 @@
 
 Codex 不承担开放式研究规划，不自行扩大实验范围，不自行设计下一轮实验。
 
+### 新一级研究会话的默认入口
+
+新开 Modeling、Loss、Feature Engineering、Data、Sim2Real、OOD、Training 等一级研究会话时，ChatGPT / Sol 默认先读取当前 `main` 的三层信息，而不是只看最近一次实验：
+
+1. **战略地图**：`docs/realpde整体优化概要.md`
+2. **当前线上战况**：`docs/sota迭代/README.md`，并按需读取 `docs/submission_log.md` 和当前主线最新 handoff
+3. **专项研究记忆**：对应方向的 `README.md` / `*概要.md`，再按需追踪 experiment registry、coordination handoff 和 STATUS
+
+新会话必须同时保留两种视角：
+
+- **Exploration**：检查是否存在新的任务定义、模型结构、表示、训练或物理方向，可以打开新的性能曲线；
+- **Competition relevance**：判断新方向未来如何与当前线上主线衔接，而不是在真空中设计方案。
+
+原则：不能因为当前 SOTA 是 CNO 就只围绕 CNO 微调，也不能因为做战略探索就忽略当前 SOTA、已失败实验和已有线上/离线证据。
+
 ## 2. Git 协作规则
 
 远端仓库统一使用 `main`，不为普通优化实验创建长期实验 branch。
@@ -261,6 +276,8 @@ Codex 不应自主处理：
 **一个远端 `main`，多个独立本地执行管线。**
 
 **方向目录隔离任务和实验历史，`README.md` 保存长期记忆，`NEXT_ACTION.md` 驱动下一步。**
+
+**新一级研究会话先读“战略地图 → SOTA 战况 → 专项记忆”，同时保留 Exploration 与 Competition relevance 两种视角。**
 
 **远程环境事实先盘点，再设计依赖这些事实的实验；长任务结束后留下可机器读取的 artifact manifest。**
 
