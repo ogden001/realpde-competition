@@ -1,30 +1,29 @@
-# Goal
+# Status
 
-建立一次与具体模型实验无关的 Track 1 Dataset Profile，作为后续所有实验的固定数据分布参考。
+`CLOSED`
 
-# Tasks
+当前 Data 方向无独立执行任务。
 
-1. 读取 `docs/data/SKILL.md`，按 frozen manifest 对 50 Train / 16 Dev 做 dataset profiling。
-2. 生成 per-trajectory input-side descriptors，并比较 Train / Dev 分布、coverage、nearest-neighbor distance / OOD-like 情况。
-3. 可计算 Future20 target-side descriptors，但必须明确标记 analysis-only。
-4. 将稳定结论写入 `docs/data/DATASET_PROFILE.md`，并保存必要的小型表格 / 图表路径。
-5. 记录分析代码 commit、manifest SHA、窗口协议和 exact descriptor definitions。
+## Frozen Conclusions
 
-# Constraints
+- Full 82-trajectory input-side split audit：`SPLIT_OK`。
+- 保持当前 `50 Train / 16 Dev / 16 locked-final` manifest，不重划分。
+- Cross-split duplicate audit：`DUPLICATE_AUDIT_CLEAN`。
+- 唯一 exact duplicate：Train `6300_0.h5` ↔ Final `7575_0.h5`，42 个 Past20 `u/v` windows 完全一致。
+- 除上述 pair 外，无 `<0.1` near-duplicate；其余最近距离均 `>=0.573602`。
 
-- 不访问 16 locked-final。
-- 不训练模型。
-- 不做模型选择。
-- 不新增 inference feature。
-- 不根据 Dev error 定义 OOD 标签；distribution 标签必须由 Train-only 统计产生。
+## Default Rules
 
-# Deliverables
+1. 日常训练和模型选择继续只使用 Train / Dev。
+2. Locked-final 已完成一次 input-side、target-blind audit，但仍不用于模型选择。
+3. 若未来经明确授权进行 Final 模型评估，同时报告 `Final-all16` 与 `Final-unique15`（排除 `7575_0`）。
+4. 后续 bad-case 分析默认关联 `docs/data/DATASET_PROFILE.md`。
+5. 仅当 manifest、窗口协议、输入定义或 descriptor 定义发生实质变化时，重新打开 Dataset Profile。
 
-- 完整 `docs/data/DATASET_PROFILE.md`
-- 可复用分析脚本
-- 必要的小型 summary artifacts
-- commit SHA
+## References
 
-# Stop
+- `docs/data/DATASET_PROFILE.md`
+- `docs/data/DUPLICATE_AUDIT.md`
+- `docs/data/data概要.md`
 
-完成 profile 并 push `main` 后停止，`NEXT_ACTION = REVIEW_REQUIRED`。
+不要自动启动新的 profiling、split redesign 或 duplicate audit。
