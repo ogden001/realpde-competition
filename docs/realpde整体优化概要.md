@@ -95,11 +95,13 @@
 
 ## 1. 当前总体判断
 
-当前最强工程主线已经比较清楚：**CNO + P0-A runtime-safe features + N2 objective**。它在固定 50/16 validation 上同时改善 Rel-L2、TKE、MVPE，并在 Codabench 上把 TKE 提升到 `78.355520`；但最终分仍受 SPS 明显拖累。
+当前线上最强工程主线是：**P0-A + N2 + CNO + full-data late continuation + calibrated SPS bounds**。截至 2026-09-04，正式 Codabench SOTA 为 **`76.149726`**：Rel-L2 `93.434384` / TKE `77.588799` / MVPE `92.519561` / Time `86.998134` / SPS `27.545059`。SPS 已从上一版 `11.431650` 恢复，当前更值得继续寻找的是在保持 Rel-L2/MVPE/SPS 的同时提升 TKE 或形成新的结构性收益。
 
 **Task Formulation 已出现一个明确的粗筛正结果：Mean / Fluctuation（MF）在 matched 3000-update CLEAN 对照中三项 raw error 均优于 Direct CNO。** MF@3000 相对 Direct@3000 的 Rel-L2 / TKE / MVPE 分别改善 `6.541% / 1.971% / 14.019%`，trajectory wins 为 `16/16 / 8/16 / 15/16`。因此 MF 第一阶段结论已定为 **`PROMISING_PARKED`**：方向价值已经确认，但按“60 分原则”当前不再继续做 RMS decoupling、spectrum、MF-02 等机制级精修，先转向其它一级方向。
 
-数据基线也已经完成一次独立审计：对全部 82 条 PIV 做 input-side split audit 后结论为 `SPLIT_OK`，当前 50/16/16 没有明显分布切偏，Final 也不存在清晰 Train coverage gap。因此后续无需因为 split 怀疑而重划数据，研发仍以 50 Train / 16 Dev 为主。唯一长期注意事项是 Train `6300_0.h5` 与 Final `7575_0.h5` 的 Past20 输入完全重复，因此未来若正式评估 locked-final，应同时报告 `Final-all16` 与 `Final-unique15`。
+**Sim2Real / CFD 也已完成两轮粗筛，结论为 `WEAK_SIGNAL / PARKED`。** Raw CFD temporal transfer 不受支持；official `sim_pretrain` frozen representation 在 matched tiny-probe 下三项 PIV dev 指标均明显差于 random frozen control，因此停止把当前 official CFD representation 当作 PIV forecasting 主增量来源。18 个 CFD-only conditions 仍保留为 OOD / coverage 分析资产，但其价值为 `MODERATE`，不足以单独支撑 long CFD pretraining 或复杂 Sim2Real Campaign。
+
+数据基线已完成独立审计：对全部 82 条 PIV 做 input-side split audit 后结论为 `SPLIT_OK`，当前 50/16/16 没有明显分布切偏，Final 也不存在清晰 Train coverage gap。因此后续无需因为 split 怀疑而重划数据，研发仍以 50 Train / 16 Dev 为主。唯一长期注意事项是 Train `6300_0.h5` 与 Final `7575_0.h5` 的 Past20 输入完全重复，因此未来若正式评估 locked-final，应同时报告 `Final-all16` 与 `Final-unique15`。
 
 这说明当前工作应同时存在两种模式：
 
@@ -116,13 +118,13 @@
 不能把整个比赛收缩成“继续调 CNO、Loss、Feature”。需要持续检查：
 
 - 任务本身是否应该重构；
-- CFD 是否被充分利用；
 - 当前模型是否对 distribution-tail / hard trajectories 足够稳健；
 - 时空建模结构是否合理；
 - turbulence 是否应该用频谱、模态或 fluctuation 表示；
 - 物理约束是否只停留在 TKE；
 - 训练范式是否还有自监督、课程学习、多任务等大空间；
-- SPS 是否最终需要显式 uncertainty modeling。
+- SPS 是否最终需要显式 uncertainty modeling；
+- 已 PARKED 的 CFD/Sim2Real 只有出现新的 calibration、OOD failure linkage 或明确机制证据时才重新打开。
 
 ---
 
@@ -131,13 +133,13 @@
 | 一级方向 | 核心问题 | 主要子方向 | 当前状态 | 战略优先级 |
 |---|---|---|---|---|
 | **1. Task Formulation** | 我们是不是把任务定义得过于简单？ | Direct 20→20、Residual/Delta、Mean+Fluctuation、Multi-horizon、coarse-to-fine | **Mean/Fluctuation 第一阶段已验证 `PROMISING_PARKED`；MF@3000 相对 Direct@3000 三项 raw error 均改善。其它 formulation 尚未系统比较。** | **PARKED after first-pass** |
-| **2. Sim2Real / CFD 利用** | 训练阶段是否真正利用了赛题最独特的 CFD+PIV 资产？ | CFD pretraining objective、CFD→PIV degradation/domain randomization、latent alignment、teacher/student | 目前主要依赖官方 warm-start / pretrain，系统性 Sim2Real 设计不足 | **P0 Exploration** |
-| **3. Generalization / OOD** | 模型是否对当前数据分布尾部与未知工况足够稳健？ | trajectory profile、bad-case linkage、leave-condition-out、edge-condition holdout、稳健模型选择 | 82 条 input-side split audit 已完成且 `SPLIT_OK`；下一步重点从“怀疑 split”转向模型 robustness | **P1 Exploration** |
+| **2. Sim2Real / CFD 利用** | CFD 是否能真正帮助 PIV forecasting / OOD？ | raw transfer、Pseudo-PIV、representation、OOD coverage | 两轮粗筛完成：raw temporal transfer 不支持；official frozen CFD representation 不支持；18 个 CFD-only condition 仅有 moderate OOD coverage 价值。 | **WEAK_SIGNAL / PARKED** |
+| **3. Generalization / OOD** | 模型是否对当前数据分布尾部与未知工况足够稳健？ | trajectory profile、bad-case linkage、leave-condition-out、edge-condition holdout、稳健模型选择 | 82 条 input-side split audit 已完成且 `SPLIT_OK`；CFD-only 18 conditions 可作为额外 OOD/coverage 分析资产。 | **P1 Exploration** |
 | **4. Model Architecture** | 一个 CNO 是否同时承担了太多时空与尺度建模职责？ | CNO/FNO/Transformer family、Local+Global、Spatial+Temporal、Multi-scale、dual-path | CNO 是当前性能锚点；Point/LOCAL3 已停止；结构空间仍未充分打开 | **P1 Exploration** |
-| **5. Representation** | Raw/手工特征之外，是否存在更适合流体的表示？ | Raw、runtime-safe physics feature、Frequency/Spectrum、POD/Modal、low/high-frequency decomposition | Feature Discovery 已关闭，但“表示学习”远未关闭 | **P1 Exploration** |
+| **5. Representation** | Raw/手工特征之外，是否存在更适合流体的表示？ | Raw、runtime-safe physics feature、Frequency/Spectrum、POD/Modal、low/high-frequency decomposition | Feature Discovery 已关闭；official CFD frozen representation 路线 STOP，但与 CFD 无关的 representation 搜索仍开放。 | **P1 Exploration** |
 | **6. Physics / Objective** | 如何同时保护平均流、波动结构和局部物理？ | Rel-L2/TKE/MVPE、Mean/Fluctuation、Vorticity/Gradient、spectral energy、multi-task physical heads | N2 已有效；TKE 与 Rel/MVPE trade-off 仍是核心矛盾 | **P0 Exploit + Explore** |
-| **7. Training Strategy** | 是否还有比继续加 update 更有效的训练范式？ | Curriculum、noise robustness、self-supervised PIV pretraining、multi-task、LR schedule、SWA/model soup | 30.9k 长训已进入平台振荡区；简单暴力长训优先级下降 | **P1** |
-| **8. Reliability / Inference** | 如何把物理能力稳定转化为最终分？ | uncertainty、SPS calibration、bounds、pressure handling、runtime、packaging | SPS 是当前线上最大显性短板；提交日必须处理 | **P0 Submission** |
+| **7. Training Strategy** | 是否还有比继续加 update 更有效的训练范式？ | Curriculum、noise robustness、self-supervised PIV pretraining、multi-task、LR schedule、SWA/model soup | 30.9k 长训已进入平台振荡区；简单暴力长训优先级下降；long CFD pretraining 当前不做 | **P1** |
+| **8. Reliability / Inference** | 如何把物理能力稳定转化为最终分？ | uncertainty、SPS calibration、bounds、pressure handling、runtime、packaging | explicit bounds 已把 SPS 恢复到 `27.545059`；仍需提交前固定 calibration 与 runtime/package 保护 | **P0 Submission** |
 
 ---
 
@@ -173,7 +175,7 @@ MF@3000 相对 Direct@3000：
 1. **MF 方向本身有明确价值。** Rel-L2 与 MVPE 是明显的大台阶收益，TKE aggregate 也同向改善。
 2. **早期 MF@1500 明显 under-converged。** 后续分析显示继续训练的主要收益来自 Mean reconstruction，Fluctuation 也改善但稳定性较弱。
 3. **TKE 是 MF 后续第二阶段的主要薄弱项。** RMS/amplitude objective 曾出现 `15/16` trajectory TKE wins，但会损伤 Mean/MVPE；简单 scorer-aligned TKE、高能区 weighting、conditional/spatial gain 未形成可保留方案。
-4. **按“60 分原则”现在停止继续精修。** 当前状态为 **`PROMISING_PARKED`**。不自动继续 RMS decoupling、spectrum、MF-02、temporal head 等实验，先完成 CFD/Pretraining、Model Architecture、Loss 等其它一级方向的粗筛。
+4. **按“60 分原则”现在停止继续精修。** 当前状态为 **`PROMISING_PARKED`**。不自动继续 RMS decoupling、spectrum、MF-02、temporal head 等实验，先完成其它一级方向的粗筛。
 
 因此 Task Formulation 的当前结论不是“MF 仍待验证”，而是：**MF 已证明值得保留，第一阶段收益已经拿到；未来第二阶段若重新打开，目标是保持 Mean/MVPE 优势的同时继续提高 Fluctuation/TKE。**
 
@@ -189,16 +191,51 @@ MF@3000 相对 Direct@3000：
 
 正式 runtime 只能依赖当前 20 帧 `u/v` 与 tensor shape；`p` 为兼容占位，Re/AoA/CFD/metadata 等不能成为推理特征。这一边界保持不变。
 
-但 runtime 不使用 CFD，不等于训练阶段只需要官方预训练 checkpoint。
+该一级方向已完成两轮 breadth-first 粗筛，当前正式状态：**`WEAK_SIGNAL / PARKED`**。
 
-值得系统探索：
+#### 数据资产
 
-1. **CFD forecasting pretraining**：预训练目标直接与最终 20→20 forecasting 对齐。
-2. **CFD→PIV degradation/domain randomization**：人为加入 measurement noise、spatial smoothing、amplitude perturbation、missing/noisy structure，让 simulation 更接近真实 PIV。
-3. **CFD/PIV latent alignment**：让 encoder 学到跨域共享的 flow representation。
-4. **CFD teacher → PIV student**：利用 CFD 的完整性做 representation / dynamics teacher，而不是 inference 输入。
+- CFD：100 trajectories，每条 1000 frames；
+- PIV：82 trajectories；
+- 共同 condition：82；
+- CFD-only condition：18；
+- stride=20 的 Past20→Future20 windows：CFD `4900`，PIV `3383`，仅约 `1.448×`。
 
-这是目前整体路线里最明显的战略空白之一。
+因此 CFD 的独特价值主要不是“数量级更多 forecast 样本”，而是更长 trajectory 与额外 condition coverage。
+
+#### Domain gap
+
+对 82 个共同 Re/AoA condition 做 phase-free 比较：
+
+- normalized spatial spectrum gap 约为 PIV 邻近工况 variation 的 `3.0×`；
+- dominant-frequency gap `3.2×`；
+- ACF lag-1/5 gap 约 `2.4× / 2.2×`；
+- raw Mean/TKE norm gap 极大，但首先反映 amplitude / normalization / observation-operator 差异，不能直接写成 CFD 物理场错误很多倍。
+
+因此当前支持的结论是：**raw temporal CFD→PIV transfer 不受支持，TKE 存在负迁移风险。** 这不等价于“CFD 一定伤害 TKE”。
+
+#### Representation probe
+
+REP-01 冻结 official `sim_pretrain` CNO 主干，只训练同预算 tiny linear probe：
+
+| Arm | Rel-L2 ↓ | TKE ↓ | MVPE ↓ |
+|---|---:|---:|---:|
+| Official CFD representation | 0.9026 | 32.0180 | 1.1509 |
+| Random frozen representation | **0.7680** | **13.0809** | **0.7800** |
+
+三项均明显更差，因此 **`CFD_REPRESENTATION_NOT_SUPPORTED`**。这只否定 official CFD frozen representation + tiny probe 这一具体低成本路线，不等价于证明所有 CFD representation 方法都不可能有效；但按 60 分原则，当前没有理由继续为此设计复杂 self-supervised / teacher-student / adversarial Campaign。
+
+#### OOD coverage
+
+18 个 CFD-only conditions：interpolation `8/18`、edge `7/18`、extrapolation `3/18`。主要补充高 Re tail 与局部 Re×AoA 缺口，结论 **`CFD_OOD_COVERAGE_MODERATE`**。
+
+当前路线状态：
+
+- **STOP**：raw temporal transfer、raw CFD+PIV mixed curriculum、phase-aligned residual/teacher、official frozen CFD representation、long CFD pretraining、teacher/student、adversarial alignment；
+- **PARK**：Calibrated Pseudo-PIV 与重新设计的 CFD self-supervised representation，除非出现可靠 calibration / OOD failure linkage / 新机制证据；
+- **KEEP**：官方 `sim_pretrain` 仍可作为现有 CLEAN 链路中的合法 initialization；18 个 CFD-only conditions 保留为 OOD / coverage / robustness 分析资产。
+
+详细长期记忆见 [Sim2Real / CFD 利用概要](sim2real/sim2real概要.md)。
 
 ### 3.3 Generalization / OOD
 
@@ -223,9 +260,11 @@ MF@3000 相对 Direct@3000：
 
 后续优先做 **Dataset Profile × model bad-case × metric/horizon behavior** 的关联分析。Leave-condition-out / edge-condition holdout 仍可以作为战略 robustness evaluator，但不再以修复当前 split 为目的，也不应自动替代日常 50/16 protocol。
 
+CFD-only 的 18 个 conditions 可以作为额外 OOD/coverage 分析资产，但 OOD-01 只给出 `MODERATE` 价值，不应自动升级成 CFD training 数据主线。
+
 日常训练和 checkpoint 选择仍只基于 Train / Dev。Locked-final 已完成 input-side audit，但 Future20 / 模型指标仍保持非日常选模信息；如果未来明确授权做 Final 模型评估，应同时报告 `Final-all16` 与 `Final-unique15`，避免 exact duplicate 夸大独立泛化证据。
 
-详细事实见 [Dataset Profile](data/DATASET_PROFILE.md) 与 [Duplicate Audit](data/DUPLICATE_AUDIT.md)。
+详细事实见 [Dataset Profile](data/DATASET_PROFILE.md)、[Duplicate Audit](data/DUPLICATE_AUDIT.md) 与 [CFD OOD-01](coordination/CHATGPT_HANDOFF_SIM2REAL_OOD01.md)。
 
 ### 3.4 Model Architecture
 
@@ -251,12 +290,14 @@ MF@3000 相对 Direct@3000：
 
 Feature Discovery 已关闭，意味着“不继续堆新的手工 feature catalog”，不意味着 representation 研究结束。
 
+Sim2Real REP-01 只说明：**official CFD `sim_pretrain` frozen representation 不能作为当前 PIV forecasting 的主增量来源。** 它不关闭其它 representation 搜索。
+
 当前重点应从 feature 数量转向表示方式：
 
 - **Frequency/Spectrum representation**：时域/空域频谱、low/high-frequency decomposition；
 - **POD / Modal representation**：把流场分解为主要空间模态及其时间系数；
 - **Physical + Spectral dual representation**：同时在物理空间和频域约束/预测；
-- **Learned latent representation**：与 CFD/PIV alignment、自监督训练结合。
+- **PIV self-supervised / learned latent representation**：优先从真实 PIV 自身寻找更可迁移的 learned representation，而不是默认依赖 CFD alignment。
 
 P0-A 已证明 runtime-safe Temporal/Spatial/统计信息有价值，下一步更应研究“网络如何使用信息”，而不是继续发明 feature 21/22/23。
 
@@ -289,7 +330,7 @@ P0-A + N2 的固定 50/16 validation 已扩展到 30,900 updates：
 - TKE best：`30340`；
 - MVPE best：`26240`。
 
-因此继续原 LR 暴力拉长到 40k/50k 不再是优先方案。
+因此继续原 LR 暴力拉长不再是主要 exploration 方案。全量 competition continuation 到 `43260` 已用于当前线上 SOTA，但这属于 submission exploitation，不改变 validation 长训已进入平台区的判断。
 
 后续训练策略分两类：
 
@@ -307,22 +348,24 @@ P0-A + N2 的固定 50/16 validation 已扩展到 30,900 updates：
 - self-supervised PIV pretraining；
 - multi-task learning。
 
+当前不再启动 long CFD pretraining、raw CFD/PIV mixed curriculum 或复杂 Sim2Real training Campaign。
+
 详细长训证据见 [Training](training/training概要.md) 与 [30.9k handoff](coordination/CHATGPT_HANDOFF_P0A_N2_VALIDATION_30900.md)。
 
 ### 3.8 Reliability / Inference / Submission
 
-当前最好正式结果仍是简单 CNO 包：`75.58455`。
+当前最好正式结果：**`76.149726`**。
 
-P0-A + N2 full 15,300 updates：
+Candidate：`P0-A + N2 + CNO + full@43260 + explicit SPS bounds`
 
-- Rel-L2 `93.023539`
-- TKE `78.355520`
-- MVPE `91.894417`
-- Time `88.430528`
-- SPS `11.431650`
-- Final `71.153839`
+- Rel-L2 `93.434384`
+- TKE `77.588799`
+- MVPE `92.519561`
+- Time `86.998134`
+- SPS `27.545059`
+- Final `76.149726`
 
-说明物理能力提升没有自动转化成更高 final score。
+显式 bounds：`half_width = 0.0075 + 0.02 * abs(prediction)`，已把上一版 full@15300 的 SPS `11.431650` 恢复到 `27.545059`。
 
 当前提交策略：
 
@@ -345,12 +388,12 @@ P0-A + N2 full 15,300 updates：
 
 | 战略空白 | 为什么重要 | 当前动作 |
 |---|---|---|
-| **Distribution-tail / bad-case robustness** | Split audit 已确认数据划分本身无明显偏置，下一步应解释为什么某些 tail trajectories 仍会造成 TKE/Rel/MVPE 失败 | 联合 `Dataset Profile × trajectory metrics × horizon behavior`，定位模型机制问题；不重划 split |
-| **Sim2Real / CFD 数据利用** | 赛题独有的数据资产，目前主要只通过官方 checkpoint 间接使用 | 系统梳理 CFD pretrain / degradation / alignment 可行性 |
+| **Distribution-tail / bad-case robustness** | Split audit 已确认数据划分本身无明显偏置，下一步应解释为什么某些 tail trajectories 仍会造成 TKE/Rel/MVPE 失败 | 联合 `Dataset Profile × trajectory metrics × horizon behavior`，定位模型机制问题；18 个 CFD-only conditions 仅作为辅助 OOD/coverage asset |
+| **Sim2Real / CFD 数据利用** | 两轮粗筛已完成，没有发现值得继续占用主研发带宽的大台阶 | **`WEAK_SIGNAL / PARKED`**；停止 raw transfer / official frozen representation / long CFD training；Pseudo-PIV 等仅在新 calibration 证据出现时重开 |
 | **Mean / Fluctuation 重构** | 第一阶段已确认是明确正方向：MF@3000 相对 Direct@3000 在 Rel-L2 / TKE / MVPE 全部改善，尤其 Mean/MVPE 收益明显 | **`PROMISING_PARKED`**；保留为第二阶段重点候选，当前不继续机制级精修 |
 | **Spectral / fluctuation dynamics** | MF 的 TKE 收益小于 Rel/MVPE，波动场仍是未来可能的上限问题 | 当前只保留研究钩子，先完成其它一级方向粗筛后再决定是否进入第二阶段 |
 | **Local+Global / Spatial+Temporal 架构** | 当前单 CNO 同时承担空间、时间、尺度和 turbulence 表示 | 只做有明确假设的 bounded probe，不做盲目 sweep |
-| **Uncertainty → SPS** | 固定 bounds 可能只是 SPS 的低阶解法 | 提交前先 calibration；后续看收益决定是否模型化 |
+| **Uncertainty → SPS** | 固定 bounds 已恢复 SPS，但可能只是低阶解法 | 提交前先 calibration；后续看收益决定是否模型化 |
 
 ---
 
@@ -373,6 +416,8 @@ P0-A + N2 full 15,300 updates：
 - 纯 Point / LOCAL3 / LOCAL5；
 - 回到旧 UNet 路线；
 - **Mean/Fluctuation 方向的 RMS decoupling、spectrum、MF-02、temporal head 等第二阶段精修，待其它一级方向完成粗筛后再回收；**
+- **Sim2Real / CFD 独立研发 Campaign：raw temporal transfer、raw CFD+PIV mixed curriculum、official frozen CFD representation、teacher/student、adversarial alignment、long CFD pretraining；**
+- **Calibrated Pseudo-PIV 当前 PARK，只有出现可靠 observation/calibration evidence 才重新打开；**
 - 无假设的大规模 architecture sweep；
 - 原 LR 继续无限长训；
 - 只扫 N2 各项 scalar 权重；
@@ -409,6 +454,7 @@ P0-A + N2 full 15,300 updates：
 - [Loss / Metrics](loss/loss概要.md)
 - [Data](data/data概要.md)
 - [Training](training/training概要.md)
+- [Sim2Real / CFD](sim2real/sim2real概要.md)
 - [Inference / Submission](inference/inference概要.md)
 - [SOTA 迭代](sota迭代/README.md)
 - [Experiment Registry](track1_experiment_registry.md)
