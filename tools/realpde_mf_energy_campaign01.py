@@ -79,7 +79,7 @@ def run(args):
     core.set_seed(args.seed); args.out_dir.mkdir(parents=True); _, train_paths = core.read_manifest(args.manifest, "train"); _, dev_paths = core.read_manifest(args.manifest, "dev")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu"); builder, config = build_features(train_paths, device)
     ckpt = torch.load(args.checkpoint, map_location="cpu"); base = MF01CNO(args.kit_root, len(builder.feature_names), device); init_mf_from_direct(base, ckpt, len(builder.feature_names))
-    model = base if args.mode == "e1" else GainModel(base, builder.feature_names, args.mode)
+    model = base if args.mode == "e1" else GainModel(base, builder.feature_names, args.mode).to(device)
     weights = E1_N2 if args.mode == "e1" else BASE_N2
     metadata = {"experiment_id": args.experiment_id, "mode": args.mode, "seed": args.seed, "updates": args.updates, "milestones": args.milestones, "lr": args.lr, "batch_size": args.batch_size, "workers": args.workers, "loss_weights": weights, "gain_names": list(GAIN_NAMES) if args.mode != "e1" else [], "manifest_sha256": core.sha256(args.manifest), "checkpoint_sha256": core.sha256(args.checkpoint), "scorer_sha256": core.sha256(args.kit_root / "scoring.py"), "feature_config": vars(config), "locked_final_accessed": False, "codabench_accessed": False, "started_at": time.time()}
     (args.out_dir / "run_metadata.json").write_text(json.dumps(metadata, indent=2, sort_keys=True), encoding="utf-8")
