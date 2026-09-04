@@ -1,0 +1,14 @@
+{
+  "experiment_id": "T1-ID-HYBRID-CNO-LOCAL-A1-RERUN-S20260904",
+  "execution_commit": "c3a6b486b0445a533ec13b65a3408c2ab85e45cc",
+  "runner_fix": "global and local requires_grad parameters each included exactly once in optimizer",
+  "manifest_sha256": "42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347",
+  "scorer_sha256": "a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39",
+  "checkpoint_sha256": "f8bdb8bc2fff12c6e8c751376d0b32877de4c7ccaf0df5134cac996fb3851a1d",
+  "checkpoint_path_gpu": "/home/chyfuture/realpde_runs/hybrid_cno_local_a1_rerun_20260904/model_update_03000.pth",
+  "full_prediction_sha256": "51e00df13a729e082dc8a1982753e62c06cbad9120e5f607b12c496f86a83b48",
+  "full_prediction_path_gpu": "/home/chyfuture/realpde_runs/hybrid_cno_local_a1_rerun_20260904/eval_03000/predictions.npz",
+  "locked_final_accessed": false,
+  "codabench": false,
+  "final_status": "REVIEW_REQUIRED"
+}

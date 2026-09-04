@@ -1,0 +1,48 @@
+{
+  "checkpoint_roundtrip_max_abs": 0.0,
+  "codabench": false,
+  "device": "cuda",
+  "locked_final_accessed": false,
+  "optimizer_audit": {
+    "duplicate_params": 0,
+    "global_parameter_tensors": 136,
+    "local_parameter_tensors": 4,
+    "missing_params": 0,
+    "optimizer_global_parameter_tensors": 136,
+    "optimizer_local_parameter_tensors": 4,
+    "passed": true
+  },
+  "passed": true,
+  "step0": {
+    "full_equals_global": true,
+    "local_output_rms": 0.0,
+    "local_output_zero": true
+  },
+  "step1_gradient": {
+    "final_bias_norm": 0.11916450411081314,
+    "final_weight_norm": 0.04637742042541504
+  },
+  "steps": [
+    {
+      "final_weight_delta_from_init": 5.6567958381492645e-05,
+      "local_output_rms": 1.2518685252871364e-05,
+      "loss": 0.06420645117759705,
+      "step": 1
+    },
+    {
+      "final_weight_delta_from_init": 8.953279029810801e-05,
+      "local_output_rms": 2.6070176318171434e-05,
+      "loss": 0.056177154183387756,
+      "step": 2
+    },
+    {
+      "final_weight_delta_from_init": 0.00012445439642760903,
+      "local_output_rms": 4.016989259980619e-05,
+      "loss": 0.049108076840639114,
+      "step": 3
+    }
+  ],
+  "upstream": {
+    "input_weight_delta_after_3_steps": 0.0002706115192268044
+  }
+}

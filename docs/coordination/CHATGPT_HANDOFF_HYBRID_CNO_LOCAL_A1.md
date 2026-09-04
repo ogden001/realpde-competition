@@ -35,3 +35,11 @@ The original lightweight ChatGPT bundle is also kept outside Git under:
 SHA-256: `dce578db93076e25caf64136dcaf5ffc4f6933a76d6105a82a0a4329c285c5a2`
 
 It contains the report, case table, horizon metrics, maps, residual statistics, update curve, runtime and provenance. The full Dev prediction artifact and checkpoint remain on the GPU host and are intentionally not committed.
+
+## Valid optimizer-fixed rerun
+
+The valid rerun for independent Sol review is:
+
+[`docs/modeling/reviews/hybrid_cno_local_a1_rerun_20260904/`](../modeling/reviews/hybrid_cno_local_a1_rerun_20260904/)
+
+Experiment: `hybrid_cno_local_a1_rerun_20260904`. Final status: `REVIEW_REQUIRED`; no KEEP/PARK/STOP conclusion is recorded here.

@@ -1,0 +1,12 @@
+{
+  "Direct@3000": {
+    "windows": 659,
+    "seconds_per_window": 0.06028872000606277,
+    "milliseconds_per_window": 60.288720006062775
+  },
+  "A1_rerun@3000": {
+    "windows": 659,
+    "seconds_per_window": 0.061886376162366634,
+    "milliseconds_per_window": 61.88637616236663
+  }
+}

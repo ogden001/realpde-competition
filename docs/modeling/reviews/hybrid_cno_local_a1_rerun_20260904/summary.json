@@ -1,0 +1,104 @@
+{
+  "history": [
+    {
+      "absolute_update": 1500,
+      "model": "A1_at_zero_local",
+      "mvpe": 0.16517816483974457,
+      "rel_l2": 0.1936749517917633,
+      "tke": 0.6337860226631165
+    },
+    {
+      "absolute_update": 2000,
+      "elapsed_seconds": 362.2399325549777,
+      "mean_t_neural_s": 0.024942833570541237,
+      "model": "A1",
+      "mvpe": 0.16172076761722565,
+      "rel_l2": 0.17483365535736084,
+      "tke": 0.5988649129867554
+    },
+    {
+      "absolute_update": 2500,
+      "elapsed_seconds": 746.0759860329854,
+      "mean_t_neural_s": 0.025541142421647022,
+      "model": "A1",
+      "mvpe": 0.13039973378181458,
+      "rel_l2": 0.16487254202365875,
+      "tke": 0.5709773898124695
+    },
+    {
+      "absolute_update": 3000,
+      "elapsed_seconds": 1187.049924586987,
+      "mean_t_neural_s": 0.02552151606822378,
+      "model": "A1",
+      "mvpe": 0.1550842523574829,
+      "rel_l2": 0.17633116245269775,
+      "tke": 0.591687023639679
+    }
+  ],
+  "metadata": {
+    "architecture": "Direct CNO P0-A global + Conv3d local residual; prediction=global+local",
+    "batch_size": 8,
+    "checkpoint_sha256": "5499e60a3b8146bf095070dc76d03c85eae57b5f1ec794444276bab362458ec4",
+    "codabench": false,
+    "dev_trajectories": 16,
+    "device": "cuda",
+    "elapsed_seconds": 1187.3649336129893,
+    "experiment_id": "T1-ID-HYBRID-CNO-LOCAL-A1-RERUN-S20260904",
+    "final_absolute_update": 3000,
+    "global_input": [
+      "u",
+      "v",
+      "p",
+      "velocity_magnitude",
+      "du_dx",
+      "du_dy",
+      "dv_dx",
+      "dv_dy",
+      "vorticity",
+      "abs_vorticity",
+      "strain_magnitude",
+      "delta_u",
+      "delta_v",
+      "u_history_mean",
+      "v_history_mean",
+      "u_history_std",
+      "v_history_std",
+      "u_fluctuation",
+      "v_fluctuation",
+      "history_tke_proxy"
+    ],
+    "global_parameters": 7989843,
+    "local_input": "Past20 runtime-safe raw u/v only",
+    "local_operator": "Conv3d(2,16,3,pad=1)+GELU+Conv3d(16,2,1)",
+    "local_parameters": 914,
+    "locked_final_accessed": false,
+    "loss_weights": {
+      "mse": 1.0,
+      "mvpe": 0.009757,
+      "rel": 0.027514,
+      "tke": 0.05
+    },
+    "lr": 1e-05,
+    "manifest_sha256": "42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347",
+    "optimizer_audit": {
+      "duplicate_params": 0,
+      "global_parameter_tensors": 136,
+      "local_parameter_tensors": 4,
+      "missing_params": 0,
+      "optimizer_global_parameter_tensors": 136,
+      "optimizer_local_parameter_tensors": 4,
+      "passed": true
+    },
+    "preflight_evidence": "/runs/hybrid_cno_local_a1_rerun_20260904_preflight/preflight.json",
+    "reference": "T1-ID-MF-DIRECT3000-CLOSEOUT-S20260901",
+    "relative_updates": 1500,
+    "runner_sha256": "e002a6ec24ef678cb7dd91d8810f886582b4e3a8c1f6551941815b401cf4995b",
+    "scorer_sha256": "a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39",
+    "seed": 20260901,
+    "start_absolute_update": 1500,
+    "train_trajectories": 50,
+    "train_windows": 2052,
+    "workers": 2,
+    "zero_init": true
+  }
+}

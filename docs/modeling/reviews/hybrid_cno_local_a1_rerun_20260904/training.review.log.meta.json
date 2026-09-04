@@ -1,0 +1,15 @@
+{
+  "raw_log_path": "/home/chyfuture/realpde_runs/hybrid_cno_local_a1_rerun_20260904.log",
+  "raw_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "raw_line_count": 0,
+  "raw_size_bytes": 0,
+  "review_log_path": "docs/modeling/reviews/hybrid_cno_local_a1_rerun_20260904/training.review.log",
+  "review_line_count": 0,
+  "review_size_bytes": 0,
+  "selection_mode": "full",
+  "event_line_count": 0,
+  "sampled_line_count": 0,
+  "execution_commit": "c3a6b486b0445a533ec13b65a3408c2ab85e45cc",
+  "experiment_id": "T1-ID-HYBRID-CNO-LOCAL-A1-RERUN-S20260904",
+  "note": "Raw runner log was empty; milestone metrics and process evidence are preserved in summary.json, update_curve.csv, run_metadata.json and preflight_optimizer_audit.json."
+}
