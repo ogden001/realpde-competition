@@ -38,6 +38,22 @@ def build_bounds(
     return lower, upper
 
 
+def p0a_only_config(feature_config: dict) -> P0FeatureConfig:
+    """Reconstruct historical P0-A semantics without inheriting P0-B defaults."""
+    if not isinstance(feature_config, dict) or not all(key in feature_config for key in ("dx", "dy")):
+        raise ValueError("validation checkpoint lacks P0-A feature_config")
+    if feature_config.get("include_p0_a", True) is not True:
+        raise ValueError("validation checkpoint feature_config explicitly disables P0-A")
+    if feature_config.get("include_p0_b", False) is True:
+        raise ValueError("validation checkpoint feature_config unexpectedly enables P0-B")
+    allowed = {
+        key: feature_config[key]
+        for key in ("dx", "dy", "dt", "re_center", "re_scale")
+        if key in feature_config
+    }
+    return P0FeatureConfig(include_p0_a=True, include_p0_b=False, **allowed)
+
+
 def summarize_candidates(rows: list[dict]) -> dict:
     if not rows:
         raise ValueError("SPS screen produced no candidates")
@@ -64,10 +80,7 @@ def load_validation_model(
         )
     if payload.get("feature_set") != "P0-A":
         raise ValueError("validation checkpoint is not P0-A")
-    feature_config = payload.get("feature_config")
-    if not isinstance(feature_config, dict) or not all(key in feature_config for key in ("dx", "dy")):
-        raise ValueError("validation checkpoint lacks P0-A feature_config")
-    config = P0FeatureConfig(**feature_config)
+    config = p0a_only_config(payload.get("feature_config"))
     builder = P0FeatureBuilder(config).to(device)
     sys.path.insert(0, str(kit_root))
     from rpde_baselines.model.cno import CNO3d
