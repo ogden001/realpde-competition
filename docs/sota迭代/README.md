@@ -8,16 +8,58 @@
 
 各技术方向仍在自己的目录中完成研究和验证，例如 Modeling、Loss、Feature Engineering、Training、Inference。本目录只负责**跨方向收口与提交**。
 
+### “merge SOTA” 的固定含义
+
+当用户明确说 **“merge SOTA”**、**“合并 SOTA”** 或要求“把已验证有效策略合起来训练并提交”时，默认进入 **SOTA Merge Execution Mode**，这是一条执行指令，不是新的研究任务。
+
+固定目标：
+
+> 把此前已经验证有效、用户希望合并的策略直接编码到同一个 submission recipe 中，优先启动全量 competition 训练，快速确认训练健康后继续；有剩余时间再用同一套代码补 validation/test 训练和解释性证据；随后尽快 package + smoke + Codabench。线上失败或回退是可接受的实验结果，不应因为追求离线证据完美而长期阻塞提交。
+
+默认执行顺序：
+
+```text
+已验证有效策略
+        ↓
+最小代码合并
+        ↓
+优先全量训练约 2 小时
+        ↓
+轻量 sanity check
+(loss / NaN / Inf / 显存 / 速度 / 少量 checkpoint 指标)
+        ↓
+训练正常则继续 full run / 形成 candidate
+        ↓
+有时间再用同一代码跑 validation/test 训练与解释性评估
+        ↓
+最小 package smoke
+        ↓
+Codabench 提交
+        ↓
+根据线上结果 KEEP / ROLLBACK / 再研究
+```
+
+SOTA Merge Mode 下的硬规则：
+
+1. **全量训练是主路径，validation 是辅助路径。** 不再默认要求“先 validation 证明，再允许 full train”。
+2. **不把 merge 重新变成 research。** 已验证策略直接合并；若某组件出现新的研究问题，除非是明显工程正确性问题，否则不应拖住整个 merge 主线。
+3. **优先时间效率。** 默认先跑约 2 小时全量训练；训练没有明显异常即可继续，不要求先完成完整 ablation、trajectory Gate、机制诊断或大规模测试矩阵。
+4. **提交失败可以接受。** Codabench 是真实实验的一部分；不以“必须确保线上提升”为前提才允许提交。
+5. **只保留必要安全检查。** shape / finite / checkpoint 可加载 / prediction path / package clean-room 等直接影响提交正确性的检查必须做；不为一次 merge 临时建设通用框架、扩展测试矩阵或额外研究流水线。
+6. **如果用户说“今晚 merge SOTA”或给出类似时间约束，速度优先级高于研究完备性。** 除非遇到会让训练或 submission 明显无效的硬错误，否则应持续向“全量训练 → package → submit”推进。
+
 ## 2. 基本原则
 
 1. **只合并已经有证据的改动。** 不在 submission candidate 上临时加入未经验证的新结构、新 Loss 或新 Feature。
 2. **当前线上最佳结果始终作为锚点。** 新版本必须明确说明相对上一版新增了什么。
 3. **每天尽量形成一个可提交版本。** 当天没有足够可靠的新模型改动时，也可以只做 SPS、推理或打包优化。
 4. **SPS 是每次提交前的固定步骤。** SPS 优化与模型训练分开处理，不污染模型实验结论。
-5. **避免浪费提交次数。** 本地 official scorer、SPS/interval 检查、runtime smoke 和 clean-package smoke 通过后再提交。
-6. **线上结果只用于确认整体效果。** 不把 Codabench 当作高频超参数搜索器。
+5. **避免无意义浪费提交次数，但不追求提交前证据完美。** 必要 local smoke 通过即可进入 submission review；线上失败或回退可以作为真实实验结果记录。
+6. **线上结果用于确认整体效果。** 不把 Codabench 当作高频超参数搜索器，但允许在 SOTA Merge Mode 中用一次真实提交验证完整组合。
 
 ## 3. 每日流程
+
+常规研究收口流程：
 
 ```text
 各方向最新实验结论
@@ -37,6 +79,22 @@ official smoke + runtime + package check
 Codabench 提交
         ↓
 记录线上结果并更新下一轮基线
+```
+
+若用户明确进入 **SOTA Merge Execution Mode**，以上流程简化为：
+
+```text
+已有正向证据的策略
+        ↓
+直接编码合并
+        ↓
+先全量训练约 2h + 轻量 sanity check
+        ↓
+有时间再补同代码 validation/test
+        ↓
+最小 package smoke
+        ↓
+Codabench
 ```
 
 ## 4. 当前线上锚点
