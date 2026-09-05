@@ -44,7 +44,8 @@ def run(*, data_root: Path, kit_root: Path, checkpoint: Path, manifest: Path, va
         c = scoring.measured_channels(targets)
         raw = {"rel_l2": float(np.mean(scoring.rel_l2_per_sample(pred, targets, c))), "tke": float(np.mean(scoring.tke_rel_l2_per_sample(pred, targets, c))), "mvpe": float(scoring.mvpe_rel_l2(pred, targets))}
         for floor, mult in fixed_calibration_grid():
-            half = (floor + mult * sigma).astype(np.float32); half[..., 2:] = 0.0
+            uv_half = (floor + mult * sigma).astype(np.float32)
+            half = np.concatenate([uv_half, np.zeros(uv_half.shape[:-1] + (1,), dtype=np.float32)], axis=-1)
             lo, hi = pred - half, pred + half
             sps, coverage = scoring.aggregate_sps(pred, targets, c, lo, hi)
             rows.append({"model": model_name, "floor": floor, "mult": mult, "sps": 100.0 * float(sps), "coverage": float(coverage), "mean_width_uv": float(np.mean(2.0 * half[..., :2])), **raw})
