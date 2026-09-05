@@ -1,6 +1,9 @@
-# Overnight Integrated Adaptive Probe — REVIEW_REQUIRED
+# Overnight Integrated Adaptive Probe — V4_INVALID_BASELINE / REVIEW_REQUIRED
 
-Execution commit: `1aa0b50b2e98ddff39fbedccb583e6ae964643b2`
+Validation training execution commit: `d376d4ebb35ef0c3da95af7c3eb86419ab2c5f2d`.
+Gate evaluator snapshot commit: `8797afa368cc5187ee1fd9b4f5fba99d819157eb`.
+Corrected-head snapshot commit: `9bca78577dacde739f717c8e007b08ad9102ffef`.
+Calibration evaluator snapshot commit: `ba3a822d16e00a72fefd3bf3bc3a3630dfe4a702`.
 
 Status: `REVIEW_REQUIRED`.
 
@@ -15,9 +18,17 @@ floor=0.0025/mult=1, SPS 37.644685, coverage 0.832950. Best corrected
 calibration is floor=0.0025/mult=1, SPS 44.145264, coverage 0.855313.
 
 Complete raw logs, JSON/CSV evidence, and SHA256 provenance are retained in
-this directory. No all-82 refit, package, or Codabench submission was run.
+this directory. The bounded baseline parity audit reproduced the historical
+30900 metrics only with the checkpoint's canonical feature spacing, while the
+v4 training metadata used doubled `dx/dy`; therefore this v4 corrector is
+marked `V4_INVALID_BASELINE` and its gains are not promoted. No all-82 refit,
+package, or Codabench submission was run.
 
-Remote OUT_ROOT: `/home/chyfuture/realpde_runs/overnight_integrated_20260905_v3/`
+Remote OUT_ROOT: `/home/chyfuture/realpde_runs/overnight_integrated_20260905_v4/`
+
+Parity evidence: [BASELINE_PARITY_AUDIT.md](BASELINE_PARITY_AUDIT.md),
+`baseline_parity_v2.json`, `trajectory_metrics_v2.csv`, and
+`baseline_parity_audit_v2.review.log`.
 
 The implementation and evidence commits were pushed to `main`; this is a
 handoff for Sol review, not an automatic submission decision.
