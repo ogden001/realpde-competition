@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/tmp/smoke_full43260_adaptive_package.py", line 79, in <module>
+    main()
+  File "/tmp/smoke_full43260_adaptive_package.py", line 64, in main
+    assert float(np.max(np.abs((prediction - result1['lower']) - half))) == 0.0
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

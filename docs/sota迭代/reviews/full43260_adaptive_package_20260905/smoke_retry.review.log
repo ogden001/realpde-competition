@@ -1,0 +1,23 @@
+{
+  "bounds_max_abs_error": 2.384185791015625e-07,
+  "checkpoint_sha256": "50b692e236d5df9285a5cee976a51e3457a7eeed0f87d55b6568745077645d71",
+  "clean_room": "/tmp/full43260_adaptive_cleanroom_w4967_e2",
+  "deterministic": true,
+  "execution_commit": "dcae3bc",
+  "inventory_files": 63,
+  "prediction_dtype": "float32",
+  "prediction_max_abs_diff_vs_direct": 0.0,
+  "prediction_shape": [
+    1,
+    20,
+    32,
+    64,
+    3
+  ],
+  "pressure_zero": true,
+  "sigma_max": 1.0,
+  "sigma_min": 0.02895493060350418,
+  "status": "PASS",
+  "zip_bytes": 30177999,
+  "zip_sha256": "3285ad3a424988ab35061337ca836c23b5f7db04773246167da3a9f8eaa2178a"
+}
