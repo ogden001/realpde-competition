@@ -95,7 +95,7 @@
 
 ## 1. 当前总体判断
 
-当前线上最强工程主线是：**P0-A + N2 + CNO + full-data late continuation + calibrated SPS bounds**。截至 2026-09-04，正式 Codabench SOTA 为 **`76.149726`**：Rel-L2 `93.434384` / TKE `77.588799` / MVPE `92.519561` / Time `86.998134` / SPS `27.545059`。SPS 已从上一版 `11.431650` 恢复，当前更值得继续寻找的是在保持 Rel-L2/MVPE/SPS 的同时提升 TKE 或形成新的结构性收益。
+当前线上最强工程主线是：**P0-A + N2 + CNO + full-data late continuation + learned adaptive uncertainty bounds**。截至 2026-09-05，正式 Codabench SOTA 为 **`76.694784`**：Rel-L2 `93.434384` / TKE `77.588799` / MVPE `92.519563` / Time `87.066646` / SPS `29.519724`。相比 2026-09-04 static-bounds SOTA `76.149726`，backbone prediction 保持不变，SPS 提升 `+1.974665`，Final 提升 `+0.545058`。这已经确认 learned uncertainty 是线上有效组件；后续更值得继续寻找的是新的 backbone / task formulation / objective 增量，而不是继续把主要研发时间花在 SPS 固定区间精修上。
 
 **Task Formulation 已出现一个明确的粗筛正结果：Mean / Fluctuation（MF）在 matched 3000-update CLEAN 对照中三项 raw error 均优于 Direct CNO。** MF@3000 相对 Direct@3000 的 Rel-L2 / TKE / MVPE 分别改善 `6.541% / 1.971% / 14.019%`，trajectory wins 为 `16/16 / 8/16 / 15/16`。因此 MF 第一阶段结论已定为 **`PROMISING_PARKED`**：方向价值已经确认，但按“60 分原则”当前不再继续做 RMS decoupling、spectrum、MF-02 等机制级精修，先转向其它一级方向。
 
@@ -110,8 +110,8 @@
 - P0-A + N2 的 checkpoint / continuation / tail refinement
 - TKE 专项 objective
 - feature fusion 的稳定实现
-- submission 前的 SPS / bounds / runtime / package 优化
-- 每日把已经论证清楚的 KEEP/GO 项合成一个 competition candidate
+- learned adaptive uncertainty 作为当前默认 SPS 组件
+- 每日把已经论证清楚的 KEEP/GO 项按 `50/16 快速对比 → full-data → package → submit` 合成 competition candidate
 
 ### Exploration：周期性重新打开搜索空间
 
@@ -123,7 +123,6 @@
 - turbulence 是否应该用频谱、模态或 fluctuation 表示；
 - 物理约束是否只停留在 TKE；
 - 训练范式是否还有自监督、课程学习、多任务等大空间；
-- SPS 是否最终需要显式 uncertainty modeling；
 - 已 PARKED 的 CFD/Sim2Real 只有出现新的 calibration、OOD failure linkage 或明确机制证据时才重新打开。
 
 ---
@@ -139,7 +138,7 @@
 | **5. Representation** | Raw/手工特征之外，是否存在更适合流体的表示？ | Raw、runtime-safe physics feature、Frequency/Spectrum、POD/Modal、low/high-frequency decomposition | Feature Discovery 已关闭；official CFD frozen representation 路线 STOP，但与 CFD 无关的 representation 搜索仍开放。 | **P1 Exploration** |
 | **6. Physics / Objective** | 如何同时保护平均流、波动结构和局部物理？ | Rel-L2/TKE/MVPE、Mean/Fluctuation、Vorticity/Gradient、spectral energy、multi-task physical heads | N2 已有效；TKE 与 Rel/MVPE trade-off 仍是核心矛盾 | **P0 Exploit + Explore** |
 | **7. Training Strategy** | 是否还有比继续加 update 更有效的训练范式？ | Curriculum、noise robustness、self-supervised PIV pretraining、multi-task、LR schedule、SWA/model soup | 30.9k 长训已进入平台振荡区；简单暴力长训优先级下降；long CFD pretraining 当前不做 | **P1** |
-| **8. Reliability / Inference** | 如何把物理能力稳定转化为最终分？ | uncertainty、SPS calibration、bounds、pressure handling、runtime、packaging | explicit bounds 已把 SPS 恢复到 `27.545059`；仍需提交前固定 calibration 与 runtime/package 保护 | **P0 Submission** |
+| **8. Reliability / Inference** | 如何把物理能力稳定转化为最终分？ | uncertainty、SPS calibration、bounds、pressure handling、runtime、packaging | **Adaptive uncertainty 已线上验证：SPS `27.545059 → 29.519724`，Final `76.149726 → 76.694784`，backbone prediction 不变。** | **P0 Submission / KEEP** |
 
 ---
 
@@ -354,33 +353,34 @@ P0-A + N2 的固定 50/16 validation 已扩展到 30,900 updates：
 
 ### 3.8 Reliability / Inference / Submission
 
-当前最好正式结果：**`76.149726`**。
+当前最好正式结果：**`76.694784`**。
 
-Candidate：`P0-A + N2 + CNO + full@43260 + explicit SPS bounds`
+Candidate：`P0-A + N2 + CNO + full@43260 + v5 Adaptive Uncertainty Head@1400`
 
 - Rel-L2 `93.434384`
 - TKE `77.588799`
-- MVPE `92.519561`
-- Time `86.998134`
-- SPS `27.545059`
-- Final `76.149726`
+- MVPE `92.519563`
+- Time `87.066646`
+- SPS `29.519724`
+- Final `76.694784`
 
-显式 bounds：`half_width = 0.0075 + 0.02 * abs(prediction)`，已把上一版 full@15300 的 SPS `11.431650` 恢复到 `27.545059`。
+Adaptive bounds：`half_width_uv = 0.0025 + sigma`，pressure half-width `0`。该 package 与上一版 full@43260 backbone prediction parity 为 `max_abs_diff=0.0`，因此 2026-09-05 的线上变化基本隔离为 uncertainty / bounds 变化。相对上一版 static bounds：SPS `+1.974665`，Final `+0.545058`，Time 也小幅改善 `+0.068512`。
 
 当前提交策略：
 
-- **SPS 不单独消耗提交机会**；
-- 当天模型优化完成后，在 submission 前一起完成 SPS/bounds/pressure/runtime/package 校准；
-- 再进行一次正式 Codabench 提交。
+- learned Adaptive Uncertainty Head 作为当前默认 SPS 组件保留；
+- 新 backbone / formulation / loss merge 时，先固定 50/16 约 2 小时与历史 SOTA 做同协议比较；
+- 50/16 整体 OK 后，立即 full-data 训练并用同样 uncertainty/package 路径形成 submission；
+- 不把 submission merge 重新变成新的研究 Campaign。
 
-长期看，SPS 方向不应只理解成固定 bounds 调参，还可以研究：
+长期 Reliability 仍可研究：
 
-- prediction uncertainty；
-- heteroscedastic interval；
+- 更强 heteroscedastic uncertainty；
 - quantile / calibrated interval；
-- small ensemble / uncertainty proxy。
+- small ensemble / uncertainty proxy；
+- runtime/package 简化与稳健性。
 
-短期先做 submission-level calibration，长期再决定是否需要 learned uncertainty。
+但当前 learned uncertainty 已经从“未来候选”升级为**线上验证有效的 KEEP 组件**。
 
 ---
 
@@ -393,7 +393,7 @@ Candidate：`P0-A + N2 + CNO + full@43260 + explicit SPS bounds`
 | **Mean / Fluctuation 重构** | 第一阶段已确认是明确正方向：MF@3000 相对 Direct@3000 在 Rel-L2 / TKE / MVPE 全部改善，尤其 Mean/MVPE 收益明显 | **`PROMISING_PARKED`**；保留为第二阶段重点候选，当前不继续机制级精修 |
 | **Spectral / fluctuation dynamics** | MF 的 TKE 收益小于 Rel/MVPE，波动场仍是未来可能的上限问题 | 当前只保留研究钩子，先完成其它一级方向粗筛后再决定是否进入第二阶段 |
 | **Local+Global / Spatial+Temporal 架构** | 当前单 CNO 同时承担空间、时间、尺度和 turbulence 表示 | 只做有明确假设的 bounded probe，不做盲目 sweep |
-| **Uncertainty → SPS** | 固定 bounds 已恢复 SPS，但可能只是低阶解法 | 提交前先 calibration；后续看收益决定是否模型化 |
+| **Uncertainty → SPS** | 已经从固定 bounds 升级为 learned uncertainty，并在线上确认有效 | **KEEP** 当前 v5 Adaptive Uncertainty Head；后续只在有明确更高收益假设时继续优化，不再作为主要战略空白 |
 
 ---
 
@@ -406,9 +406,9 @@ Candidate：`P0-A + N2 + CNO + full@43260 + explicit SPS bounds`
 1. P0-A + N2 现有 checkpoint / averaging / tail refinement；
 2. TKE / fluctuation-aware objective；
 3. 已确认 Temporal/Spatial 信息的 TKE-preserving fusion；
-4. 当日最佳 candidate 的 full-data competition refit；
-5. submission 前 SPS + smoke + package；
-6. Codabench 正式提交。
+4. 已验证 positive strategy 的 `50/16 约 2h → GO_FULL → full-data refit`；
+5. 默认沿用 learned adaptive uncertainty；
+6. 最小 smoke + package + Codabench。
 
 ### 当前暂停或低优先级
 
@@ -427,7 +427,7 @@ Candidate：`P0-A + N2 + CNO + full@43260 + explicit SPS bounds`
 
 ### 当前线上 SOTA 迭代
 
-每日 competition candidate 的汇总、全量训练、SPS、打包和正式提交，统一记录在 [SOTA 迭代](sota迭代/README.md)。
+每日 competition candidate 的汇总、50/16 快速比较、全量训练、SPS、打包和正式提交，统一记录在 [SOTA 迭代](sota迭代/README.md)。
 
 ---
 
