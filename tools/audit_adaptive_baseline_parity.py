@@ -18,7 +18,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import realpde_loss_official_v9 as core
 import realpde_b1_p0a_n2 as base_api
-from realpde_p0_data import H5WindowDataset, read_grid
+from realpde_p0_data import H5WindowDataset
 from realpde_p0_features import P0FeatureBuilder, P0FeatureConfig
 
 
@@ -94,8 +94,7 @@ def run(args: argparse.Namespace) -> dict:
     )
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     builder = P0FeatureBuilder(config).to(device)
-    x_grid, y_grid = read_grid(dev_paths[0].parent / manifest["train"][0]["file"], sub_sample=2)
-    gate_config = P0FeatureConfig(True, False, float(x_grid[0, 1] - x_grid[0, 0]), float(y_grid[1, 0] - y_grid[0, 0]))
+    gate_config = config
     gate_builder = P0FeatureBuilder(gate_config).to(device)
     model = base_api.load_model(args.kit_root, args.checkpoint, builder, device).eval()
     standard_ds = H5WindowDataset(dev_paths, include_pressure=False)
