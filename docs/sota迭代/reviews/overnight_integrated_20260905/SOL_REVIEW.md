@@ -1,46 +1,77 @@
 # Sol Review — Overnight Integrated Adaptive Probe
 
-Status: **`INVALID_IMPLEMENTATION / REVALIDATION_REQUIRED`**
+Status: **`REVIEW_REQUIRED / BASELINE_PARITY_AUDIT`**
 
-The run stopped safely before full refit/package/Codabench, but the validation artifacts cannot be used for the pre-registered Gate. The blocker is not only the remote heredoc SyntaxError: the executed implementation drifted from the frozen experiment contract in several material ways.
+## 1. Repaired implementation review
 
-## Verified implementation issues
+The material semantic bugs from the first run have been repaired in the repository:
 
-1. **Corrector `residual_mse` target is wrong.**
-   - Frozen semantics: `MSE(delta_uv, target_uv - backbone_prediction_uv)`.
-   - Executed code calls `corrector_loss(base_pred + delta, y, delta)`, while `corrector_loss` computes `delta - (target - prediction)`. This makes the residual target depend on the already-corrected prediction and is not the frozen reference loss.
+- `residual_mse` now targets `target - frozen_backbone_prediction`;
+- base and corrected uncertainty heads are separated;
+- fresh uncertainty head starts at `sigma=0.02`;
+- `full=True` no longer refits uncertainty;
+- repository Gate evaluator uses the official scorer path;
+- corrected-head-only validation path exists.
 
-2. **The so-called base uncertainty head is trained on corrected predictions.**
-   - Frozen protocol: base head must model uncertainty of the uncorrected frozen backbone; corrected head is trained only after the corrector Gate passes.
-   - Executed `batches_head()` always forms `final = base_pred + delta` and trains the only head against `final`, then saves it as `base_head`.
+The v4 evidence is internally consistent:
 
-3. **Initial sigma=0.02 is not implemented.**
-   - Frozen reference requires uncertainty output to start at sigma `0.02`.
-   - `AdaptiveUncertaintyHead` uses default Conv3d initialization and has no final-layer initialization enforcing `log_std = log(0.02)`.
-   - The training log contains an early NLL explosion (hundreds to thousands) before recovery, consistent with an unstable initialization path and requiring correction before interpreting the head.
+- Gate: `PASS`;
+- baseline raw errors: Rel-L2 `0.12998666`, TKE `0.66506779`, MVPE `0.16063145`;
+- corrected raw errors: Rel-L2 `0.09917600`, TKE `0.54960150`, MVPE `0.09375764`;
+- relative improvement: Rel-L2 `23.7029%`, TKE `17.3616%`, MVPE `41.6318%`;
+- TKE degradation `>15%`: `0/16` trajectories;
+- fixed 56-row calibration grid complete;
+- best base SPS: `37.644685` at `floor=0.0025, mult=1`;
+- best corrected SPS: `44.145264` at `floor=0.0025, mult=1`.
 
-4. **`--full` currently also refits the uncertainty head.**
-   - Frozen protocol explicitly forbids fitting adaptive uncertainty on all-82 in-sample residuals; full mode must refit only the corrector at fixed 3960 updates.
-   - `run_training(full=True)` currently executes both corrector and uncertainty-head training.
+These are strong signals, but they are **not yet sufficient to authorize full refit**.
 
-5. **Packaging path is not yet safe.**
-   - The generated `submission.py` template contains literal `+` prefixes in code lines.
-   - The package path always instantiates/applies a corrector, so it does not yet implement the required BACKUP semantics (`full@43260 + base adaptive head`, no corrector).
+## 2. Baseline parity blocker
 
-6. **The Gate heredoc error is real but secondary.**
-   - `eval_gate.py` failed because an unquoted path was written into Python source. Even after fixing this syntax error, the current validation artifacts must not be gated because items 1–3 invalidate their semantics.
+The registered SOTA documentation records the same validation family at update `30900` as:
 
-## Evidence that remains useful
+- Rel-L2 `0.11284460`
+- TKE `0.50010282`
+- MVPE `0.08728255`
 
-- The corrector optimization process itself ran for the intended 2400 updates and its training loss decreased without NaN/Inf.
-- The uncertainty head ran for the intended 1400 updates and eventually returned to finite losses, but it is not a valid base-head artifact under the frozen contract.
-- The job correctly stopped before full refit, package build, or Codabench, preventing propagation of the invalid validation stage.
-- `66 passed` demonstrates code-level tests passed, but current tests do not sufficiently encode the frozen reference semantics above.
+The v4 Gate baseline is substantially worse:
 
-## Sol decision
+- Rel-L2 `0.12998666` — about `15.19%` worse;
+- TKE `0.66506779` — about `32.99%` worse;
+- MVPE `0.16063145` — about `84.04%` worse.
 
-Do **not** run the Gate on the existing validation artifacts. Do **not** start all-82 refit or package build.
+This discrepancy is too large to treat as noise or aggregation variation. The Gate evaluator uses the same official raw-error formulas as the repository scoring helper, so the difference must be explained before the `+23.7% / +17.4% / +41.6%` corrector gains can be attributed relative to the canonical strong validation backbone.
 
-Next action is a bounded semantic repair + TDD + validation-only rerun. Only after the corrected validation artifacts and Gate evidence are committed should Sol decide whether full refit/package work is authorized.
+Possible causes to audit, not assume:
 
-`NEXT_ACTION = REPAIR_AND_REVALIDATE_ONLY`
+1. wrong or stale checkpoint despite the path name `...10300_to30900/.../model_last.pth`;
+2. checkpoint content / iteration / feature config mismatch;
+3. manifest or dataset-window mismatch;
+4. P0-A builder/runtime config mismatch;
+5. historical SOTA validation evidence was produced by a different prediction path.
+
+Current v4 metadata records checkpoint SHA256:
+
+`e3d5faaf1a71e121b09077dd7dd7d0456a617e2916b8a671986f412fb54f6388`
+
+This SHA must be reconciled with the checkpoint that produced the registered SOTA validation raw errors.
+
+## 3. Provenance cleanup needed
+
+The review README still names execution commit `1aa0b50...` and remote `OUT_ROOT ..._v3`, while the repaired evidence is explicitly under `..._v4` and depends on later repair commits. This does not invalidate the numerical files by itself, but the final handoff must record the actual code commit / runner SHA used by v4.
+
+## 4. Sol decision
+
+**Do not start all-82 refit or package yet. Do not retrain anything yet.**
+
+Run one bounded baseline-parity audit on the existing artifacts/checkpoint:
+
+- verify checkpoint iteration / feature config / manifest provenance;
+- evaluate the exact same base checkpoint on the same 659 Dev windows through both the canonical SOTA validation path and the current adaptive Gate path;
+- compare base predictions numerically, not only scalar metrics;
+- if parity holds, add per-trajectory Rel-L2/MVPE alongside TKE and return to Sol;
+- if parity fails because the v4 corrector was trained against a wrong backbone/config, mark v4 validation invalid and stop.
+
+If baseline parity is established and the large corrected gains remain, the expected next Sol decision is `GO_FULL_REFIT`.
+
+`NEXT_ACTION = BASELINE_PARITY_AUDIT_ONLY`
