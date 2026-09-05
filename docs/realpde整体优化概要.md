@@ -91,6 +91,29 @@
 
 在 Feature Engineering、Loss、Model Architecture、CFD/Pretraining、Training Strategy、Task Formulation 等主要一级方向尚未完成粗筛前，应避免在任何单一子方向连续投入大量轮次。当前阶段的目标是先画完整“收益地图”，再把第二阶段资源集中到最有价值的 2～3 个方向。
 
+### SOTA Merge 资源门槛
+
+完整 SOTA merge 不是零成本的“顺手验证”。一次典型 merge 会消耗约 **4～6 轮 ChatGPT/Codex 协作 + 4～6 GPU 小时**，并伴随 full-data、SPS、package、Codabench 与复盘成本。因此：
+
+> **“某个策略有正向证据”不等于“现在就值得 merge SOTA”。**
+
+当用户提出 `merge SOTA` 时，Sol 必须先做 **Merge Worthiness Review**，而不是直接启动 50/16 或 full-data。至少需要明确：
+
+1. 当前线上 SOTA 已经包含哪些主要策略变量；
+2. 本轮真正新增 / 替换哪些独立变量；
+3. 每个变量的证据强度、指标收益、风险与兼容性；
+4. 这些变量组合后是否有“明显线上收益”的合理预期；
+5. 为什么这次投入比继续 Exploration 更划算。
+
+资源决策只保留两个结果：
+
+- **`MERGE_WORTHY`**：存在一个大台阶变量，或多个证据较强、彼此兼容的增量组合，预计足以支撑一次完整 submission 周期；
+- **`SKIP_MERGE`**：只有孤立小优化、weak signal、预期 Final 仅微涨、线上迁移高度不确定，或继续探索的预期信息收益更高。此时 Sol 必须主动提醒“不值得现在做”，即使用户刚提出 merge。
+
+`+1%` 左右的小离线收益、单一弱信号、只改善一个次要指标，默认不足以单独触发完整 merge。反过来，如果某一个变量本身就是明显的大台阶，也可以单独构成 `MERGE_WORTHY`，不要求机械凑够多个变量。
+
+Worthiness Review 只使用现有证据做快速资源判断，**不能为了证明“值得 merge”再扩成新的研究 Campaign**。详细执行规则见 [SOTA 迭代](sota迭代/README.md)。
+
 ---
 
 ## 1. 当前总体判断
@@ -111,7 +134,7 @@
 - TKE 专项 objective
 - feature fusion 的稳定实现
 - learned adaptive uncertainty 作为当前默认 SPS 组件
-- 每日把已经论证清楚的 KEEP/GO 项按 `50/16 快速对比 → full-data → package → submit` 合成 competition candidate
+- 已验证策略先经过 Merge Worthiness Review；只有 `MERGE_WORTHY` 才进入 `50/16 快速对比 → full-data → package → submit`
 
 ### Exploration：周期性重新打开搜索空间
 
@@ -369,9 +392,11 @@ Adaptive bounds：`half_width_uv = 0.0025 + sigma`，pressure half-width `0`。�
 当前提交策略：
 
 - learned Adaptive Uncertainty Head 作为当前默认 SPS 组件保留；
-- 新 backbone / formulation / loss merge 时，先固定 50/16 约 2 小时与历史 SOTA 做同协议比较；
+- 用户提出 merge 时，先完成 Merge Worthiness Review，明确当前 SOTA 变量、本轮新增变量和预期线上收益；
+- 只有 `MERGE_WORTHY` 才启动固定 50/16 约 2 小时与历史 SOTA 做同协议比较；
 - 50/16 整体 OK 后，立即 full-data 训练并用同样 uncertainty/package 路径形成 submission；
-- 不把 submission merge 重新变成新的研究 Campaign。
+- `SKIP_MERGE` 时不为了形成 submission 而硬凑 candidate，把 GPU 和协作轮次留给更高赔率的 Exploration；
+- 通过 Worthiness Gate 后，不把 submission merge 重新变成新的研究 Campaign。
 
 长期 Reliability 仍可研究：
 
@@ -406,7 +431,7 @@ Adaptive bounds：`half_width_uv = 0.0025 + sigma`，pressure half-width `0`。�
 1. P0-A + N2 现有 checkpoint / averaging / tail refinement；
 2. TKE / fluctuation-aware objective；
 3. 已确认 Temporal/Spatial 信息的 TKE-preserving fusion；
-4. 已验证 positive strategy 的 `50/16 约 2h → GO_FULL → full-data refit`；
+4. 汇总已验证 positive strategy，先做 Merge Worthiness Review；只有 `MERGE_WORTHY` 才进入 `50/16 约 2h → GO_FULL → full-data refit`；
 5. 默认沿用 learned adaptive uncertainty；
 6. 最小 smoke + package + Codabench。
 
@@ -427,7 +452,7 @@ Adaptive bounds：`half_width_uv = 0.0025 + sigma`，pressure half-width `0`。�
 
 ### 当前线上 SOTA 迭代
 
-每日 competition candidate 的汇总、50/16 快速比较、全量训练、SPS、打包和正式提交，统一记录在 [SOTA 迭代](sota迭代/README.md)。
+每日 competition candidate 的 Worthiness Review、50/16 快速比较、全量训练、SPS、打包和正式提交，统一记录在 [SOTA 迭代](sota迭代/README.md)。
 
 ---
 
