@@ -232,7 +232,8 @@ def _train_module(module: nn.Module, batches, updates: int, lr: float,
 def run_training(*, data_root: Path, kit_root: Path, checkpoint: Path, manifest: Path, out_dir: Path,
                  updates_corrector: int = 2400, updates_head: int = 1400, batch_size: int = 8,
                  workers: int = 2, seed: int = 20260905, full: bool = False,
-                 gate_passed: bool = False) -> dict:
+                 gate_passed: bool = False, corrected_only: bool = False,
+                 resume_probe: Path | None = None) -> dict:
     """Run one frozen validation-family or all-82 training stage.
 
     The caller supplies all paths.  Full mode is deliberately explicit and
@@ -268,6 +269,11 @@ def run_training(*, data_root: Path, kit_root: Path, checkpoint: Path, manifest:
     out_dir.mkdir(parents=True)
     raw_log = out_dir / "training.log"
     corrector = ResidualCorrector3D(hidden=64, blocks=2).to(device)
+    if corrected_only:
+        if resume_probe is None:
+            raise ValueError("corrected_only requires resume_probe")
+        saved_probe = torch.load(resume_probe, map_location="cpu", weights_only=False)
+        corrector.load_state_dict(saved_probe["corrector_state_dict"], strict=True)
     head = AdaptiveUncertaintyHead(hidden=32, blocks=2).to(device)
     corrected_head = AdaptiveUncertaintyHead(hidden=32, blocks=2).to(device) if gate_passed and not full else None
 
@@ -287,7 +293,7 @@ def run_training(*, data_root: Path, kit_root: Path, checkpoint: Path, manifest:
                    "residual_mse": .15, "delta_penalty": .05}
         return sum(weights[key] * value for key, value in parts.items())
 
-    corr_rows = _train_module(corrector, batches_corrector, updates_corrector, 1e-4, 1e-5, corr_loss, raw_log)
+    corr_rows = [] if corrected_only else _train_module(corrector, batches_corrector, updates_corrector, 1e-4, 1e-5, corr_loss, raw_log)
 
     def batches_head(use_corrected: bool = False):
         for x, y, _, _ in loader:
@@ -304,7 +310,7 @@ def run_training(*, data_root: Path, kit_root: Path, checkpoint: Path, manifest:
         return gaussian_nll(target, pred, sigma.permute(0, 2, 3, 4, 1))
 
     head_rows = []
-    if not full:
+    if not full and not corrected_only:
         head_rows = _train_module(head, lambda: batches_head(False), updates_head, 1e-3, 1e-5, nll_loss, out_dir / "head_training.log")
     corrected_rows = []
     if corrected_head is not None:
@@ -314,7 +320,8 @@ def run_training(*, data_root: Path, kit_root: Path, checkpoint: Path, manifest:
                 "checkpoint_sha256": _sha256(checkpoint), "manifest": str(manifest), "train_windows": len(ds),
                 "dx": cfg.dx, "dy": cfg.dy}
     metadata["gate_passed"] = gate_passed
-    _save_probe(out_dir / "probe.pth", corrector=corrector, base_head=None if full else head, corrected_head=corrected_head, metadata=metadata,
+    _save_probe(out_dir / "probe.pth", corrector=corrector, base_head=None if full or corrected_only else head,
+                corrected_head=corrected_head, metadata=metadata,
                 base_state_dict={key: value.detach().cpu() for key, value in base.state_dict().items()})
     (out_dir / "metrics.json").write_text(json.dumps({"corrector": corr_rows, "head": head_rows, "corrected_head": corrected_rows, "metadata": metadata}, indent=2), encoding="utf-8")
     return metadata
@@ -331,6 +338,8 @@ def main() -> None:
     parser.add_argument("--out-dir", type=Path)
     parser.add_argument("--full", action="store_true")
     parser.add_argument("--gate-pass", action="store_true")
+    parser.add_argument("--corrected-only", action="store_true")
+    parser.add_argument("--resume-probe", type=Path)
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--package", action="store_true", help="package a trained probe")
@@ -353,7 +362,8 @@ def main() -> None:
             parser.error("--train requires --data-root --kit-root --checkpoint --manifest --out-dir")
         result = run_training(data_root=args.data_root, kit_root=args.kit_root, checkpoint=args.checkpoint,
                               manifest=args.manifest, out_dir=args.out_dir, batch_size=args.batch_size,
-                              workers=args.workers, full=args.full, gate_passed=args.gate_pass)
+                              workers=args.workers, full=args.full, gate_passed=args.gate_pass,
+                              corrected_only=args.corrected_only, resume_probe=args.resume_probe)
         print(json.dumps(result, indent=2, sort_keys=True))
     elif args.package:
         if args.probe is None or args.package_out is None:
