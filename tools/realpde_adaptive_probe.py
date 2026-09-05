@@ -20,7 +20,7 @@ import textwrap
 import time
 import zipfile
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Mapping
 
 import numpy as np
 import torch
@@ -29,6 +29,30 @@ from realpde_p0_features import P0FeatureBuilder, P0FeatureConfig
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+
+
+def feature_config_from_checkpoint(payload: Mapping[str, object]) -> P0FeatureConfig:
+    """Reconstruct frozen P0 semantics from the backbone checkpoint only."""
+    if payload.get("feature_set") != "P0-A":
+        raise ValueError("backbone checkpoint must declare feature_set='P0-A'")
+    raw = payload.get("feature_config")
+    if not isinstance(raw, Mapping) or "dx" not in raw or "dy" not in raw:
+        raise ValueError("backbone checkpoint lacks complete P0-A feature_config")
+    return P0FeatureConfig(
+        include_p0_a=bool(raw.get("include_p0_a", True)),
+        include_p0_b=bool(raw.get("include_p0_b", False)),
+        dx=float(raw["dx"]), dy=float(raw["dy"]),
+        dt=None if raw.get("dt") is None else float(raw["dt"]),
+        re_center=float(raw.get("re_center", 0.0)), re_scale=float(raw.get("re_scale", 1.0)),
+    )
+
+
+def assert_feature_config_matches_checkpoint(config: P0FeatureConfig, payload: Mapping[str, object]) -> None:
+    """Fail loudly if an auxiliary path tries to substitute feature spacing."""
+    expected = feature_config_from_checkpoint(payload)
+    for name in ("include_p0_a", "include_p0_b", "dx", "dy", "dt", "re_center", "re_scale"):
+        if getattr(config, name) != getattr(expected, name):
+            raise ValueError(f"feature config does not match backbone checkpoint: {name}")
 
 
 def _diff(value: Tensor, dim: int) -> Tensor:
@@ -242,8 +266,8 @@ def run_training(*, data_root: Path, kit_root: Path, checkpoint: Path, manifest:
     """
     import realpde_b1_p0a_n2 as base_api
     import realpde_loss_official_v9 as core
-    from realpde_p0_data import H5WindowDataset, read_grid
-    from realpde_p0_features import P0FeatureBuilder, P0FeatureConfig
+    from realpde_p0_data import H5WindowDataset
+    from realpde_p0_features import P0FeatureBuilder
     if out_dir.exists():
         raise FileExistsError(out_dir)
     torch.manual_seed(seed); np.random.seed(seed)
@@ -256,9 +280,9 @@ def run_training(*, data_root: Path, kit_root: Path, checkpoint: Path, manifest:
         dev_paths = [data_root / row["file"] for row in payload["dev"]]
     if not train_paths or any(not p.is_file() for p in train_paths):
         raise FileNotFoundError("training trajectory missing")
-    x_grid, y_grid = read_grid(train_paths[0], sub_sample=2)
-    cfg = P0FeatureConfig(include_p0_a=True, include_p0_b=False,
-                          dx=float(x_grid[0, 1] - x_grid[0, 0]), dy=float(y_grid[1, 0] - y_grid[0, 0]))
+    checkpoint_payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
+    cfg = feature_config_from_checkpoint(checkpoint_payload)
+    assert_feature_config_matches_checkpoint(cfg, checkpoint_payload)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     builder = P0FeatureBuilder(cfg).to(device)
     args = argparse.Namespace(batch_size=batch_size, workers=workers, max_windows=None, seed=seed)
@@ -318,7 +342,7 @@ def run_training(*, data_root: Path, kit_root: Path, checkpoint: Path, manifest:
     metadata = {"seed": seed, "full": full, "updates_corrector": updates_corrector, "updates_head": updates_head,
                 "batch_size": batch_size, "device": str(device), "checkpoint": str(checkpoint),
                 "checkpoint_sha256": _sha256(checkpoint), "manifest": str(manifest), "train_windows": len(ds),
-                "dx": cfg.dx, "dy": cfg.dy}
+                "dx": cfg.dx, "dy": cfg.dy, "feature_config": vars(cfg)}
     metadata["gate_passed"] = gate_passed
     _save_probe(out_dir / "probe.pth", corrector=corrector, base_head=None if full or corrected_only else head,
                 corrected_head=corrected_head, metadata=metadata,

@@ -15,7 +15,23 @@ from realpde_adaptive_probe import (  # noqa: E402
     corrector_loss,
     gaussian_nll,
     evaluate_corrector_gate,
+    feature_config_from_checkpoint,
+    assert_feature_config_matches_checkpoint,
 )
+from realpde_p0_features import P0FeatureConfig  # noqa: E402
+
+
+def test_feature_config_is_inherited_from_backbone_checkpoint():
+    payload = {"feature_set": "P0-A", "feature_config": {"dx": 0.1, "dy": -0.2}}
+    config = feature_config_from_checkpoint(payload)
+    assert (config.dx, config.dy, config.include_p0_a, config.include_p0_b) == (0.1, -0.2, True, False)
+
+
+def test_feature_config_mismatch_is_rejected_instead_of_silently_rederived():
+    payload = {"feature_set": "P0-A", "feature_config": {"dx": 0.1, "dy": -0.2}}
+    assert_feature_config_matches_checkpoint(feature_config_from_checkpoint(payload), payload)
+    with pytest.raises(ValueError, match="does not match backbone checkpoint"):
+        assert_feature_config_matches_checkpoint(P0FeatureConfig(dx=0.2, dy=-0.2), payload)
 
 
 def test_adaptive_features_are_causal_and_have_frozen_channel_count():

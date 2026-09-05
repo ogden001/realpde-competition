@@ -14,16 +14,20 @@ import torch
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import realpde_b1_p0a_n2 as base_api
-from realpde_adaptive_probe import AdaptiveUncertaintyHead, ResidualCorrector3D, adaptive_features, fixed_calibration_grid, flow_features
-from realpde_p0_data import H5WindowDataset, read_grid
-from realpde_p0_features import P0FeatureBuilder, P0FeatureConfig
+from realpde_adaptive_probe import (AdaptiveUncertaintyHead, ResidualCorrector3D, adaptive_features,
+                                    fixed_calibration_grid, flow_features, feature_config_from_checkpoint,
+                                    assert_feature_config_matches_checkpoint)
+from realpde_p0_data import H5WindowDataset
+from realpde_p0_features import P0FeatureBuilder
 
 
 def run(*, data_root: Path, kit_root: Path, checkpoint: Path, manifest: Path, validation_probe: Path, corrected_probe: Path, out_dir: Path) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
     spec = json.loads(manifest.read_text(encoding="utf-8")); root = data_root
     train = [root / row["file"] for row in spec["train"]]; dev = [root / row["file"] for row in spec["dev"]]
-    xg, yg = read_grid(train[0], 2); cfg = P0FeatureConfig(True, False, float(xg[0, 1] - xg[0, 0]), float(yg[1, 0] - yg[0, 0]))
+    checkpoint_payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
+    cfg = feature_config_from_checkpoint(checkpoint_payload)
+    assert_feature_config_matches_checkpoint(cfg, checkpoint_payload)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"); builder = P0FeatureBuilder(cfg).to(device)
     base = base_api.load_model(kit_root, checkpoint, builder, device).eval()
     vp = torch.load(validation_probe, map_location="cpu", weights_only=False); cp = torch.load(corrected_probe, map_location="cpu", weights_only=False)
