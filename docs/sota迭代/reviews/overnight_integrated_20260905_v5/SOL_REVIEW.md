@@ -1,6 +1,6 @@
 # Sol Review — Overnight Integrated Adaptive Probe v5
 
-Status: **`SOL_REVIEWED / CORRECTOR_NO_GO / BASE_UNCERTAINTY_REVIEW_PENDING`**
+Status: **`SOL_REVIEWED / CORRECTOR_NO_GO / BASE_UNCERTAINTY_GO_PACKAGE`**
 
 ## Verified facts
 
@@ -11,13 +11,12 @@ Status: **`SOL_REVIEWED / CORRECTOR_NO_GO / BASE_UNCERTAINTY_REVIEW_PENDING`**
    - Official scorer SHA-256: `a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39`.
    - Canonical baseline raw errors are reproduced: Rel-L2 `0.1128446013`, TKE `0.5001028180`, MVPE `0.0872825533`.
    - Standard validation prediction and adaptive baseline prediction have `max_abs_diff = 0`.
-   - Auxiliary P0-A feature config now inherits checkpoint spacing: `dx=+0.001710832`, `dy=-0.001710832`.
+   - Auxiliary P0-A feature config inherits checkpoint spacing: `dx=+0.001710832`, `dy=-0.001710832`.
 
 2. v5 is a fresh fixed-budget validation run.
    - Corrector: `2400` updates from fresh initialization.
    - Base uncertainty head: `1400` updates from fresh initialization.
    - No v4 corrector/head weights were reused.
-   - Test suite: `71 passed`.
 
 3. The pre-registered corrector Gate fails.
 
@@ -27,16 +26,16 @@ Status: **`SOL_REVIEWED / CORRECTOR_NO_GO / BASE_UNCERTAINTY_REVIEW_PENDING`**
 | TKE | `0.5001028180` | `0.5254194140` | `5.0623%` degradation |
 | MVPE | `0.0872825533` | `0.0779585391` | `+10.6826%` improvement |
 
-Gate requirements on Rel-L2 and MVPE pass, but both TKE protections fail:
-- aggregate TKE degradation must be `<=2%`, observed `5.0623%`;
-- trajectories with TKE degradation `>15%` must be `<=2/16`, observed `6/16`.
+Both TKE protections fail: aggregate TKE degradation is `5.0623%`, and `6/16` trajectories exceed the frozen `15%` degradation threshold.
 
-The six severe TKE degradations are not a single-outlier failure: `10125_0`, `20325_20`, `20325_5`, `22875_15`, `24150_10`, and `25425_15` exceed the frozen `15%` threshold.
-
-4. The run stopped correctly.
-   - No corrected uncertainty head was trained after Gate failure.
-   - No all-82 corrector refit was started.
-   - No package, locked-final/private-test access, or Codabench submission occurred.
+4. Base uncertainty calibration is valid under repaired v5 semantics.
+   - Static reference SPS: `39.112385`.
+   - Best adaptive calibration: `floor=0.0025`, `mult=1`.
+   - Adaptive SPS: `41.496072`.
+   - Delta versus static: `+2.383686` SPS points.
+   - Coverage: `0.836394`.
+   - Mean UV width: `0.0260351`.
+   - No retraining was performed for calibration.
 
 ## Sol decision
 
@@ -44,31 +43,41 @@ The six severe TKE degradations are not a single-outlier failure: `10125_0`, `20
 
 **`STOP_FOR_SOTA / NO_FULL_REFIT`**.
 
-The result is valid and the Gate failure is substantive. The corrector produces large reconstruction gains in Rel-L2 and MVPE, but the energy/TKE damage is both aggregate and trajectory-level. The current frozen recipe must not be promoted to full@43260 or submission packaging.
-
-Do not spend the current SOTA sprint on width/kernel/loss-weight/checkpoint sweeps for this same corrector recipe.
+The current corrector recipe is not promoted. Its Rel-L2/MVPE gains are real, but TKE damage is aggregate and trajectory-level. Do not spend the current SOTA sprint on parameter polishing of this recipe.
 
 ### Broader residual-correction mechanism
 
 **`PARKED_SIGNAL`**.
 
-Rel-L2 and MVPE improvements of roughly `14.5%` and `10.7%` are too large to call the mechanism useless. The verified failure mode is metric conflict: reconstruction correction is useful, but TKE protection is not stable. If reopened later, it needs a materially different TKE-safe mechanism rather than parameter polishing of the current recipe.
+The reconstruction signal is strong enough to revisit later only with a materially different TKE-safe mechanism.
 
 ### Base adaptive uncertainty head
 
-**`REVIEW_PENDING`**, independently of the failed corrector.
+**`GO_PACKAGE_REVIEW`**.
 
-The v5 base uncertainty head was trained on the canonical frozen backbone and its training log remains finite/stable. It has not yet received the fixed adaptive SPS calibration screen under the repaired v5 semantics. Because uncertainty affects SPS without changing the backbone prediction metrics, it remains a separate low-cost candidate.
+This head changes uncertainty bounds only and leaves the backbone prediction unchanged. The repaired canonical calibration improves official-v9 Dev SPS from `39.112385` to `41.496072`, so it is worth composing with the current online SOTA backbone `full@43260`.
 
-The old v4 adaptive-calibration numbers must not be reused because v4 used the invalid baseline/config path.
+The uncertainty head remains the validation-trained v5 `base_head@1400`; do not refit it on all-82 data. Freeze calibration at:
+
+```text
+floor = 0.0025
+mult = 1.0
+uv_half_width = floor + mult * sigma
+pressure_half_width = 0
+```
 
 ## Next action
 
-Run **calibration only** for the already-trained v5 base uncertainty head:
-- no retraining;
-- fixed `floor = 0 / 0.0025 / 0.005 / 0.0075` × `mult = 0.5 / 1 / 1.5 / 2 / 2.5 / 3 / 4` grid;
-- official v9 SPS on the frozen 16-trajectory / 659-window Dev split;
-- compare directly with the canonical static-bounds reference `abs=0.0075, rel=0.02`, SPS `39.112385`;
-- stop after evidence commit for Sol review; do not package or submit automatically.
+Build one candidate only:
 
-`NEXT_ACTION = BASE_UNCERTAINTY_CALIBRATION_ONLY`
+`P0-A + N2 full@43260 + v5 base Adaptive Uncertainty Head`
+
+Requirements:
+- no corrector;
+- no retraining or recalibration;
+- full@43260 prediction must remain numerically equivalent to the current backbone path;
+- only `lower/upper` may change;
+- package + clean-room smoke only;
+- do not submit Codabench automatically.
+
+`NEXT_ACTION = FULL43260_BASE_ADAPTIVE_PACKAGE_ONLY`
