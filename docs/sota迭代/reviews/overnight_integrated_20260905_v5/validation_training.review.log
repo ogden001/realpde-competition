@@ -1,0 +1,24 @@
+{
+  "batch_size": 8,
+  "checkpoint": "/runs/p0a_n2_simreal_validation_20260903/continuation_10300_to30900/run/model_last.pth",
+  "checkpoint_sha256": "e3d5faaf1a71e121b09077dd7dd7d0456a617e2916b8a671986f412fb54f6388",
+  "device": "cuda:0",
+  "dx": 0.0017108320000000007,
+  "dy": -0.0017108319999999955,
+  "feature_config": {
+    "dt": null,
+    "dx": 0.0017108320000000007,
+    "dy": -0.0017108319999999955,
+    "include_p0_a": true,
+    "include_p0_b": false,
+    "re_center": 0.0,
+    "re_scale": 1.0
+  },
+  "full": false,
+  "gate_passed": false,
+  "manifest": "/data/id_seed20260901.json",
+  "seed": 20260905,
+  "train_windows": 2052,
+  "updates_corrector": 2400,
+  "updates_head": 1400
+}

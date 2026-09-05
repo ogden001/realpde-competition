@@ -1,0 +1,76 @@
+{
+  "artifacts": [
+    {
+      "feature_config": {
+        "dx": 0.0017108320000000007,
+        "dy": -0.0017108319999999955
+      },
+      "feature_set": "P0-A",
+      "iteration": 30900,
+      "loss_weights": {
+        "mse": 1.0,
+        "mvpe": 0.009757,
+        "rel": 0.027514,
+        "tke": 0.05
+      },
+      "name": "model_last.pth",
+      "optimizer_state": true,
+      "path": "/runs/p0a_n2_simreal_validation_20260903/continuation_10300_to30900/run/model_last.pth",
+      "run": "T1-COMP-P0A-N2-FULL",
+      "sha256": "e3d5faaf1a71e121b09077dd7dd7d0456a617e2916b8a671986f412fb54f6388"
+    },
+    {
+      "feature_config": {
+        "dt": null,
+        "dx": 0.0017108320000000007,
+        "dy": -0.0017108319999999955,
+        "include_p0_a": true,
+        "include_p0_b": false,
+        "re_center": 0.0,
+        "re_scale": 1.0
+      },
+      "feature_set": "P0-A",
+      "iteration": 43260,
+      "loss_weights": {
+        "mse": 1.0,
+        "mvpe": 0.009757,
+        "rel": 0.027514,
+        "tke": 0.05
+      },
+      "name": "model_last.pth",
+      "optimizer_state": true,
+      "path": "/runs/sota_full_night_20260904_retry2/full_15300_to_43260/model_last.pth",
+      "run": "T1-COMP-P0A-N2-FULL-CONTINUATION",
+      "sha256": "97647e5d548a02c8d350f47d7b12e577cd09631d041c89f1142d3ffa3a565b8c"
+    }
+  ],
+  "data": {
+    "root": "/data/p0ab_real_h5_20260830",
+    "spatial_shapes": [
+      [
+        64,
+        128
+      ]
+    ],
+    "trajectories": 82,
+    "windows": 3383
+  },
+  "generated_at": 1788601268.6750524,
+  "host": {
+    "cuda_available": true,
+    "cuda_runtime": "12.1",
+    "gpu_count": 1,
+    "gpus": [
+      "NVIDIA GeForce RTX 3090"
+    ],
+    "hostname": "2985272a3d41",
+    "platform": "Linux-7.0.0-30-generic-x86_64-with-glibc2.41",
+    "python": "3.12.13",
+    "torch": "2.2.2+cu121"
+  },
+  "kit": {
+    "root": "/repo/kit",
+    "scorer_sha256": "a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39"
+  },
+  "schema_version": 1
+}

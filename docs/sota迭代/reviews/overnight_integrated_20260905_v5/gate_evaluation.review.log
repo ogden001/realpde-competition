@@ -1,0 +1,29 @@
+{
+  "baseline": {
+    "mvpe": 0.08728255331516266,
+    "rel_l2": 0.11284460127353668,
+    "tke": 0.5001028180122375
+  },
+  "candidate": {
+    "mvpe": 0.07795853912830353,
+    "rel_l2": 0.09649471938610077,
+    "tke": 0.5254194140434265
+  },
+  "execution_probe": "/runs/overnight_integrated_20260905_v5/validation_run/probe.pth",
+  "gate": {
+    "aggregate_tke_degradation": 0.05062278219469962,
+    "checks": {
+      "aggregate_tke_degradation_le_2pct": false,
+      "mvpe_improvement_ge_2pct": true,
+      "rel_l2_improvement_ge_2pct": true,
+      "trajectory_tke_over_15pct_le_2": false
+    },
+    "mvpe_improvement": 0.10682563505207832,
+    "rel_l2_improvement": 0.14488847231427227,
+    "status": "CORRECTOR_NO_GO",
+    "trajectory_count_over_15pct": 6
+  },
+  "status": "CORRECTOR_NO_GO",
+  "trajectories": 16,
+  "windows": 659
+}

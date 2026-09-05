@@ -1,0 +1,87 @@
+{
+  "candidates": [
+    {
+      "abs": null,
+      "coverage": 0.30397618248858627,
+      "name": "fallback",
+      "rel": null,
+      "sps_raw": 0.16295627353605852,
+      "sps_score": 16.295627353605852
+    },
+    {
+      "abs": 0.005,
+      "coverage": 0.5384820347147615,
+      "name": "abs0050_rel000",
+      "rel": 0.0,
+      "sps_raw": 0.33240237273752,
+      "sps_score": 33.240237273752
+    },
+    {
+      "abs": 0.0075,
+      "coverage": 0.6696031789420959,
+      "name": "abs0075_rel000",
+      "rel": 0.0,
+      "sps_raw": 0.3778806231002527,
+      "sps_score": 37.788062310025275
+    },
+    {
+      "abs": 0.01,
+      "coverage": 0.7507552817814593,
+      "name": "abs0100_rel000",
+      "rel": 0.0,
+      "sps_raw": 0.38735064967259647,
+      "sps_score": 38.735064967259646
+    },
+    {
+      "abs": 0.0125,
+      "coverage": 0.8037127386871085,
+      "name": "abs0125_rel000",
+      "rel": 0.0,
+      "sps_raw": 0.3791709281305481,
+      "sps_score": 37.91709281305481
+    },
+    {
+      "abs": 0.0075,
+      "coverage": 0.7080409046712465,
+      "name": "abs0075_rel001",
+      "rel": 0.01,
+      "sps_raw": 0.3883870125850619,
+      "sps_score": 38.83870125850619
+    },
+    {
+      "abs": 0.0075,
+      "coverage": 0.7352395768930639,
+      "name": "abs0075_rel002",
+      "rel": 0.02,
+      "sps_raw": 0.39112385259434,
+      "sps_score": 39.112385259434
+    }
+  ],
+  "checkpoint": "/runs/p0a_n2_simreal_validation_20260903/continuation_10300_to30900/run/model_last.pth",
+  "checkpoint_iteration": 30900,
+  "checkpoint_sha256": "e3d5faaf1a71e121b09077dd7dd7d0456a617e2916b8a671986f412fb54f6388",
+  "decision": "REVIEW_REQUIRED",
+  "dev_trajectories": 16,
+  "dev_windows": 659,
+  "feature_config": {
+    "dx": 0.0017108320000000007,
+    "dy": -0.0017108319999999955
+  },
+  "manifest": "/data/id_seed20260901.json",
+  "manifest_sha256": "42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347",
+  "mean_t_neural_s": 0.025583646872751442,
+  "note": "Ranked only by official-v9 SPS on frozen dev; no Codabench/private-test use and no auto-submit.",
+  "raw_errors": {
+    "mvpe": 0.08728255331516266,
+    "rel_l2": 0.11284460127353668,
+    "tke": 0.5001028180122375
+  },
+  "scorer_sha256": "a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39",
+  "summary": {
+    "best_local_sps_candidate": "abs0075_rel002",
+    "best_local_sps_delta_vs_fallback": 22.816757905828148,
+    "best_local_sps_score": 39.112385259434,
+    "decision": "REVIEW_REQUIRED",
+    "fallback_sps_score": 16.295627353605852
+  }
+}

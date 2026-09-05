@@ -1,0 +1,21 @@
+{
+  "checkpoints": [
+    {
+      "feature_config": null,
+      "feature_set": null,
+      "iteration": null,
+      "loss_weights": null,
+      "name": "probe.pth",
+      "optimizer_state": false,
+      "path": "/runs/overnight_integrated_20260905_v5/validation_run/probe.pth",
+      "run": null,
+      "sha256": "be027b9bfb6431522e0a51586102e7d98a34acc6aefa7412e2aa52a294821db0"
+    }
+  ],
+  "generated_at": 1788602921.5191882,
+  "metadata": {},
+  "resumable_checkpoints": [],
+  "run_dir": "/runs/overnight_integrated_20260905_v5/validation_run",
+  "schema_version": 1,
+  "status": {}
+}

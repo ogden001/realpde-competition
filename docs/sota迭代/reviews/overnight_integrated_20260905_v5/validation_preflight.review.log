@@ -1,0 +1,7 @@
+{
+  "best_local_sps_candidate": "abs0075_rel002",
+  "best_local_sps_delta_vs_fallback": 22.816757905828148,
+  "best_local_sps_score": 39.112385259434,
+  "decision": "REVIEW_REQUIRED",
+  "fallback_sps_score": 16.295627353605852
+}
