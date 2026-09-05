@@ -14,7 +14,7 @@
 
 固定目标：
 
-> 把此前已经验证有效、用户希望合并的策略直接编码到同一个 submission recipe 中，优先启动全量 competition 训练，快速确认训练健康后继续；有剩余时间再用同一套代码补 validation/test 训练和解释性证据；随后尽快 package + smoke + Codabench。线上失败或回退是可接受的实验结果，不应因为追求离线证据完美而长期阻塞提交。
+> 把此前已经验证有效、用户希望合并的策略直接编码到同一个 submission recipe 中。先在冻结的 50 Train / 16 Dev 上用同一 recipe 训练，默认约 2 小时，与历史 SOTA 的 50/16 结果直接比较；结果整体 OK 后立即启动全量 competition 训练。随后做最小 SPS / package smoke 并尽快 Codabench。线上失败或回退是可接受的实验结果，不应因为追求离线证据完美而长期阻塞提交。
 
 默认执行顺序：
 
@@ -23,14 +23,16 @@
         ↓
 最小代码合并
         ↓
-优先全量训练约 2 小时
+固定 50/16 训练约 2 小时
+        ↓
+与历史 SOTA 50/16 直接比较
+        ↓
+结果 OK → 同 recipe 全量训练
         ↓
 轻量 sanity check
 (loss / NaN / Inf / 显存 / 速度 / 少量 checkpoint 指标)
         ↓
-训练正常则继续 full run / 形成 candidate
-        ↓
-有时间再用同一代码跑 validation/test 训练与解释性评估
+SPS / bounds
         ↓
 最小 package smoke
         ↓
@@ -41,12 +43,12 @@ Codabench 提交
 
 SOTA Merge Mode 下的硬规则：
 
-1. **全量训练是主路径，validation 是辅助路径。** 不再默认要求“先 validation 证明，再允许 full train”。
-2. **不把 merge 重新变成 research。** 已验证策略直接合并；若某组件出现新的研究问题，除非是明显工程正确性问题，否则不应拖住整个 merge 主线。
-3. **优先时间效率。** 默认先跑约 2 小时全量训练；训练没有明显异常即可继续，不要求先完成完整 ablation、trajectory Gate、机制诊断或大规模测试矩阵。
+1. **50/16 是快速可比 Gate，全量训练是最终 submission 主路径。** 不跳过历史可比性，也不把 50/16 扩展成新的长期研究。
+2. **不把 merge 重新变成 research。** 已验证策略直接合并；50/16 只用于回答“相对当前 SOTA 是否值得 full run”。
+3. **优先时间效率。** 默认 50/16 训练约 2 小时；若指标趋势整体 OK，立即进入 full-data，不要求完整 ablation、trajectory Gate、机制诊断或大规模测试矩阵。
 4. **提交失败可以接受。** Codabench 是真实实验的一部分；不以“必须确保线上提升”为前提才允许提交。
 5. **只保留必要安全检查。** shape / finite / checkpoint 可加载 / prediction path / package clean-room 等直接影响提交正确性的检查必须做；不为一次 merge 临时建设通用框架、扩展测试矩阵或额外研究流水线。
-6. **如果用户说“今晚 merge SOTA”或给出类似时间约束，速度优先级高于研究完备性。** 除非遇到会让训练或 submission 明显无效的硬错误，否则应持续向“全量训练 → package → submit”推进。
+6. **如果用户说“今晚 merge SOTA”或给出类似时间约束，速度优先级高于研究完备性。** 除非遇到会让训练或 submission 明显无效的硬错误，否则应持续向“50/16 → full-data → package → submit”推进。
 
 ## 2. 基本原则
 
@@ -68,46 +70,32 @@ SOTA Merge Mode 下的硬规则：
         ↓
 确定单一 SOTA candidate recipe
         ↓
-必要的小规模 A/B 或收尾实验
+固定 50/16 约 2h 快速对比
+        ↓
+GO_FULL
         ↓
 全量 competition refit / continuation
         ↓
 SPS / bounds 优化
         ↓
-official smoke + runtime + package check
+最小 official/package smoke
         ↓
 Codabench 提交
         ↓
 记录线上结果并更新下一轮基线
 ```
 
-若用户明确进入 **SOTA Merge Execution Mode**，以上流程简化为：
-
-```text
-已有正向证据的策略
-        ↓
-直接编码合并
-        ↓
-先全量训练约 2h + 轻量 sanity check
-        ↓
-有时间再补同代码 validation/test
-        ↓
-最小 package smoke
-        ↓
-Codabench
-```
-
 ## 4. 当前线上锚点
 
-截至 2026-09-04：
+截至 2026-09-05：
 
-- 当前最好正式结果：**`76.149726`**
-- Candidate：`P0-A + N2 + CNO + full@43260 + explicit SPS bounds`
-- Bounds：`half_width = 0.0075 + 0.02 * abs(prediction)`
-- Checkpoint SHA256：`50b692e236d5df9285a5cee976a51e3457a7eeed0f87d55b6568745077645d71`
-- Submission ZIP SHA256：`f8a79ec1114b4e7f05edc9bc95c6810c5250ca27b5044ca387044c0671d9fc98`
-- Codabench：Rel-L2 `93.434384` / TKE `77.588799` / MVPE `92.519561` / Time `86.998134` / SPS `27.545059`
-- 相对旧线上最佳 `75.584550`：Final `+0.565176`
+- 当前最好正式结果：**`76.694784`**
+- Candidate：`P0-A + N2 + CNO + full@43260 + v5 Adaptive Uncertainty Head@1400`
+- Bounds：`half_width_uv = 0.0025 + sigma`，pressure half-width `0`
+- Backbone checkpoint SHA256：`50b692e236d5df9285a5cee976a51e3457a7eeed0f87d55b6568745077645d71`
+- Submission ZIP SHA256：`3285ad3a424988ab35061337ca836c23b5f7db04773246167da3a9f8eaa2178a`
+- Codabench：Rel-L2 `93.434384` / TKE `77.588799` / MVPE `92.519563` / Time `87.066646` / SPS `29.519724`
+- 相对 2026-09-04 SOTA `76.149726`：Final **`+0.545058`**，主要来自 SPS **`+1.974665`**；prediction 主体保持不变。
 
 正式提交历史见：[`../submission_log.md`](../submission_log.md)。
 
@@ -115,12 +103,13 @@ Codabench
 
 当前优先路线：
 
-**P0-A features + N2 loss + CNO + full-data late-training continuation + calibrated SPS bounds**。
+**P0-A features + N2 loss + CNO + full-data late-training continuation + learned adaptive uncertainty bounds**。
 
-这条路线已获得线上验证：相比旧历史最佳 CNO，当前 candidate 的 TKE 明显更高，同时 Rel-L2/MVPE 基本保持强势；显式 bounds 将上一次 P0-A full@15300 的 SPS `11.431650` 恢复到 `27.545059`，最终分数刷新为 `76.149726`。
+当前 backbone 仍是 full@43260。2026-09-05 submission 只新增 v5 base Adaptive Uncertainty Head@1400，package prediction parity 为 `max_abs_diff=0.0`。线上 Rel-L2 / TKE 与上一版完全相同，MVPE 仅有舍入级变化，而 SPS 从 `27.545059` 提升到 `29.519724`，Final 从 `76.149726` 提升到 `76.694784`。因此 Adaptive Uncertainty 已从离线信号升级为**线上验证有效的 SOTA 组件**。
 
 当前不作为 SOTA 主线自动合并：
 
+- Residual Corrector：V5 canonical Gate 中 Rel-L2/MVPE 改善，但 TKE aggregate 恶化 `5.06%` 且 6/16 trajectories 超过保护阈值，当前 `NO-GO / PARKED_SIGNAL`；
 - H1 / Point hybrid：Rel-L2、MVPE 有信号，但 trajectory-level TKE 保护不足；
 - 新 Feature Fusion：底层信息有价值，但强 CNO 上稳定 fusion 收益尚未建立；
 - 新 Loss：N2 仍是当前经过验证的主力 objective。
@@ -170,7 +159,7 @@ Validation raw errors：Rel-L2 `0.11284460`，TKE `0.50010282`，MVPE `0.0872825
 | abs=0.0075, rel=0.01 | 38.838701 | 0.708041 |
 | **abs=0.0075, rel=0.02** | **39.112385** | **0.735240** |
 
-结论：`abs=0.0075, rel=0.02` 为本地 SPS 首选，相对 fallback 提升 `+22.816758`；候选间已出现宽度继续增加后的收益饱和，因此没有扩 SPS 网格。
+结论：`abs=0.0075, rel=0.02` 为本地 SPS 首选，相对 fallback 提升 `+22.816758`。
 
 ## 2026-09-04 Codabench new SOTA
 
@@ -184,8 +173,26 @@ Candidate：`P0-A + N2 + CNO + full@43260 + abs0075_rel002`
 
 SPS / bounds：`half_width = 0.0075 + 0.02 * abs(prediction)`。
 
-Codabench：Final **`76.149726`** / Rel-L2 `93.434384` / TKE `77.588799` / MVPE `92.519561` / Time `86.998134` / SPS `27.545059`。
+Codabench：Final `76.149726` / Rel-L2 `93.434384` / TKE `77.588799` / MVPE `92.519561` / Time `86.998134` / SPS `27.545059`。
 
-结论：**KEEP / NEW SOTA**。相对旧线上最佳 `75.584550` 提升 `+0.565176`。SPS 已从用户上一版 full@15300 的 `11.431650` 恢复到 `27.545059`；TKE 仍保持明显高于旧历史最佳的水平。
+结论：`KEEP / PREVIOUS SOTA`。
 
-下一轮主要问题：在保持 Rel-L2 / MVPE / SPS 不回退的前提下，优先寻找进一步提升 TKE 或模型组合收益的方案；不浪费提交机会在无新增证据的 full@40560 backup 上。
+## 2026-09-05 Codabench adaptive uncertainty new SOTA
+
+日期：`2026-09-05`
+
+Candidate：`P0-A + N2 + CNO + full@43260 + v5 base Adaptive Uncertainty Head@1400`
+
+相对上一版新增：仅将 static bounds 替换为 learned adaptive uncertainty；backbone prediction parity `max_abs_diff=0.0`。
+
+训练 checkpoint：仍为 full@43260，SHA256 `50b692e236d5df9285a5cee976a51e3457a7eeed0f87d55b6568745077645d71`。
+
+SPS / bounds：`half_width_uv = 0.0025 + sigma`，pressure half-width `0`。
+
+Submission ZIP SHA256：`3285ad3a424988ab35061337ca836c23b5f7db04773246167da3a9f8eaa2178a`。
+
+Codabench：Final **`76.694784`** / Rel-L2 `93.434384` / TKE `77.588799` / MVPE `92.519563` / Time `87.066646` / SPS **`29.519724`**。
+
+结论：**KEEP / NEW SOTA**。相对 2026-09-04 版本 Final `+0.545058`、SPS `+1.974665`、Time `+0.068512`，物理 prediction scores 基本不变。Adaptive Uncertainty 在线验证成功。
+
+下一轮主要问题：在保留 adaptive uncertainty 的前提下，把其它已经验证有正向证据的策略按 `50/16 约 2h → GO_FULL → package → submit` 的 merge 流程快速合并，不再把 SOTA merge 变成新的研究 Campaign。
