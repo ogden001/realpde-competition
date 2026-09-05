@@ -15,6 +15,18 @@ def test_absolute_milestones_are_frozen_for_3k_to_15k_campaign():
         runner.absolute_milestones(3000, 12000, 2500)
 
 
+def test_low_memory_microbatch_plan_preserves_effective_batch_weight():
+    plan = runner.microbatch_plan(8, 2)
+    assert plan == [(0, 2, 0.25), (2, 4, 0.25), (4, 6, 0.25), (6, 8, 0.25)]
+    assert sum(weight for _, _, weight in plan) == pytest.approx(1.0)
+
+    # The 2052-window dataset has a final effective batch of four. Its two
+    # microbatches must each receive half of that optimizer-step gradient.
+    partial = runner.microbatch_plan(4, 2)
+    assert partial == [(0, 2, 0.5), (2, 4, 0.5)]
+    assert sum(weight for _, _, weight in partial) == pytest.approx(1.0)
+
+
 def test_mf_checkpoint_metadata_requires_exact_c0_parent_contract():
     good = {
         "iteration": 1500,
