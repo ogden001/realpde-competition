@@ -1,0 +1,280 @@
+{
+  "base_head": "base_head_state_dict@1400",
+  "bounds": {
+    "floor": 0.0025,
+    "mult": 1.0
+  },
+  "checkpoint": "/runs/sota_full_night_20260904_retry2/full_15300_to_43260/model_update_43260.pth",
+  "checkpoint_sha256": "50b692e236d5df9285a5cee976a51e3457a7eeed0f87d55b6568745077645d71",
+  "created_at": 1788621407.9947073,
+  "execution_commit": "dcae3bc",
+  "feature_config": {
+    "dt": null,
+    "dx": 0.0017108320000000007,
+    "dy": -0.0017108319999999955,
+    "include_p0_a": true,
+    "include_p0_b": false,
+    "re_center": 0.0,
+    "re_scale": 1.0
+  },
+  "inventory": [
+    {
+      "bytes": 1073,
+      "path": "_vendor/einops/LICENSE"
+    },
+    {
+      "bytes": 438,
+      "path": "_vendor/einops/__init__.py"
+    },
+    {
+      "bytes": 22528,
+      "path": "_vendor/einops/_backends.py"
+    },
+    {
+      "bytes": 4329,
+      "path": "_vendor/einops/_torch_specific.py"
+    },
+    {
+      "bytes": 5236,
+      "path": "_vendor/einops/array_api.py"
+    },
+    {
+      "bytes": 38079,
+      "path": "_vendor/einops/einops.py"
+    },
+    {
+      "bytes": 0,
+      "path": "_vendor/einops/experimental/__init__.py"
+    },
+    {
+      "bytes": 121,
+      "path": "_vendor/einops/experimental/indexing.py"
+    },
+    {
+      "bytes": 3705,
+      "path": "_vendor/einops/layers/__init__.py"
+    },
+    {
+      "bytes": 11075,
+      "path": "_vendor/einops/layers/_einmix.py"
+    },
+    {
+      "bytes": 2518,
+      "path": "_vendor/einops/layers/flax.py"
+    },
+    {
+      "bytes": 217,
+      "path": "_vendor/einops/layers/keras.py"
+    },
+    {
+      "bytes": 1864,
+      "path": "_vendor/einops/layers/oneflow.py"
+    },
+    {
+      "bytes": 1907,
+      "path": "_vendor/einops/layers/paddle.py"
+    },
+    {
+      "bytes": 3322,
+      "path": "_vendor/einops/layers/tensorflow.py"
+    },
+    {
+      "bytes": 2405,
+      "path": "_vendor/einops/layers/torch.py"
+    },
+    {
+      "bytes": 7660,
+      "path": "_vendor/einops/packing.py"
+    },
+    {
+      "bytes": 6805,
+      "path": "_vendor/einops/parsing.py"
+    },
+    {
+      "bytes": 0,
+      "path": "_vendor/einops/py.typed"
+    },
+    {
+      "bytes": 3970,
+      "path": "adaptive_runtime.py"
+    },
+    {
+      "bytes": 32537114,
+      "path": "model.pth"
+    },
+    {
+      "bytes": 9003,
+      "path": "realpde_p0_features.py"
+    },
+    {
+      "bytes": 244,
+      "path": "rpde_baselines/__init__.py"
+    },
+    {
+      "bytes": 0,
+      "path": "rpde_baselines/model/CNO_libs/__init__.py"
+    },
+    {
+      "bytes": 488,
+      "path": "rpde_baselines/model/CNO_libs/dnnlib/__init__.py"
+    },
+    {
+      "bytes": 17132,
+      "path": "rpde_baselines/model/CNO_libs/dnnlib/util.py"
+    },
+    {
+      "bytes": 0,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/__init__.py"
+    },
+    {
+      "bytes": 6646,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/custom_ops.py"
+    },
+    {
+      "bytes": 11141,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/misc.py"
+    },
+    {
+      "bytes": 448,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/__init__.py"
+    },
+    {
+      "bytes": 4389,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/bias_act.cpp"
+    },
+    {
+      "bytes": 6160,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/bias_act.cu"
+    },
+    {
+      "bytes": 1293,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/bias_act.h"
+    },
+    {
+      "bytes": 9880,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/bias_act.py"
+    },
+    {
+      "bytes": 9745,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/conv2d_gradfix.py"
+    },
+    {
+      "bytes": 6765,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/conv2d_resample.py"
+    },
+    {
+      "bytes": 15597,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/filtered_lrelu.cpp"
+    },
+    {
+      "bytes": 67307,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/filtered_lrelu.cu"
+    },
+    {
+      "bytes": 4448,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/filtered_lrelu.h"
+    },
+    {
+      "bytes": 12916,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/filtered_lrelu.py"
+    },
+    {
+      "bytes": 1638,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/filtered_lrelu_ns.cu"
+    },
+    {
+      "bytes": 1607,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/filtered_lrelu_rd.cu"
+    },
+    {
+      "bytes": 1608,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/filtered_lrelu_wr.cu"
+    },
+    {
+      "bytes": 2047,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/fma.py"
+    },
+    {
+      "bytes": 3399,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/grid_sample_gradfix.py"
+    },
+    {
+      "bytes": 5027,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/upfirdn2d.cpp"
+    },
+    {
+      "bytes": 23137,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/upfirdn2d.cu"
+    },
+    {
+      "bytes": 1849,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/upfirdn2d.h"
+    },
+    {
+      "bytes": 16424,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/ops/upfirdn2d.py"
+    },
+    {
+      "bytes": 9787,
+      "path": "rpde_baselines/model/CNO_libs/local_torch_utils/persistence.py"
+    },
+    {
+      "bytes": 24721,
+      "path": "rpde_baselines/model/CNO_libs/training/filtered_networks.py"
+    },
+    {
+      "bytes": 2937,
+      "path": "rpde_baselines/model/TRANSOLVER_libs/Embedding.py"
+    },
+    {
+      "bytes": 7990,
+      "path": "rpde_baselines/model/TRANSOLVER_libs/Physics_Attention.py"
+    },
+    {
+      "bytes": 8655,
+      "path": "rpde_baselines/model/TRANSOLVER_libs/Transolver_Structured_Mesh_3D.py"
+    },
+    {
+      "bytes": 73,
+      "path": "rpde_baselines/model/TRANSOLVER_libs/__init__.py"
+    },
+    {
+      "bytes": 62,
+      "path": "rpde_baselines/model/__init__.py"
+    },
+    {
+      "bytes": 27444,
+      "path": "rpde_baselines/model/cno.py"
+    },
+    {
+      "bytes": 6628,
+      "path": "rpde_baselines/model/fno.py"
+    },
+    {
+      "bytes": 6322,
+      "path": "rpde_baselines/model/load_model.py"
+    },
+    {
+      "bytes": 804,
+      "path": "rpde_baselines/model/model.py"
+    },
+    {
+      "bytes": 66,
+      "path": "rpde_baselines/utils/__init__.py"
+    },
+    {
+      "bytes": 473,
+      "path": "rpde_baselines/utils/metrics.py"
+    },
+    {
+      "bytes": 2333,
+      "path": "submission.py"
+    }
+  ],
+  "probe": "/runs/overnight_integrated_20260905_v5/validation_run/probe.pth",
+  "probe_sha256": "be027b9bfb6431522e0a51586102e7d98a34acc6aefa7412e2aa52a294821db0",
+  "status": "PACKAGED",
+  "zip": "/runs/full43260_adaptive_package_20260905_v2/submission.zip",
+  "zip_bytes": 30177999,
+  "zip_sha256": "3285ad3a424988ab35061337ca836c23b5f7db04773246167da3a9f8eaa2178a"
+}
