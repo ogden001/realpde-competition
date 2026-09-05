@@ -44,6 +44,7 @@ def evaluate(*, data_root: Path, kit_root: Path, checkpoint: Path, manifest: Pat
             delta = corrector(adaptive_features(x, frozen).permute(0, 4, 1, 2, 3)).permute(0, 2, 3, 4, 1)
             base_pred.append(frozen.cpu().numpy()); candidate.append((frozen + delta).cpu().numpy()); targets.append(y.numpy())
     base_pred, candidate, targets = [np.concatenate(v).astype(np.float32) for v in (base_pred, candidate, targets)]
+    sys.path.insert(0, str(kit_root.resolve()))
     import scoring
     def raw(pred: np.ndarray) -> dict[str, float]:
         channels = scoring.measured_channels(targets)
