@@ -10,16 +10,58 @@
 
 ### “merge SOTA” 的固定含义
 
-当用户明确说 **“merge SOTA”**、**“合并 SOTA”** 或要求“把已验证有效策略合起来训练并提交”时，默认进入 **SOTA Merge Execution Mode**，这是一条执行指令，不是新的研究任务。
+当用户明确说 **“merge SOTA”**、**“合并 SOTA”** 或要求“把已验证有效策略合起来训练并提交”时，默认先进入 **SOTA Merge Worthiness Review**，而不是直接启动训练。
 
-固定目标：
+一次完整 SOTA merge 通常意味着约 **4～6 轮 ChatGPT/Codex 协作 + 4～6 GPU 小时**，还会消耗打包、提交和结果复盘成本。因此“存在正向证据”不等于“值得现在 merge”。Sol 必须先判断当前候选是否有足够明显的预期线上收益，只有结论为 **`MERGE_WORTHY`** 时，才进入 **SOTA Merge Execution Mode**。
 
-> 把此前已经验证有效、用户希望合并的策略直接编码到同一个 submission recipe 中。先在冻结的 50 Train / 16 Dev 上用同一 recipe 训练，默认约 2 小时，与历史 SOTA 的 50/16 结果直接比较；结果整体 OK 后立即启动全量 competition 训练。随后做最小 SPS / package smoke 并尽快 Codabench。线上失败或回退是可接受的实验结果，不应因为追求离线证据完美而长期阻塞提交。
-
-默认执行顺序：
+固定判断流程：
 
 ```text
-已验证有效策略
+用户提出 merge SOTA
+        ↓
+列出当前线上 SOTA 已包含的策略变量
+        ↓
+列出本轮真正新增 / 替换的独立变量
+        ↓
+评估每个变量的证据强度、指标影响、兼容性和线上迁移风险
+        ↓
+估计组合后是否有“明显线上收益”的合理预期
+        ↓
+MERGE_WORTHY ?
+   ├─ NO  → SKIP_MERGE，直接提醒用户不值得烧本轮资源
+   └─ YES → 进入 SOTA Merge Execution Mode
+```
+
+### Merge Worthiness Gate
+
+Sol 在启动任何完整 merge 前必须回答：
+
+1. **当前线上 SOTA 的变量是什么？** 至少拆清 backbone / formulation / feature / loss / training / inference-SPS 等主要变量，避免把已经在 SOTA 中的组件误算成新收益。
+2. **本轮真正新增或替换什么？** 必须指出独立策略变量，而不是笼统写“综合优化”。
+3. **这些变量的证据强度如何？** 区分 ONLINE_KEEP、明确 matched positive、weak signal、conflicting signal、未经验证。
+4. **它们预计影响哪些线上指标？** 说明 Rel-L2 / TKE / MVPE / Time / SPS 中哪几项可能获益、哪几项存在风险。
+5. **为什么值得付出完整 merge 成本？** 必须给出组合后存在明显线上提点的合理依据，而不是“反正训练看看”。
+
+默认决策：
+
+- **`MERGE_WORTHY`**：存在一个大台阶变量，或多个证据较强、彼此兼容的增量组合，预期值得消耗一次完整 50/16 → full-data → package → Codabench 周期。
+- **`SKIP_MERGE`**：只有孤立小优化、weak signal、预期 Final 仅微涨、线上迁移高度不确定，或当前组合相比继续 Exploration 没有足够高的资源回报率。此时即使用户刚说“merge SOTA”，Sol 也应主动提醒**这轮不值得做**。
+
+特别规则：
+
+- 离线 `+1%` 左右的小收益、单一弱信号、仅某一个次要指标改善，**默认不足以单独触发完整 SOTA merge**。
+- 一个变量若离线收益很大，可以单独构成 `MERGE_WORTHY`，不要求机械凑够多个变量。
+- 多个小变量只有在证据较强、机制兼容、预计能够形成有意义的组合收益时才值得合并。
+- Merge Worthiness Review 是资源决策，不是新的研究 Campaign；只使用现有证据快速判断，不为证明“值得 merge”额外发明大量实验。
+
+通过 Gate 后，固定目标为：
+
+> 把此前已经验证有效、且经 Worthiness Review 判断值得本轮投入的策略直接编码到同一个 submission recipe 中。先在冻结的 50 Train / 16 Dev 上用同一 recipe 训练，默认约 2 小时，与历史 SOTA 的 50/16 结果直接比较；结果整体 OK 后立即启动全量 competition 训练。随后做最小 SPS / package smoke 并尽快 Codabench。线上失败或回退是可接受的实验结果，不应因为追求离线证据完美而长期阻塞提交。
+
+执行顺序：
+
+```text
+MERGE_WORTHY
         ↓
 最小代码合并
         ↓
@@ -41,23 +83,24 @@ Codabench 提交
 根据线上结果 KEEP / ROLLBACK / 再研究
 ```
 
-SOTA Merge Mode 下的硬规则：
+SOTA Merge Execution Mode 下的硬规则：
 
 1. **50/16 是快速可比 Gate，全量训练是最终 submission 主路径。** 不跳过历史可比性，也不把 50/16 扩展成新的长期研究。
 2. **不把 merge 重新变成 research。** 已验证策略直接合并；50/16 只用于回答“相对当前 SOTA 是否值得 full run”。
 3. **优先时间效率。** 默认 50/16 训练约 2 小时；若指标趋势整体 OK，立即进入 full-data，不要求完整 ablation、trajectory Gate、机制诊断或大规模测试矩阵。
-4. **提交失败可以接受。** Codabench 是真实实验的一部分；不以“必须确保线上提升”为前提才允许提交。
+4. **提交失败可以接受。** Codabench 是真实实验的一部分；通过 Worthiness Gate 后，不以“必须确保线上提升”为前提才允许提交。
 5. **只保留必要安全检查。** shape / finite / checkpoint 可加载 / prediction path / package clean-room 等直接影响提交正确性的检查必须做；不为一次 merge 临时建设通用框架、扩展测试矩阵或额外研究流水线。
-6. **如果用户说“今晚 merge SOTA”或给出类似时间约束，速度优先级高于研究完备性。** 除非遇到会让训练或 submission 明显无效的硬错误，否则应持续向“50/16 → full-data → package → submit”推进。
+6. **时间约束只能加速已通过 Worthiness Gate 的 merge。** “今晚 merge SOTA”不能绕过收益论证；若 `SKIP_MERGE`，应把 GPU 时间留给更高赔率的 Exploration 或其它候选。
 
 ## 2. 基本原则
 
-1. **只合并已经有证据的改动。** 不在 submission candidate 上临时加入未经验证的新结构、新 Loss 或新 Feature。
-2. **当前线上最佳结果始终作为锚点。** 新版本必须明确说明相对上一版新增了什么。
-3. **每天尽量形成一个可提交版本。** 当天没有足够可靠的新模型改动时，也可以只做 SPS、推理或打包优化。
-4. **SPS 是每次提交前的固定步骤。** SPS 优化与模型训练分开处理，不污染模型实验结论。
-5. **避免无意义浪费提交次数，但不追求提交前证据完美。** 必要 local smoke 通过即可进入 submission review；线上失败或回退可以作为真实实验结果记录。
-6. **线上结果用于确认整体效果。** 不把 Codabench 当作高频超参数搜索器，但允许在 SOTA Merge Mode 中用一次真实提交验证完整组合。
+1. **先判断值得不值得 merge，再判断怎么 merge。** 完整 merge 是高成本动作，不能把“有正向证据”直接等同于“马上提交”。
+2. **只合并已经有证据的改动。** 不在 submission candidate 上临时加入未经验证的新结构、新 Loss 或新 Feature。
+3. **当前线上最佳结果始终作为锚点。** 新版本必须明确说明相对上一版新增了什么。
+4. **不为形成 submission 而形成 submission。** 当天没有足够高赔率的新增变量时，允许明确 `SKIP_MERGE`，继续 Exploration。
+5. **SPS 是每次提交前的固定步骤。** SPS 优化与模型训练分开处理，不污染模型实验结论。
+6. **避免无意义浪费提交次数，但不追求通过 Gate 后的证据完美。** 必要 local smoke 通过即可进入 submission review；线上失败或回退可以作为真实实验结果记录。
+7. **线上结果用于确认整体效果。** 不把 Codabench 当作高频超参数搜索器，但允许在通过 Worthiness Gate 后用一次真实提交验证完整组合。
 
 ## 3. 每日流程
 
@@ -66,22 +109,28 @@ SOTA Merge Mode 下的硬规则：
 ```text
 各方向最新实验结论
         ↓
-筛选当天可合并的 KEEP / GO 项
+汇总当前 SOTA 变量与候选新增变量
         ↓
+Merge Worthiness Review
+        ↓
+SKIP_MERGE ← 不值得
+        │
+        └→ MERGE_WORTHY
+                ↓
 确定单一 SOTA candidate recipe
-        ↓
+                ↓
 固定 50/16 约 2h 快速对比
-        ↓
+                ↓
 GO_FULL
-        ↓
+                ↓
 全量 competition refit / continuation
-        ↓
+                ↓
 SPS / bounds 优化
-        ↓
+                ↓
 最小 official/package smoke
-        ↓
+                ↓
 Codabench 提交
-        ↓
+                ↓
 记录线上结果并更新下一轮基线
 ```
 
@@ -128,6 +177,8 @@ Codabench：Final / Rel-L2 / TKE / MVPE / Time / SPS
 结论：KEEP / ROLLBACK
 下一轮主要问题：
 ```
+
+如果某次用户提出 merge 但 Worthiness Review 结论为 `SKIP_MERGE`，不需要制造 submission 记录；只需在相关研究方向或 NEXT_ACTION 中保留为何不值得 merge 的简短结论。
 
 详细实验数据继续记录在对应优化方向文档和 `track1_experiment_registry.md`，本目录不重复保存大段实验报告。
 
@@ -195,4 +246,4 @@ Codabench：Final **`76.694784`** / Rel-L2 `93.434384` / TKE `77.588799` / MVPE 
 
 结论：**KEEP / NEW SOTA**。相对 2026-09-04 版本 Final `+0.545058`、SPS `+1.974665`、Time `+0.068512`，物理 prediction scores 基本不变。Adaptive Uncertainty 在线验证成功。
 
-下一轮主要问题：在保留 adaptive uncertainty 的前提下，把其它已经验证有正向证据的策略按 `50/16 约 2h → GO_FULL → package → submit` 的 merge 流程快速合并，不再把 SOTA merge 变成新的研究 Campaign。
+下一轮主要问题：在保留 adaptive uncertainty 的前提下，继续积累具有足够证据和预期收益的模型 / formulation / objective 增量；只有通过 Merge Worthiness Gate 后，才进入 `50/16 → GO_FULL → package → submit`。
