@@ -19,7 +19,7 @@ from realpde_adaptive_probe import (  # noqa: E402
     assert_feature_config_matches_checkpoint,
 )
 from realpde_p0_features import P0FeatureConfig  # noqa: E402
-from calibrate_adaptive_sps import calibration_model_names  # noqa: E402
+from calibrate_adaptive_sps import calibration_model_names, score_sps_percent  # noqa: E402
 
 
 def test_feature_config_is_inherited_from_backbone_checkpoint():
@@ -37,6 +37,15 @@ def test_feature_config_mismatch_is_rejected_instead_of_silently_rederived():
 
 def test_base_only_calibration_does_not_require_corrected_probe():
     assert calibration_model_names(None) == ("base",)
+
+
+def test_static_sps_reference_uses_percent_score_scale_once():
+    class Scorer:
+        @staticmethod
+        def score_sps(raw):
+            return raw * 100.0
+
+    assert score_sps_percent(0.39112385, Scorer) == pytest.approx(39.112385)
 
 
 def test_adaptive_features_are_causal_and_have_frozen_channel_count():

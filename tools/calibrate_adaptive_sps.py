@@ -34,6 +34,11 @@ def calibration_model_names(corrected_probe: Path | None) -> tuple[str, ...]:
     return ("base", "corrected") if corrected_probe is not None else ("base",)
 
 
+def score_sps_percent(raw_sps: float, scoring) -> float:
+    """Convert official scorer's normalized SPS to the displayed 0–100 scale."""
+    return float(scoring.score_sps(raw_sps))
+
+
 def run(*, data_root: Path, kit_root: Path, checkpoint: Path, manifest: Path,
         validation_probe: Path, corrected_probe: Path | None, out_dir: Path) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -101,7 +106,7 @@ def run(*, data_root: Path, kit_root: Path, checkpoint: Path, manifest: Path,
         "corrected_probe_sha256": None if corrected_probe is None else _sha256(corrected_probe),
         "scorer_sha256": _sha256(kit_root / "scoring.py"),
         "rows": rows, "grid_size": len(rows), "windows": len(ds), "trajectories": len(dev),
-        "static_reference": {"abs": 0.0075, "rel": 0.02, "sps": 100.0 * float(scoring.score_sps(static_raw)), "coverage": float(static_coverage)},
+        "static_reference": {"abs": 0.0075, "rel": 0.02, "sps": score_sps_percent(static_raw, scoring), "coverage": float(static_coverage)},
         "note": "Base-head-only fixed calibration; no retraining, corrected-head training, full refit, package, locked/private, or Codabench.",
     }
     (out_dir / "calibration_grid.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
