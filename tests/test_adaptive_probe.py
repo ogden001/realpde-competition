@@ -19,6 +19,7 @@ from realpde_adaptive_probe import (  # noqa: E402
     assert_feature_config_matches_checkpoint,
 )
 from realpde_p0_features import P0FeatureConfig  # noqa: E402
+from calibrate_adaptive_sps import calibration_model_names  # noqa: E402
 
 
 def test_feature_config_is_inherited_from_backbone_checkpoint():
@@ -32,6 +33,10 @@ def test_feature_config_mismatch_is_rejected_instead_of_silently_rederived():
     assert_feature_config_matches_checkpoint(feature_config_from_checkpoint(payload), payload)
     with pytest.raises(ValueError, match="does not match backbone checkpoint"):
         assert_feature_config_matches_checkpoint(P0FeatureConfig(dx=0.2, dy=-0.2), payload)
+
+
+def test_base_only_calibration_does_not_require_corrected_probe():
+    assert calibration_model_names(None) == ("base",)
 
 
 def test_adaptive_features_are_causal_and_have_frozen_channel_count():
