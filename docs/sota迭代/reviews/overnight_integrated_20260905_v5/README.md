@@ -1,4 +1,4 @@
-# Overnight Integrated Adaptive Probe v5 — `REVIEW_REQUIRED / NO_FULL_REFIT`
+# Overnight Integrated Adaptive Probe v5 — `REVIEW_REQUIRED`
 
 Execution commit: `b451c18e16d0cd11b66f8ff8927d640123d6e2ad`.
 Required base commit: `1ea0e29fb122079887425ecdfc99d51db1a32fd1`.
@@ -40,6 +40,16 @@ status is `CORRECTOR_NO_GO`. Per the frozen action, the result is
 `REVIEW_REQUIRED / NO_FULL_REFIT`; no corrected-head training, all-82 refit,
 package, locked-final/private-test access, or Codabench submission occurred.
 
+## Base uncertainty calibration
+
+Using the already-trained base uncertainty head@1400, the fixed 28-row grid
+was evaluated without retraining. The best row is `floor=0.0025,
+mult=1`, SPS `41.496072`, coverage `0.836394`, and mean UV width `0.0260351`.
+This exceeds the canonical static reference (`floor=0.0075,
+relative=0.02`, SPS `39.112385`) by `+2.383686` SPS points. See
+`BASE_UNCERTAINTY_CALIBRATION.md` and `calibration_grid_base.json`.
+Calibration execution commit: `c90e556666876baecf2733c3ad47152c5710c74a`.
+
 ## Reproduction and evidence
 
 The exact remote commands are represented by the complete logs in this
@@ -51,6 +61,8 @@ directory. `validation_corrector_training.review.log` has 2400 update rows;
 - `baseline_parity.json`, `trajectory_metrics.csv`: fixed-config prediction parity
 - `metrics.json`: validation training metadata and update histories
 - `gate_result.json`, `trajectory_gate.csv`: official Gate result and per-trajectory TKE evidence
+- `calibration_grid_base.json`, `calibration_grid_base.csv`: fixed base-head calibration grid
+- `BASE_UNCERTAINTY_CALIBRATION.md`: calibration handoff and static-reference comparison
 - `artifact_manifest.json`: generated remote artifact manifest; the probe is inference-only
 - `*.review.log`: complete stdout/stderr or per-update raw logs, including warnings/errors
 
