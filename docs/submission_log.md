@@ -10,6 +10,14 @@ Therefore:
 - historical names such as `bounds_rel00` are clues, not reproducible configuration evidence;
 - new SPS/bounds decisions should be rebuilt from the current frozen validation protocol and official scorer unless the original package/artifact is independently recovered and verified.
 
+## Offline overnight execution — 2026-09-06
+
+The A2 Multi-scale screen completed from the frozen 50/16 protocol but failed
+its final gate (`NO_GO`). The queued Horizon Curriculum screen stopped in
+preflight because adapted P0-A initialization differed from raw CNO by
+`0.0002474784851074219`; it produced no training result. See the complete
+[overnight review](sota迭代/reviews/idle_gpu_overnight_20260906/README.md).
+
 ## Codabench successful submissions
 
 | ID | File | Date | Final | rel_l2 | TKE | MVPE | Time | SPS | Notes |
