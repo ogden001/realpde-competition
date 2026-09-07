@@ -23,6 +23,29 @@ import realpde_mf01 as direct
 N2 = direct.N2_WEIGHTS
 
 
+def validate_batch_configuration(*, micro_batch_size: int, accumulation_steps: int,
+                                 effective_batch_size: int, max_gpu_memory_gib: float) -> dict:
+    if micro_batch_size < 1 or accumulation_steps < 1:
+        raise ValueError("micro batch and accumulation steps must be positive")
+    if micro_batch_size * accumulation_steps != effective_batch_size:
+        raise ValueError("micro_batch_size * accumulation_steps must equal effective_batch_size")
+    if not 0.0 < max_gpu_memory_gib <= 24.0:
+        raise ValueError("max GPU memory must be in (0, 24] GiB")
+    return {"micro_batch_size": micro_batch_size, "accumulation_steps": accumulation_steps,
+            "effective_batch_size": effective_batch_size, "max_gpu_memory_gib": max_gpu_memory_gib}
+
+
+def configure_cuda_memory_cap(device: torch.device, max_gpu_memory_gib: float) -> int:
+    """Cap this process's CUDA allocator; return its byte budget."""
+    if device.type != "cuda": return 0
+    total = torch.cuda.get_device_properties(device).total_memory
+    cap = int(max_gpu_memory_gib * 1024 ** 3)
+    if cap > total: raise ValueError("requested CUDA cap exceeds device memory")
+    torch.cuda.set_per_process_memory_fraction(cap / total, device)
+    torch.cuda.empty_cache(); torch.cuda.reset_peak_memory_stats(device)
+    return cap
+
+
 def future_deltas(past: Tensor, future: Tensor) -> Tensor:
     """Velocity differences with Future[0] anchored at Past[-1]."""
     uv = future[..., :2]
@@ -161,8 +184,15 @@ def build(args, train_paths, device):
 def run(args) -> None:
     if args.out_dir.exists() and any(args.out_dir.iterdir()): raise FileExistsError(args.out_dir)
     args.out_dir.mkdir(parents=True, exist_ok=True); core.set_seed(args.seed)
+    batch_config = validate_batch_configuration(micro_batch_size=args.micro_batch_size,
+                                                accumulation_steps=args.accumulation_steps,
+                                                effective_batch_size=args.batch_size,
+                                                max_gpu_memory_gib=args.max_gpu_memory_gib)
+    args.batch_size = args.micro_batch_size
     _, train_paths = core.read_manifest(args.manifest, "train"); _, dev_paths = core.read_manifest(args.manifest, "dev")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu"); model, builder, config, payload = build(args, train_paths, device)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    memory_cap_bytes = configure_cuda_memory_cap(device, args.max_gpu_memory_gib)
+    model, builder, config, payload = build(args, train_paths, device)
     mixer = TemporalMixer().to(device) if args.arm == "T3" else None
     ds, loader = core.loader(train_paths, args, shuffle=True); x, y, _, _ = next(iter(loader)); x, y = x.to(device), y.to(device)
     initial = forward_direct_zero_pressure(model, builder, x); pred = apply_temporal_mixer(initial, mixer) if mixer else initial
@@ -188,32 +218,39 @@ def run(args) -> None:
         return
     baseline = evaluate(model, builder, mixer, dev_paths, args, device, args.out_dir / "eval_01500", args.arm, 1500, False)
     history = [{"update": 1500, **baseline["raw_errors"]}]; curve = []
-    iterator = iter(loader); started = time.monotonic(); peak = 0
+    iterator = iter(loader); started = time.monotonic(); peak_allocated = peak_reserved = 0
     for relative in range(1, args.updates + 1):
-        try: x, y, _, _ = next(iterator)
-        except StopIteration: iterator = iter(loader); x, y, _, _ = next(iterator)
-        x, y = x.to(device, non_blocking=True), y.to(device, non_blocking=True); model.train()
-        if mixer is not None: mixer.train()
-        pred = forward_direct_zero_pressure(model, builder, x); pred = apply_temporal_mixer(pred, mixer) if mixer else pred
-        loss, parts = loss_with_arm(pred, y, x, args.arm, weight)
-        if not torch.isfinite(loss): raise FloatingPointError("nonfinite loss")
-        optimizer.zero_grad(set_to_none=True); loss.backward()
+        optimizer.zero_grad(set_to_none=True); totals: dict[str, float] = defaultdict(float)
+        for micro_step in range(args.accumulation_steps):
+            try: x, y, _, _ = next(iterator)
+            except StopIteration: iterator = iter(loader); x, y, _, _ = next(iterator)
+            x, y = x.to(device, non_blocking=True), y.to(device, non_blocking=True); model.train()
+            if mixer is not None: mixer.train()
+            pred = forward_direct_zero_pressure(model, builder, x); pred = apply_temporal_mixer(pred, mixer) if mixer else pred
+            loss, parts = loss_with_arm(pred, y, x, args.arm, weight)
+            if not torch.isfinite(loss): raise FloatingPointError("nonfinite loss")
+            (loss / args.accumulation_steps).backward()
+            totals["total"] += float(loss.detach().cpu()) / args.accumulation_steps
+            for name, value in parts.items(): totals[name] += float(value.detach().cpu()) / args.accumulation_steps
         if mixer is not None and relative == 1 and (mixer.output.weight.grad is None or torch.count_nonzero(mixer.output.weight.grad) == 0): raise RuntimeError("mixer output has zero gradient")
-        torch.nn.utils.clip_grad_norm_(params, 1.0); optimizer.step(); peak = max(peak, torch.cuda.max_memory_allocated(device) if device.type == "cuda" else 0)
-        curve.append({"update": 1500 + relative, "total": float(loss.detach().cpu()), **{k: float(v.detach().cpu()) for k, v in parts.items()}})
+        torch.nn.utils.clip_grad_norm_(params, 1.0); optimizer.step()
+        if device.type == "cuda":
+            peak_allocated = max(peak_allocated, torch.cuda.max_memory_allocated(device)); peak_reserved = max(peak_reserved, torch.cuda.max_memory_reserved(device))
+            if peak_reserved > memory_cap_bytes: raise RuntimeError("CUDA allocator exceeded configured memory cap")
+        curve.append({"update": 1500 + relative, **totals})
         if relative in args.milestones:
             absolute = 1500 + relative; ev = evaluate(model, builder, mixer, dev_paths, args, device, args.out_dir / f"eval_{absolute:05d}", args.arm, absolute, absolute == 3000)
             history.append({"update": absolute, **ev["raw_errors"], "inference_time": ev["mean_t_neural_s"]})
             torch.save({"model_state_dict": model.state_dict(), "mixer_state_dict": mixer.state_dict() if mixer else None, "optimizer_state_dict": optimizer.state_dict(), "iteration": absolute}, args.out_dir / f"model_update_{absolute:05d}.pth")
     write_rows(args.out_dir / "training_curve.csv", curve); write_rows(args.out_dir / "aggregate_metrics.csv", [{"arm": args.arm, **r} for r in history])
-    runtime = {"parameter_count": sum(p.numel() for p in model.parameters()), "added_parameter_count": 0 if mixer is None else sum(p.numel() for p in mixer.parameters()), "peak_gpu_memory": peak, "training_wall_seconds": time.monotonic() - started, "inference_latency": history[-1].get("inference_time")}
+    runtime = {"parameter_count": sum(p.numel() for p in model.parameters()), "added_parameter_count": 0 if mixer is None else sum(p.numel() for p in mixer.parameters()), "peak_gpu_memory_allocated": peak_allocated, "peak_gpu_memory_reserved": peak_reserved, "gpu_memory_cap_bytes": memory_cap_bytes, "training_wall_seconds": time.monotonic() - started, "inference_latency": history[-1].get("inference_time")}
     (args.out_dir / "runtime.json").write_text(json.dumps(runtime, indent=2), encoding="utf-8")
-    meta = {"status": "REVIEW_REQUIRED", "arm": args.arm, "manifest_sha256": core.sha256(args.manifest), "scorer_sha256": core.sha256(args.kit_root / "scoring.py"), "initialization_checkpoint_sha256": core.sha256(args.checkpoint), "seed": args.seed, "optimizer": "AdamW", "lr": args.lr, "batch": args.batch_size, "lambda_delta": weight if args.arm == "T1" else None, "lambda_vort": weight if args.arm == "T2" else None, "feature_config": vars(config), "locked_final_accessed": False, "codabench_accessed": False}
+    meta = {"status": "REVIEW_REQUIRED", "arm": args.arm, "manifest_sha256": core.sha256(args.manifest), "scorer_sha256": core.sha256(args.kit_root / "scoring.py"), "initialization_checkpoint_sha256": core.sha256(args.checkpoint), "seed": args.seed, "optimizer": "AdamW", "lr": args.lr, "batch": batch_config, "lambda_delta": weight if args.arm == "T1" else None, "lambda_vort": weight if args.arm == "T2" else None, "feature_config": vars(config), "locked_final_accessed": False, "codabench_accessed": False}
     (args.out_dir / "run_metadata.json").write_text(json.dumps(meta, indent=2, sort_keys=True), encoding="utf-8")
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(); p.add_argument("--arm", choices=("C0", "T1", "T2", "T3"), required=True); p.add_argument("--manifest", type=Path, required=True); p.add_argument("--checkpoint", type=Path, required=True); p.add_argument("--kit-root", type=Path, required=True); p.add_argument("--out-dir", type=Path, required=True); p.add_argument("--updates", type=int, default=1500); p.add_argument("--milestones", type=int, nargs="+", default=[500, 1000, 1500]); p.add_argument("--batch-size", type=int, default=8); p.add_argument("--workers", type=int, default=2); p.add_argument("--max-windows", type=int); p.add_argument("--lr", type=float, default=1e-5); p.add_argument("--seed", type=int, default=20260901); p.add_argument("--preflight-only", action="store_true"); p.add_argument("--preflight-evaluate", action="store_true")
+    p = argparse.ArgumentParser(); p.add_argument("--arm", choices=("C0", "T1", "T2", "T3"), required=True); p.add_argument("--manifest", type=Path, required=True); p.add_argument("--checkpoint", type=Path, required=True); p.add_argument("--kit-root", type=Path, required=True); p.add_argument("--out-dir", type=Path, required=True); p.add_argument("--updates", type=int, default=1500); p.add_argument("--milestones", type=int, nargs="+", default=[500, 1000, 1500]); p.add_argument("--batch-size", type=int, default=8); p.add_argument("--micro-batch-size", type=int, default=2); p.add_argument("--accumulation-steps", type=int, default=4); p.add_argument("--max-gpu-memory-gib", type=float, default=12.0); p.add_argument("--workers", type=int, default=2); p.add_argument("--max-windows", type=int); p.add_argument("--lr", type=float, default=1e-5); p.add_argument("--seed", type=int, default=20260901); p.add_argument("--preflight-only", action="store_true"); p.add_argument("--preflight-evaluate", action="store_true")
     run(p.parse_args())
 
 

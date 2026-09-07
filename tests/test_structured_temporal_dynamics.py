@@ -46,3 +46,14 @@ def test_zero_initialized_temporal_mixer_has_exact_prediction_parity_and_trainab
     assert mixer.output.weight.grad is not None
     assert torch.count_nonzero(mixer.output.weight.grad).item() > 0
     assert torch.equal(mixed[..., 2], base[..., 2])
+
+
+def test_memory_safe_batch_configuration_preserves_effective_batch():
+    from realpde_structured_temporal_dynamics import validate_batch_configuration
+
+    config = validate_batch_configuration(micro_batch_size=2, accumulation_steps=4, effective_batch_size=8, max_gpu_memory_gib=12.0)
+
+    assert config["effective_batch_size"] == 8
+    assert config["micro_batch_size"] == 2
+    assert config["accumulation_steps"] == 4
+    assert config["max_gpu_memory_gib"] == 12.0
