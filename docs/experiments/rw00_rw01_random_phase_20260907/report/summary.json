@@ -1,0 +1,54 @@
+{
+  "early_gate": {
+    "degradation_percent": {
+      "mvpe": 91.31713928278198,
+      "rel_l2": 78.97648278171371,
+      "tke": 87.88296941761735
+    },
+    "status": "STOP_EARLY"
+  },
+  "formal_update": 3000,
+  "gate": {
+    "improvements_percent": {
+      "mvpe": -91.317139,
+      "rel_l2": -78.976483,
+      "tke": -87.882969
+    },
+    "status": "STOP",
+    "tke_degradation_percent": 87.882969,
+    "trajectory_win_rate": {
+      "mvpe": 0.0,
+      "rel_l2": 0.0
+    },
+    "trajectory_wins": {
+      "mvpe": 0,
+      "rel_l2": 0
+    }
+  },
+  "learning_curve_pattern": {
+    "at_1000_approximately_baseline": false,
+    "at_3000_small_improvement": false,
+    "at_5000_gap_expands": true,
+    "at_7500_clear_improvement": false
+  },
+  "metrics_at_3000": {
+    "mvpe_improvement_percent": -91.317139,
+    "rel_l2_improvement_percent": -78.976483,
+    "rw00_mvpe": 0.13404807448387146,
+    "rw00_rel_l2": 0.1606936901807785,
+    "rw00_tke": 0.5596299767494202,
+    "rw01_mvpe": 0.2564569413661957,
+    "rw01_rel_l2": 0.2876039147377014,
+    "rw01_tke": 1.0514494180679321,
+    "tke_improvement_percent": -87.882969,
+    "update": 3000
+  },
+  "metrics_at_7500": null,
+  "rw00_dir": "/out/RW-00_fixed",
+  "rw01_dir": "/out/RW-01_random_phase",
+  "trajectory_win_counts": {
+    "mvpe": 0,
+    "rel_l2": 0,
+    "tke": 0
+  }
+}
