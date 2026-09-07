@@ -203,6 +203,12 @@ def run(args: argparse.Namespace) -> None:
         "max_windows_per_trajectory": args.max_windows_per_trajectory,
         "train_trajectories": len(train_paths),
         "dev_trajectories": len(dev_paths),
+        "expected_baseline": {
+            "rel_l2": args.expected_baseline_rel_l2,
+            "tke": args.expected_baseline_tke,
+            "mvpe": args.expected_baseline_mvpe,
+            "tolerance": args.baseline_tolerance,
+        },
         "locked_final_accessed": False,
         "codabench": False,
     }
@@ -222,6 +228,21 @@ def run(args: argparse.Namespace) -> None:
         out_dir=args.out_dir / "eval_offset_0000",
     )
     snapshots.append({"offset": 0, "absolute_update": initial_update, **baseline})
+    expected_baseline = {
+        "rel_l2": args.expected_baseline_rel_l2,
+        "tke": args.expected_baseline_tke,
+        "mvpe": args.expected_baseline_mvpe,
+    }
+    mismatches = {
+        metric: {"expected": float(expected), "actual": float(baseline["raw_errors"][metric])}
+        for metric, expected in expected_baseline.items()
+        if expected is not None
+        and abs(float(baseline["raw_errors"][metric]) - float(expected)) > args.baseline_tolerance
+    }
+    if mismatches:
+        raise RuntimeError(
+            f"offset-0 baseline parity failed: {json.dumps(mismatches, sort_keys=True)}"
+        )
 
     train_rows: list[dict] = []
     started = time.monotonic()
@@ -383,6 +404,10 @@ def main() -> None:
     parser.add_argument("--eval-batch-size", type=int, default=8)
     parser.add_argument("--workers", type=int, default=0)
     parser.add_argument("--max-windows-per-trajectory", type=int)
+    parser.add_argument("--expected-baseline-rel-l2", type=float)
+    parser.add_argument("--expected-baseline-tke", type=float)
+    parser.add_argument("--expected-baseline-mvpe", type=float)
+    parser.add_argument("--baseline-tolerance", type=float, default=5e-5)
     run(parser.parse_args())
 
 
