@@ -60,8 +60,10 @@ class H5WindowDataset(Dataset[tuple[Tensor, Tensor, Tensor, Tensor]]):
                  window_mode: str = "fixed"):
         if min(in_steps, out_steps, stride, sub_sample) < 1:
             raise ValueError("in_steps, out_steps, stride, and sub_sample must be positive")
-        if window_mode not in {"fixed", "random_phase"}:
-            raise ValueError("window_mode must be 'fixed' or 'random_phase'")
+        if window_mode not in {"fixed", "random_phase", "dense_all"}:
+            raise ValueError("window_mode must be 'fixed', 'random_phase', or 'dense_all'")
+        if window_mode == "dense_all" and max_windows_per_trajectory is not None:
+            raise ValueError("dense_all forbids max_windows_per_trajectory because every legal window is required")
         self.in_steps, self.out_steps, self.sub_sample = in_steps, out_steps, sub_sample
         self.stride = stride
         self.window_mode = window_mode
@@ -174,6 +176,53 @@ class RandomPhaseWindowSampler(Sampler[int]):
                 "last_start": starts[-1] if starts else None,
                 "min_stride": min(strides) if strides else self.dataset.stride,
                 "max_stride": max(strides) if strides else self.dataset.stride,
+                "invalid_window_count": sum(
+                    not (0 <= start and start + self.dataset.in_steps + self.dataset.out_steps - 1 < self.dataset.lengths[path])
+                    for start in starts
+                ),
+            })
+        return records
+
+    def __iter__(self):
+        return iter(self._selected_indices)
+
+    def __len__(self) -> int:
+        return len(self._selected_indices)
+
+
+class DenseAllWindowSampler(Sampler[int]):
+    """Globally shuffle every legal Dense-All window with an epoch-derived seed."""
+
+    def __init__(self, dataset: H5WindowDataset, *, seed: int):
+        if dataset.window_mode != "dense_all":
+            raise ValueError("DenseAllWindowSampler requires window_mode='dense_all'")
+        self.dataset = dataset
+        self.seed = int(seed)
+        self.epoch = 0
+        self._selected_indices: list[int] = []
+        self.set_epoch(0)
+
+    def set_epoch(self, epoch: int) -> None:
+        if epoch < 0:
+            raise ValueError("epoch must be non-negative")
+        self.epoch = int(epoch)
+        selected = list(range(len(self.dataset)))
+        rng = np.random.default_rng(np.random.SeedSequence([self.seed, self.epoch]))
+        rng.shuffle(selected)
+        self._selected_indices = selected
+
+    def audit_records(self) -> list[dict[str, object]]:
+        records = []
+        for path in self.dataset.paths:
+            starts = [ref.start for ref in self.dataset.refs if ref.path == path]
+            records.append({
+                "epoch": self.epoch,
+                "trajectory": path.name,
+                "window_count": len(starts),
+                "first_start": starts[0] if starts else None,
+                "last_start": starts[-1] if starts else None,
+                "min_stride": min((right - left for left, right in zip(starts, starts[1:])), default=1),
+                "max_stride": max((right - left for left, right in zip(starts, starts[1:])), default=1),
                 "invalid_window_count": sum(
                     not (0 <= start and start + self.dataset.in_steps + self.dataset.out_steps - 1 < self.dataset.lengths[path])
                     for start in starts

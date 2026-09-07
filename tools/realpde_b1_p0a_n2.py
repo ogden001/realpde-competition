@@ -23,7 +23,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 
 import realpde_loss_official_v9 as core
-from realpde_p0_data import H5WindowDataset, RandomPhaseWindowSampler, read_grid
+from realpde_p0_data import DenseAllWindowSampler, H5WindowDataset, RandomPhaseWindowSampler, read_grid
 from realpde_p0_features import P0FeatureBuilder, P0FeatureConfig
 
 
@@ -53,25 +53,27 @@ def summarize_window_audit(records: list[dict[str, object]], *, seed: int) -> di
         str(epoch): sum(int(record["window_count"]) for record in records if int(record["epoch"]) == epoch)
         for epoch in epochs
     }
-    phase_counts = Counter(int(record["phase"]) for record in records)
+    phase_counts = Counter(int(record["phase"]) for record in records if "phase" in record)
     counts = [int(record["window_count"]) for record in records]
     invalid = sum(int(record.get("invalid_window_count", 0)) for record in records)
     non_stride20 = sum(
         int(record.get("min_stride") != 20 or record.get("max_stride") != 20)
         for record in records
     )
-    return {
+    summary = {
         "seed": int(seed),
         "epoch_count": len(epochs),
         "epochs": epochs,
         "trajectory_count": len(trajectories),
         "windows_per_epoch": windows_per_epoch,
-        "phase_counts": {str(phase): int(phase_counts.get(phase, 0)) for phase in range(20)},
         "min_window_count_per_trajectory": min(counts),
         "max_window_count_per_trajectory": max(counts),
         "invalid_window_count": invalid,
         "non_stride20_count": non_stride20,
     }
+    if phase_counts:
+        summary["phase_counts"] = {str(phase): int(phase_counts.get(phase, 0)) for phase in range(20)}
+    return summary
 
 
 def early_screen_gate(baseline: dict[str, float], candidate: dict[str, float]) -> dict[str, object]:
@@ -100,8 +102,14 @@ def make_train_loader(paths: list[Path], args: argparse.Namespace):
     if args.train_window_mode == "fixed":
         dataset, loader = core.loader(paths, args, shuffle=True)
         return dataset, loader, None
-    dataset = H5WindowDataset(paths, max_windows_per_trajectory=args.max_windows, window_mode="random_phase")
-    sampler = RandomPhaseWindowSampler(dataset, seed=args.seed)
+    if args.train_window_mode == "random_phase":
+        dataset = H5WindowDataset(paths, max_windows_per_trajectory=args.max_windows, window_mode="random_phase")
+        sampler = RandomPhaseWindowSampler(dataset, seed=args.seed)
+    elif args.train_window_mode == "dense_all":
+        dataset = H5WindowDataset(paths, window_mode="dense_all")
+        sampler = DenseAllWindowSampler(dataset, seed=args.seed)
+    else:
+        raise ValueError(f"unsupported train_window_mode={args.train_window_mode!r}")
     loader = DataLoader(dataset, batch_size=args.batch_size, sampler=sampler, num_workers=args.workers,
                         pin_memory=True, persistent_workers=False)
     return dataset, loader, sampler
@@ -237,6 +245,9 @@ def run(args: argparse.Namespace) -> None:
         "workers": args.workers,
         "train_window_mode": args.train_window_mode,
         "random_phase_forced_phase": args.random_phase_forced_phase,
+        "dev_window_mode": "fixed",
+        "dev_start": 0,
+        "dev_stride": 20,
         "execution_commit": args.execution_commit,
         "early_gate_mode": args.early_gate_mode,
         "lr": args.lr,
@@ -253,6 +264,20 @@ def run(args: argparse.Namespace) -> None:
     model = load_model(args.kit_root, args.checkpoint, builder, device)
     baseline = evaluate(model, builder, dev_paths, args, device, args.out_dir / "eval_baseline")
     train_ds, train_loader, train_sampler = make_train_loader(train_paths, args)
+    canonical_train_ds = H5WindowDataset(train_paths, window_mode="fixed")
+    dense_counts = [sum(1 for ref in train_ds.refs if ref.path == path) for path in train_paths]
+    metadata["train_window_audit"] = {
+        "canonical_window_count": len(canonical_train_ds),
+        "dense_all_window_count": len(train_ds) if args.train_window_mode == "dense_all" else None,
+        "expansion_factor": (len(train_ds) / len(canonical_train_ds)) if args.train_window_mode == "dense_all" else None,
+        "dense_windows_per_trajectory": (
+            {"min": min(dense_counts), "median": float(np.median(dense_counts)), "max": max(dense_counts)}
+            if args.train_window_mode == "dense_all" else None
+        ),
+        "updates_per_dense_epoch": int(np.ceil(len(train_ds) / args.batch_size)) if args.train_window_mode == "dense_all" else None,
+        "approx_dense_epochs_at_target": (args.updates / np.ceil(len(train_ds) / args.batch_size)) if args.train_window_mode == "dense_all" else None,
+    }
+    core.json_dump(args.out_dir / "run_metadata.json", metadata)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
     history = [{"iteration": 0, **baseline["raw_errors"]}]
     save_checkpoint(args.out_dir / "model_latest.pth", model, iteration=0, config=config, manifest_sha256=manifest_sha256)
@@ -264,19 +289,25 @@ def run(args: argparse.Namespace) -> None:
         audit_handle = (args.out_dir / "window_audit.jsonl").open("w", encoding="utf-8")
         phase_overrides = forced_random_phase_overrides(train_paths, args.random_phase_forced_phase)
 
-        def prepare_random_epoch(epoch: int, *, announce: bool = False) -> None:
-            train_sampler.set_epoch(epoch, phases=phase_overrides)
+        def prepare_sampled_epoch(epoch: int, *, announce: bool = False) -> None:
+            if args.train_window_mode == "random_phase":
+                train_sampler.set_epoch(epoch, phases=phase_overrides)
+            else:
+                train_sampler.set_epoch(epoch)
             records = train_sampler.audit_records()
             audit_records.extend(records)
             for record in records:
                 audit_handle.write(json.dumps(record, sort_keys=True) + "\n")
             audit_handle.flush()
-            if announce:
+            if announce and args.train_window_mode == "random_phase":
                 for record in records[:3]:
                     starts = list(range(int(record["first_start"]), int(record["last_start"]) + 1, 20))
                     print(f"traj {record['trajectory']} phase={record['phase']} starts={starts}", flush=True)
 
-        prepare_random_epoch(0, announce=True)
+            elif announce:
+                print(f"dense_all epoch={epoch} windows={len(train_sampler)} global_shuffle_seed={args.seed}", flush=True)
+
+        prepare_sampled_epoch(0, announce=True)
 
     interrupted = False
 
@@ -307,7 +338,7 @@ def run(args: argparse.Namespace) -> None:
             except StopIteration:
                 current_epoch += 1
                 if train_sampler is not None:
-                    prepare_random_epoch(current_epoch)
+                    prepare_sampled_epoch(current_epoch)
                 iterator = iter(train_loader)
                 x, y, _, _ = next(iterator)
             x = x.to(device, non_blocking=True)
@@ -397,7 +428,7 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--max-windows", type=int, default=None)
     parser.add_argument("--lr", type=float, default=1e-5)
-    parser.add_argument("--train-window-mode", choices=("fixed", "random_phase"), default="fixed")
+    parser.add_argument("--train-window-mode", choices=("fixed", "random_phase", "dense_all"), default="fixed")
     parser.add_argument("--random-phase-forced-phase", type=int, default=None,
                         help="Optional fixed phase for the random-phase sampler-path control")
     parser.add_argument("--early-gate-summary", type=Path, default=None,
