@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from realpde_b1_p0a_n2 import (  # noqa: E402
     early_screen_gate,
     forced_random_phase_overrides,
+    matched_phase_severe_early_gate,
     parse_eval_updates,
     summarize_window_audit,
 )
@@ -67,3 +68,12 @@ def test_forced_phase_zero_builds_a_per_trajectory_control_map(tmp_path: Path):
 
     assert forced_random_phase_overrides(paths, None) is None
     assert forced_random_phase_overrides(paths, 0) == {"a.h5": 0, "b.h5": 0}
+
+
+def test_matched_phase_severe_gate_uses_only_registered_ten_and_twenty_percent_limits():
+    baseline = {"rel_l2": 1.0, "tke": 1.0, "mvpe": 1.0}
+
+    assert matched_phase_severe_early_gate(baseline, {"rel_l2": 1.101, "tke": 1.0, "mvpe": 1.101})["status"] == "STOP_EARLY"
+    assert matched_phase_severe_early_gate(baseline, {"rel_l2": 1.101, "tke": 1.101, "mvpe": 1.101})["status"] == "STOP_EARLY"
+    assert matched_phase_severe_early_gate(baseline, {"rel_l2": 1.0, "tke": 1.201, "mvpe": 1.0})["status"] == "STOP_EARLY"
+    assert matched_phase_severe_early_gate(baseline, {"rel_l2": 1.10, "tke": 1.20, "mvpe": 1.10})["status"] == "CONTINUE"

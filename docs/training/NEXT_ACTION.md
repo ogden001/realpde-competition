@@ -1,22 +1,22 @@
 # NEXT_ACTION
 
 ## Goal
-Record the stopped RW-01 shuffle revalidation control for ChatGPT/Sol review.
+Run the matched Random Phase A/B: RW-MA forced phase 0 versus RW-MB independently random phase, both with the same sampler/global-shuffle path.
 
 ## Tasks
-1. Preserve the pushed deterministic global-shuffle implementation and its invariant tests.
-2. Review the completed RW-CTRL evidence; MVPE exceeded the pre-registered control tolerance.
-3. Do not run RW-01 or alter the experiment without ChatGPT/Sol direction.
+1. Run RW-MA for 3000 updates with evaluations at 1000/2000/3000.
+2. Run RW-MB from the same initial checkpoint and execution commit, applying only the registered @1000 severe-negative gate.
+3. Produce matched metrics, case-level wins, phase/window audits, review logs, artifact manifests and a review README.
 
 ## Constraints
 - Frozen 50 Train / 16 Dev; P0-A CNO, N2, `sim_pretrain/sim_cno.pth`, seed `20260901`, AdamW `1e-5`, batch 8, workers 2.
-- Dev remains `start=0, stride=20`; reuse RW-00 without retraining it.
-- Only variable is train-window phase randomization. No locked-final, Codabench, full-data, Random Start, stride/phase sweep, or next experiment.
-- Final research status is `REVIEW_REQUIRED`; ChatGPT/Sol owns the scientific conclusion.
+- Dev is fixed `start=0, stride=20`; official scorer is unchanged.
+- Only variable: per-trajectory train-window phase. No legacy RW-00 gate, locked-final, Codabench, full-data, Random Start, stride/phase sweep, mixed modes or further experiment.
+- At @1000, stop RW-MB only for Rel-L2 and MVPE both >10% worse, all three >10% worse, or TKE >20% worse.
 
 ## Deliverables
-- [RW-CTRL review package](../experiments/rw01_shuffle_revalidation_20260907/README_FOR_CHATGPT.md).
-- Historical RW-00/RW-01 result remains `INVALID_COMPARISON / SHUFFLE_CONFOUND`.
+- Implementation/execution commit; A/B metadata, audit, update and trajectory comparisons, review logs and manifests.
+- `REVIEW_REQUIRED` result package for ChatGPT/Sol.
 
 ## Stop
-Stop. Await ChatGPT/Sol review; do not design or run another experiment.
+After the 3000-update matched A/B or the registered severe early stop. Do not run 7500 automatically.

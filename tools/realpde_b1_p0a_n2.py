@@ -83,6 +83,19 @@ def early_screen_gate(baseline: dict[str, float], candidate: dict[str, float]) -
     return {"status": "STOP_EARLY" if stop else "CONTINUE", "degradation_percent": degradation}
 
 
+def matched_phase_severe_early_gate(baseline: dict[str, float], candidate: dict[str, float]) -> dict[str, object]:
+    """Apply the registered RW-MB @1000 severe-negative screen."""
+    degradation = {
+        key: (float(candidate[key]) / max(float(baseline[key]), 1e-12) - 1.0) * 100.0
+        for key in ("rel_l2", "tke", "mvpe")
+    }
+    epsilon = 1e-9
+    stop = ((degradation["rel_l2"] > 10.0 + epsilon and degradation["mvpe"] > 10.0 + epsilon)
+            or all(value > 10.0 + epsilon for value in degradation.values())
+            or degradation["tke"] > 20.0 + epsilon)
+    return {"status": "STOP_EARLY" if stop else "CONTINUE", "degradation_percent": degradation}
+
+
 def make_train_loader(paths: list[Path], args: argparse.Namespace):
     if args.train_window_mode == "fixed":
         dataset, loader = core.loader(paths, args, shuffle=True)
@@ -224,6 +237,8 @@ def run(args: argparse.Namespace) -> None:
         "workers": args.workers,
         "train_window_mode": args.train_window_mode,
         "random_phase_forced_phase": args.random_phase_forced_phase,
+        "execution_commit": args.execution_commit,
+        "early_gate_mode": args.early_gate_mode,
         "lr": args.lr,
         "manifest": str(args.manifest.resolve()),
         "manifest_sha256": manifest_sha256,
@@ -321,7 +336,11 @@ def run(args: argparse.Namespace) -> None:
                 if step == args.early_gate_update and args.early_gate_summary:
                     reference = json.loads(args.early_gate_summary.read_text(encoding="utf-8"))
                     reference_row = next(item for item in reference["history"] if int(item["iteration"]) == step)
-                    early_gate_result = early_screen_gate(reference_row, raw)
+                    early_gate_result = (
+                        matched_phase_severe_early_gate(reference_row, raw)
+                        if args.early_gate_mode == "matched_phase_severe"
+                        else early_screen_gate(reference_row, raw)
+                    )
                     print(json.dumps({"RW_EARLY_GATE": early_gate_result}, sort_keys=True), flush=True)
                     if early_gate_result["status"] == "STOP_EARLY":
                         stop_reason = "STOP_EARLY"
@@ -384,6 +403,9 @@ def main() -> None:
     parser.add_argument("--early-gate-summary", type=Path, default=None,
                         help="RW-00 summary used for the RW-01 @3000 early screen")
     parser.add_argument("--early-gate-update", type=int, default=3000)
+    parser.add_argument("--early-gate-mode", choices=("legacy", "matched_phase_severe"), default="legacy")
+    parser.add_argument("--execution-commit", default=None,
+                        help="Frozen source commit recorded in run metadata")
     args = parser.parse_args()
     if args.updates < 1 or args.eval_interval < 1 or args.max_train_seconds <= 0 or args.early_gate_update < 1:
         parser.error("updates, eval-interval, max-train-seconds, and early-gate-update must be positive")
