@@ -261,6 +261,18 @@ FE 结论：Temporal、SpatialPhysics、PixelPosition 都未通过同时保护 R
 - MF@3000 versus Direct@3000 relative delta: Rel-L2 `-6.541%`, TKE `-1.971%`, MVPE `-14.019%`; trajectory wins `16/16`, `8/16`, `15/16`.
 - Decision: `PROMISING_PARKED`; Mean/Fluctuation has clear value and is closed for breadth-first exploration. No RMS decoupling, spectrum, MF-02 or further MF detail optimization.
 - Evidence: remote `/home/chyfuture/realpde_runs/mf_direction_closeout_20260904/`; final handoff `docs/coordination/CHATGPT_HANDOFF_MF_DIRECTION_CLOSEOUT.md`.
+
+### `T1-ID-MF-LONG-CONVERGENCE-S20260906` — COMPLETED / REVIEW_REQUIRED
+
+- Research cleanliness: `CLEAN`; frozen 50 train / 16 dev manifest SHA-256 `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`; locked-final, Codabench, SPS and full-data training were not accessed.
+- Question / sole planned variable: matched Direct@3000 versus MF@3000 continuation to absolute update 15000; no model, loss, feature, optimizer, LR, batch, seed or split changes.
+- Execution commit: `3b7104cd52594a2fff8999cfd74c29178946bbe5`; official scorer SHA-256 `a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39`.
+- Protocol: P0-A, N2, seed `20260901`, AdamW `1e-5`, batch 8, workers 2, optimizer state resume, +12000 updates per arm; checkpoints/evaluations at absolute 6000/9000/12000/15000.
+- Start points: Direct@3000 SHA-256 `9fa52c905c2603179da39e90da7689a1d65005d5c00d0df2d9fe2e310cf32aeb`; MF@3000 from `T1-ID-MF-C02-CONT-S20260901`, `mode=c0`, payload iteration 1500, file SHA-256 `35687e19953dd4b7502e1f1a2cadf291a5112f31d475bdf4591659393f23e23f`.
+- Final raw Dev errors (Rel-L2 / TKE / MVPE): Direct `0.123458 / 0.505743 / 0.090781`; MF `0.122030 / 0.504695 / 0.092569`. MF relative changes versus Direct: `+1.157% / +0.207% / -1.969%`; final trajectory wins `12/16 / 13/16 / 6/16`.
+- Gate: `WASHED_OUT_OR_MIXED`; no absolute update satisfied the strong gate of Rel-L2 ≥3%, MVPE ≥3%, and TKE degradation no worse than 2%.
+- Decision: `REVIEW_REQUIRED`; do not auto-promote MF or launch a follow-up from this result.
+- Evidence: remote `/home/chyfuture/realpde_runs/mf_long_convergence_20260906/`; detailed handoff `docs/coordination/CHATGPT_HANDOFF_MF_LONG_CONVERGENCE_20260906.md`.
 ```
 
 ## 6. 全局维护规则
