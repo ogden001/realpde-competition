@@ -41,8 +41,9 @@ def configure_cuda_memory_cap(device: torch.device, max_gpu_memory_gib: float) -
     total = torch.cuda.get_device_properties(device).total_memory
     cap = int(max_gpu_memory_gib * 1024 ** 3)
     if cap > total: raise ValueError("requested CUDA cap exceeds device memory")
-    torch.cuda.set_per_process_memory_fraction(cap / total, device)
-    torch.cuda.empty_cache(); torch.cuda.reset_peak_memory_stats(device)
+    device_index = torch.cuda.current_device()
+    torch.cuda.set_per_process_memory_fraction(cap / total, device_index)
+    torch.cuda.empty_cache(); torch.cuda.reset_peak_memory_stats(device_index)
     return cap
 
 
