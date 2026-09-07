@@ -171,9 +171,21 @@ def run(args) -> None:
     params = list(model.parameters()) + ([] if mixer is None else list(mixer.parameters())); optimizer = torch.optim.AdamW(params, lr=args.lr)
     if "optimizer_state_dict" in payload and mixer is None: optimizer.load_state_dict(payload["optimizer_state_dict"])
     if mixer is not None and not any(id(p) in {id(q) for g in optimizer.param_groups for q in g["params"]} for p in mixer.parameters()): raise RuntimeError("mixer missing from optimizer")
-    preflight = {"passed": True, "arm": args.arm, "shape": list(pred.shape), "initial_max_abs_diff_from_direct": parity, "pressure_max_abs": float(pred[..., 2].abs().max()), "calibration_weight": weight}
+    preflight_gradient = None
+    if mixer is not None:
+        probe_loss, _ = loss_with_arm(pred, y, x, args.arm, weight)
+        probe_loss.backward()
+        preflight_gradient = float(mixer.output.weight.grad.abs().max().detach().cpu()) if mixer.output.weight.grad is not None else 0.0
+        optimizer.zero_grad(set_to_none=True)
+        if preflight_gradient <= 0.0: raise RuntimeError("T3 mixer output has zero preflight gradient")
+    preflight = {"passed": True, "arm": args.arm, "shape": list(pred.shape), "initial_max_abs_diff_from_direct": parity, "pressure_max_abs": float(pred[..., 2].abs().max()), "calibration_weight": weight, "t3_output_gradient_max_abs": preflight_gradient}
     (args.out_dir / "preflight.json").write_text(json.dumps(preflight, indent=2), encoding="utf-8")
-    if args.preflight_only: return
+    if args.preflight_only:
+        if args.preflight_evaluate:
+            evaluation = evaluate(model, builder, mixer, dev_paths, args, device, args.out_dir / "eval_01500", args.arm, 1500, False)
+            preflight["canonical_dev_raw_errors"] = evaluation["raw_errors"]
+            (args.out_dir / "preflight.json").write_text(json.dumps(preflight, indent=2), encoding="utf-8")
+        return
     baseline = evaluate(model, builder, mixer, dev_paths, args, device, args.out_dir / "eval_01500", args.arm, 1500, False)
     history = [{"update": 1500, **baseline["raw_errors"]}]; curve = []
     iterator = iter(loader); started = time.monotonic(); peak = 0
@@ -201,7 +213,7 @@ def run(args) -> None:
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(); p.add_argument("--arm", choices=("C0", "T1", "T2", "T3"), required=True); p.add_argument("--manifest", type=Path, required=True); p.add_argument("--checkpoint", type=Path, required=True); p.add_argument("--kit-root", type=Path, required=True); p.add_argument("--out-dir", type=Path, required=True); p.add_argument("--updates", type=int, default=1500); p.add_argument("--milestones", type=int, nargs="+", default=[500, 1000, 1500]); p.add_argument("--batch-size", type=int, default=8); p.add_argument("--workers", type=int, default=2); p.add_argument("--max-windows", type=int); p.add_argument("--lr", type=float, default=1e-5); p.add_argument("--seed", type=int, default=20260901); p.add_argument("--preflight-only", action="store_true")
+    p = argparse.ArgumentParser(); p.add_argument("--arm", choices=("C0", "T1", "T2", "T3"), required=True); p.add_argument("--manifest", type=Path, required=True); p.add_argument("--checkpoint", type=Path, required=True); p.add_argument("--kit-root", type=Path, required=True); p.add_argument("--out-dir", type=Path, required=True); p.add_argument("--updates", type=int, default=1500); p.add_argument("--milestones", type=int, nargs="+", default=[500, 1000, 1500]); p.add_argument("--batch-size", type=int, default=8); p.add_argument("--workers", type=int, default=2); p.add_argument("--max-windows", type=int); p.add_argument("--lr", type=float, default=1e-5); p.add_argument("--seed", type=int, default=20260901); p.add_argument("--preflight-only", action="store_true"); p.add_argument("--preflight-evaluate", action="store_true")
     run(p.parse_args())
 
 
