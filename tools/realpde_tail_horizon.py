@@ -28,6 +28,9 @@ def weighted_mse(pred: Tensor, target: Tensor, *, tail_factor: float, tail_count
         raise ValueError(f"prediction/target shape mismatch: {tuple(pred.shape)} vs {tuple(target.shape)}")
     if pred.ndim < 2:
         raise ValueError("prediction must include batch and horizon dimensions")
+    if pred.shape[-1] < 2:
+        raise ValueError("prediction must contain u/v channels in the last dimension")
+    pred_uv, target_uv = pred[..., :2], target[..., :2]
     weights = normalized_tail_weights(
         tail_factor,
         horizons=pred.shape[1],
@@ -35,8 +38,8 @@ def weighted_mse(pred: Tensor, target: Tensor, *, tail_factor: float, tail_count
         device=pred.device,
         dtype=pred.dtype,
     )
-    view_shape = [1, pred.shape[1]] + [1] * (pred.ndim - 2)
-    return ((pred - target).square() * weights.view(*view_shape)).mean()
+    view_shape = [1, pred.shape[1]] + [1] * (pred_uv.ndim - 2)
+    return ((pred_uv - target_uv).square() * weights.view(*view_shape)).mean()
 
 
 def blend_tail(cno: Tensor, persist: Tensor, *, alpha19: float, alpha20: float) -> Tensor:
@@ -47,6 +50,10 @@ def blend_tail(cno: Tensor, persist: Tensor, *, alpha19: float, alpha20: float) 
     if not 0.0 <= alpha19 <= 1.0 or not 0.0 <= alpha20 <= 1.0:
         raise ValueError("alpha19/alpha20 must lie in [0, 1]")
     out = cno.clone()
-    out[:, 18] = float(alpha19) * cno[:, 18] + (1.0 - float(alpha19)) * persist[:, 18]
-    out[:, 19] = float(alpha20) * cno[:, 19] + (1.0 - float(alpha20)) * persist[:, 19]
+    out[:, 18, ..., :2] = (
+        float(alpha19) * cno[:, 18, ..., :2] + (1.0 - float(alpha19)) * persist[:, 18, ..., :2]
+    )
+    out[:, 19, ..., :2] = (
+        float(alpha20) * cno[:, 19, ..., :2] + (1.0 - float(alpha20)) * persist[:, 19, ..., :2]
+    )
     return out

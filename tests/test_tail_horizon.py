@@ -11,18 +11,21 @@ def test_normalized_tail_weights_preserve_mean_one():
     assert weights[-1] > weights[0]
 
 
-def test_weighted_mse_factor_one_matches_plain_mse():
-    pred = torch.arange(40.0).reshape(1, 20, 1, 1, 2)
+def test_weighted_mse_factor_one_matches_official_uv_mse_and_ignores_pressure():
+    pred = torch.arange(60.0).reshape(1, 20, 1, 1, 3)
     target = torch.zeros_like(pred)
+    pred[..., 2] = 999.0
     got = weighted_mse(pred, target, tail_factor=1.0)
-    expected = torch.mean((pred - target) ** 2)
+    expected = torch.mean((pred[..., :2] - target[..., :2]) ** 2)
     assert torch.allclose(got, expected)
 
 
 def test_blend_tail_changes_only_last_two_horizons():
-    cno = torch.ones(1, 20, 1, 1, 2)
+    cno = torch.ones(1, 20, 1, 1, 3)
+    cno[..., 2] = 7.0
     persist = torch.zeros_like(cno)
     blended = blend_tail(cno, persist, alpha19=0.25, alpha20=0.75)
     assert torch.allclose(blended[:, :18], cno[:, :18])
-    assert torch.allclose(blended[:, 18], torch.full_like(blended[:, 18], 0.25))
-    assert torch.allclose(blended[:, 19], torch.full_like(blended[:, 19], 0.75))
+    assert torch.allclose(blended[:, 18, ..., :2], torch.full_like(blended[:, 18, ..., :2], 0.25))
+    assert torch.allclose(blended[:, 19, ..., :2], torch.full_like(blended[:, 19, ..., :2], 0.75))
+    assert torch.allclose(blended[..., 2], cno[..., 2])
