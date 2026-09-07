@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 
+import csv
+
 import torch
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "tools"))
@@ -57,3 +59,14 @@ def test_memory_safe_batch_configuration_preserves_effective_batch():
     assert config["micro_batch_size"] == 2
     assert config["accumulation_steps"] == 4
     assert config["max_gpu_memory_gib"] == 12.0
+
+
+def test_write_rows_accepts_metrics_with_late_added_columns(tmp_path):
+    from realpde_structured_temporal_dynamics import write_rows
+
+    output = tmp_path / "metrics.csv"
+    write_rows(output, [{"update": 1500, "rel_l2": 0.1}, {"update": 2000, "rel_l2": 0.09, "inference_time": 0.01}])
+
+    rows = list(csv.DictReader(output.open()))
+    assert rows[0]["inference_time"] == ""
+    assert rows[1]["inference_time"] == "0.01"

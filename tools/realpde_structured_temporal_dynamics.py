@@ -118,8 +118,9 @@ def metric_triplet(pred: np.ndarray, target: np.ndarray, scoring) -> dict[str, f
 
 def write_rows(path: Path, rows: list[dict]) -> None:
     if not rows: return
+    fields = list(dict.fromkeys(key for row in rows for key in row))
     with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0])); writer.writeheader(); writer.writerows(rows)
+        writer = csv.DictWriter(handle, fieldnames=fields); writer.writeheader(); writer.writerows(rows)
 
 
 def diagnostics(ds, prediction: np.ndarray, target: np.ndarray, out: Path, arm: str, update: int, kit_root: Path) -> None:
