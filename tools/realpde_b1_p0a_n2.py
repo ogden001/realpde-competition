@@ -94,6 +94,13 @@ def make_train_loader(paths: list[Path], args: argparse.Namespace):
     return dataset, loader, sampler
 
 
+def forced_random_phase_overrides(paths: list[Path], forced_phase: int | None) -> dict[str, int] | None:
+    """Return a fixed phase map only for the registered sampler-path control."""
+    if forced_phase is None:
+        return None
+    return {path.name: int(forced_phase) for path in paths}
+
+
 def adapt_input_weight(model: torch.nn.Module, checkpoint: dict, in_channels: int) -> None:
     """Expand the input lift while preserving the 3-channel model at step zero."""
     state = checkpoint.get("model_state_dict", checkpoint)
@@ -216,6 +223,7 @@ def run(args: argparse.Namespace) -> None:
         "batch_size": args.batch_size,
         "workers": args.workers,
         "train_window_mode": args.train_window_mode,
+        "random_phase_forced_phase": args.random_phase_forced_phase,
         "lr": args.lr,
         "manifest": str(args.manifest.resolve()),
         "manifest_sha256": manifest_sha256,
@@ -239,9 +247,10 @@ def run(args: argparse.Namespace) -> None:
     audit_handle = None
     if train_sampler is not None:
         audit_handle = (args.out_dir / "window_audit.jsonl").open("w", encoding="utf-8")
+        phase_overrides = forced_random_phase_overrides(train_paths, args.random_phase_forced_phase)
 
         def prepare_random_epoch(epoch: int, *, announce: bool = False) -> None:
-            train_sampler.set_epoch(epoch)
+            train_sampler.set_epoch(epoch, phases=phase_overrides)
             records = train_sampler.audit_records()
             audit_records.extend(records)
             for record in records:
@@ -370,12 +379,18 @@ def main() -> None:
     parser.add_argument("--max-windows", type=int, default=None)
     parser.add_argument("--lr", type=float, default=1e-5)
     parser.add_argument("--train-window-mode", choices=("fixed", "random_phase"), default="fixed")
+    parser.add_argument("--random-phase-forced-phase", type=int, default=None,
+                        help="Optional fixed phase for the random-phase sampler-path control")
     parser.add_argument("--early-gate-summary", type=Path, default=None,
                         help="RW-00 summary used for the RW-01 @3000 early screen")
     parser.add_argument("--early-gate-update", type=int, default=3000)
     args = parser.parse_args()
     if args.updates < 1 or args.eval_interval < 1 or args.max_train_seconds <= 0 or args.early_gate_update < 1:
         parser.error("updates, eval-interval, max-train-seconds, and early-gate-update must be positive")
+    if args.random_phase_forced_phase is not None and not 0 <= args.random_phase_forced_phase < 20:
+        parser.error("random-phase-forced-phase must be in [0, 20)")
+    if args.random_phase_forced_phase is not None and args.train_window_mode != "random_phase":
+        parser.error("random-phase-forced-phase requires train-window-mode=random_phase")
     run(args)
 
 

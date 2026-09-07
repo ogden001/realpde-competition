@@ -1,29 +1,24 @@
 # NEXT_ACTION
 
 ## Goal
-Run the frozen Horizon Curriculum breadth-first screen after A2, using the fixed 50 Train / 16 Dev protocol.
+Repair the RW-01 shuffle confound and revalidate train-window Random Phase against the existing RW-00 fixed reference.
 
 ## Tasks
-1. Use `tools/realpde_horizon_curriculum.py` and `tools/run_horizon_curriculum_remote.sh`.
-2. Supply the exact frozen manifest, official `sim_pretrain` checkpoint, Direct@3000 reference checkpoint, and official kit paths.
-3. Run the curriculum unit test and Python compile check, then execute only after A2 finishes.
-4. Return execution commit, PID/log if separately launched, output root, and preflight path.
+1. Globally and deterministically shuffle each epoch's selected Random Phase indices; preserve independent trajectory phases.
+2. Verify sampler invariants, workers 0/2 equivalence, fixed-phase-0 set equivalence, compile, and smoke.
+3. Push the frozen execution commit, then run RW-CTRL (Random Phase path, phase 0, global shuffle) for 1000 updates.
+4. Only if RW-CTRL passes its registered gate, run RW-01 at 1000/2000/3000/5000/7500 with the registered @3000 early gate.
 
 ## Constraints
-- Only 50 Train / 16 Dev.
-- P0-A Direct CNO, N2, seed `20260901`, AdamW `1e-5`, batch `8`, exactly 3000 updates.
-- Only variable: reconstruction-horizon curriculum. TKE remains full-Future20 at every stage.
-- No locked-final, Codabench, SPS, full-data, schedule sweep, weight sweep, or next experiment.
-- If checksum, version, test, compile, or preflight fails, stop and report. Do not patch research logic.
+- Frozen 50 Train / 16 Dev; P0-A CNO, N2, `sim_pretrain/sim_cno.pth`, seed `20260901`, AdamW `1e-5`, batch 8, workers 2.
+- Dev remains `start=0, stride=20`; reuse RW-00 without retraining it.
+- Only variable is train-window phase randomization. No locked-final, Codabench, full-data, Random Start, stride/phase sweep, or next experiment.
+- Final research status is `REVIEW_REQUIRED`; ChatGPT/Sol owns the scientific conclusion.
 
 ## Deliverables
-- `preflight/preflight.json`
-- `run/run_metadata.json`
-- `run/update_curve.csv`
-- `run/trajectory_comparison.csv`
-- `run/horizon_rel_l2.csv`
-- `run/gate_result.json`
-- `run/summary.json`
+- Execution/results commits, metadata, audit, review logs and artifact manifests.
+- RW-CTRL gate evidence; RW-01 curve, trajectory comparison and report.
+- Historical RW-00/RW-01 result marked `INVALID_COMPARISON / SHUFFLE_CONFOUND`.
 
 ## Stop
-After the queued detached job is confirmed running, stop polling and report paths.
+After results and review evidence are committed and pushed; do not design another experiment.

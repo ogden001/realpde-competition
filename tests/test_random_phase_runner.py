@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
 from realpde_b1_p0a_n2 import (  # noqa: E402
     early_screen_gate,
+    forced_random_phase_overrides,
     parse_eval_updates,
     summarize_window_audit,
 )
@@ -60,3 +61,9 @@ def test_early_screen_stops_only_for_explicit_three_percent_negative_signal():
     assert early_screen_gate(baseline, {"rel_l2": 1.02, "tke": 1.0, "mvpe": 1.01})["status"] == "CONTINUE"
     assert early_screen_gate(baseline, {"rel_l2": 1.04, "tke": 1.04, "mvpe": 1.04})["status"] == "STOP_EARLY"
 
+
+def test_forced_phase_zero_builds_a_per_trajectory_control_map(tmp_path: Path):
+    paths = [tmp_path / "a.h5", tmp_path / "b.h5"]
+
+    assert forced_random_phase_overrides(paths, None) is None
+    assert forced_random_phase_overrides(paths, 0) == {"a.h5": 0, "b.h5": 0}

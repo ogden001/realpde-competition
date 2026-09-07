@@ -39,6 +39,14 @@ def _starts(dataset: H5WindowDataset, indices: list[int]) -> list[tuple[str, int
     return [(dataset.refs[index].path.name, dataset.refs[index].start) for index in indices]
 
 
+def _canonical_phase_starts(paths: list[Path], dataset: H5WindowDataset, phase: int) -> list[tuple[str, int]]:
+    return [
+        (path.name, start)
+        for path in paths
+        for start in range(phase, dataset.lengths[path] - dataset.in_steps - dataset.out_steps + 1, dataset.stride)
+    ]
+
+
 class _IndexDataset(torch.utils.data.Dataset):
     def __init__(self, size: int):
         self.size = size
@@ -75,7 +83,7 @@ def test_phase_seven_selects_only_seven_modulo_twenty_windows(tmp_path: Path):
     sampler.set_epoch(0, phases={path.name: 7 for path in _paths(tmp_path)})
     selected = _starts(dataset, list(iter(sampler)))
 
-    assert selected == [
+    assert sorted(selected) == [
         ("a.h5", 7),
         ("a.h5", 27),
         ("a.h5", 47),
@@ -100,6 +108,7 @@ def test_random_phase_windows_respect_boundary_and_contiguous_past_future(tmp_pa
         selected_by_path.setdefault(ref.path, []).append(ref.start)
 
     for path, selected_starts in selected_by_path.items():
+        selected_starts.sort()
         length = dataset.lengths[path]
         assert selected_starts == list(range(selected_starts[0], selected_starts[-1] + 1, 20))
         assert all(0 <= start and start + 39 < length for start in selected_starts)
@@ -135,7 +144,7 @@ def test_different_epoch_rephases_the_trajectories(tmp_path: Path):
     assert sampler.phases != first
 
 
-def test_workers_zero_and_two_produce_the_same_sampler_window_set(tmp_path: Path):
+def test_workers_zero_and_two_produce_the_same_sampler_order(tmp_path: Path):
     dataset = H5WindowDataset(_paths(tmp_path), window_mode="random_phase", stride=20, sub_sample=1)
     sampler_zero = RandomPhaseWindowSampler(dataset, seed=20260901)
     sampler_two = RandomPhaseWindowSampler(dataset, seed=20260901)
@@ -149,6 +158,37 @@ def test_workers_zero_and_two_produce_the_same_sampler_window_set(tmp_path: Path
     two_indices = [index for batch in loader_two for index in batch.tolist()]
 
     assert _starts(dataset, zero_indices) == _starts(dataset, two_indices)
+
+
+def test_global_shuffle_preserves_phase_selected_window_set(tmp_path: Path):
+    paths = _paths(tmp_path)
+    dataset = H5WindowDataset(paths, window_mode="random_phase", stride=20, sub_sample=1)
+    sampler = RandomPhaseWindowSampler(dataset, seed=20260901)
+    phases = {path.name: 7 for path in paths}
+    sampler.set_epoch(0, phases=phases)
+
+    assert sorted(_starts(dataset, list(sampler))) == _canonical_phase_starts(paths, dataset, phase=7)
+
+
+def test_global_shuffle_is_not_trajectory_blocked(tmp_path: Path):
+    paths = _paths(tmp_path)
+    dataset = H5WindowDataset(paths, window_mode="random_phase", stride=20, sub_sample=1)
+    sampler = RandomPhaseWindowSampler(dataset, seed=20260901)
+    sampler.set_epoch(0, phases={path.name: 0 for path in paths})
+    selected_paths = [name for name, _ in _starts(dataset, list(sampler))]
+    path_runs = sum(left != right for left, right in zip(selected_paths, selected_paths[1:])) + 1
+
+    assert path_runs > len(paths)
+
+
+def test_forced_zero_phase_matches_fixed_window_set(tmp_path: Path):
+    paths = _paths(tmp_path)
+    fixed = H5WindowDataset(paths, window_mode="fixed", stride=20, sub_sample=1)
+    random = H5WindowDataset(paths, window_mode="random_phase", stride=20, sub_sample=1)
+    sampler = RandomPhaseWindowSampler(random, seed=20260901)
+    sampler.set_epoch(2, phases={path.name: 0 for path in paths})
+
+    assert sorted(_starts(random, list(sampler))) == _starts(fixed, list(range(len(fixed))))
 
 
 def test_dev_dataset_remains_fixed_when_train_dataset_is_random_phase(tmp_path: Path):

@@ -149,6 +149,11 @@ class RandomPhaseWindowSampler(Sampler[int]):
             if self.dataset.max_windows_per_trajectory is not None:
                 starts = starts[:self.dataset.max_windows_per_trajectory]
             selected.extend(self._index_by_path_start[(str(path), start)] for start in starts)
+        # Preserve independent per-trajectory phase selection above, then
+        # match the fixed-window train loader's global shuffled presentation.
+        # A separate epoch-derived stream keeps phase draws unchanged.
+        shuffle_rng = np.random.default_rng(np.random.SeedSequence([self.seed, self.epoch, 1]))
+        shuffle_rng.shuffle(selected)
         self._selected_indices = selected
 
     def audit_records(self) -> list[dict[str, object]]:
