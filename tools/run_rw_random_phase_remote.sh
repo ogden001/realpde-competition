@@ -47,6 +47,7 @@ run_arm() {
   docker run --rm --gpus all --shm-size=8g \
     -v "$RW_SOURCE_ROOT:/task:ro" \
     -v "$RW_DATA_ROOT:$RW_DATA_ROOT:ro" \
+    -v "$RW_DATA_ROOT:/data:ro" \
     -v "$RW_KIT_ROOT:/kit:ro" \
     -v "$RW_OUTPUT_ROOT:/out" \
     -w /task "$IMAGE" \
