@@ -9,18 +9,21 @@ locked-final targets while selecting a checkpoint.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import signal
 import sys
 import time
+from collections import Counter, defaultdict
 from pathlib import Path
 
 import numpy as np
 import torch
 from torch import Tensor
+from torch.utils.data import DataLoader
 
 import realpde_loss_official_v9 as core
-from realpde_p0_data import read_grid
+from realpde_p0_data import H5WindowDataset, RandomPhaseWindowSampler, read_grid
 from realpde_p0_features import P0FeatureBuilder, P0FeatureConfig
 
 
@@ -32,6 +35,63 @@ N2_WEIGHTS = {
     "rel": 0.027514,
     "tke": 0.05,
 }
+
+
+def parse_eval_updates(value: str) -> tuple[int, ...]:
+    updates = tuple(int(item.strip()) for item in value.split(",") if item.strip())
+    if not updates or any(update < 1 for update in updates) or tuple(sorted(set(updates))) != updates:
+        raise ValueError("eval updates must be a non-empty strictly increasing list of positive integers")
+    return updates
+
+
+def summarize_window_audit(records: list[dict[str, object]], *, seed: int) -> dict[str, object]:
+    if not records:
+        raise ValueError("window audit must contain at least one record")
+    epochs = sorted({int(record["epoch"]) for record in records})
+    trajectories = sorted({str(record["trajectory"]) for record in records})
+    windows_per_epoch = {
+        str(epoch): sum(int(record["window_count"]) for record in records if int(record["epoch"]) == epoch)
+        for epoch in epochs
+    }
+    phase_counts = Counter(int(record["phase"]) for record in records)
+    counts = [int(record["window_count"]) for record in records]
+    invalid = sum(int(record.get("invalid_window_count", 0)) for record in records)
+    non_stride20 = sum(
+        int(record.get("min_stride") != 20 or record.get("max_stride") != 20)
+        for record in records
+    )
+    return {
+        "seed": int(seed),
+        "epoch_count": len(epochs),
+        "epochs": epochs,
+        "trajectory_count": len(trajectories),
+        "windows_per_epoch": windows_per_epoch,
+        "phase_counts": {str(phase): int(phase_counts.get(phase, 0)) for phase in range(20)},
+        "min_window_count_per_trajectory": min(counts),
+        "max_window_count_per_trajectory": max(counts),
+        "invalid_window_count": invalid,
+        "non_stride20_count": non_stride20,
+    }
+
+
+def early_screen_gate(baseline: dict[str, float], candidate: dict[str, float]) -> dict[str, object]:
+    degradation = {
+        key: (float(candidate[key]) / max(float(baseline[key]), 1e-12) - 1.0) * 100.0
+        for key in ("rel_l2", "tke", "mvpe")
+    }
+    stop = (degradation["rel_l2"] > 3.0 and degradation["mvpe"] > 3.0) or sum(value > 3.0 for value in degradation.values()) >= 3
+    return {"status": "STOP_EARLY" if stop else "CONTINUE", "degradation_percent": degradation}
+
+
+def make_train_loader(paths: list[Path], args: argparse.Namespace):
+    if args.train_window_mode == "fixed":
+        dataset, loader = core.loader(paths, args, shuffle=True)
+        return dataset, loader, None
+    dataset = H5WindowDataset(paths, max_windows_per_trajectory=args.max_windows, window_mode="random_phase")
+    sampler = RandomPhaseWindowSampler(dataset, seed=args.seed)
+    loader = DataLoader(dataset, batch_size=args.batch_size, sampler=sampler, num_workers=args.workers,
+                        pin_memory=True, persistent_workers=False)
+    return dataset, loader, sampler
 
 
 def adapt_input_weight(model: torch.nn.Module, checkpoint: dict, in_channels: int) -> None:
@@ -128,6 +188,7 @@ def run(args: argparse.Namespace) -> None:
     if not (args.kit_root / "scoring.py").is_file():
         raise FileNotFoundError(args.kit_root / "scoring.py")
     core.set_seed(args.seed)
+    eval_updates = parse_eval_updates(args.eval_updates) if args.eval_updates else None
     args.out_dir.mkdir(parents=True)
     _, train_paths = core.read_manifest(args.manifest, "train")
     _, dev_paths = core.read_manifest(args.manifest, "dev")
@@ -151,8 +212,10 @@ def run(args: argparse.Namespace) -> None:
         "updates": args.updates,
         "max_train_seconds": args.max_train_seconds,
         "eval_interval": args.eval_interval,
+        "eval_updates": eval_updates,
         "batch_size": args.batch_size,
         "workers": args.workers,
+        "train_window_mode": args.train_window_mode,
         "lr": args.lr,
         "manifest": str(args.manifest.resolve()),
         "manifest_sha256": manifest_sha256,
@@ -166,10 +229,30 @@ def run(args: argparse.Namespace) -> None:
     core.json_dump(args.out_dir / "run_metadata.json", metadata)
     model = load_model(args.kit_root, args.checkpoint, builder, device)
     baseline = evaluate(model, builder, dev_paths, args, device, args.out_dir / "eval_baseline")
-    train_ds, train_loader = core.loader(train_paths, args, shuffle=True)
+    train_ds, train_loader, train_sampler = make_train_loader(train_paths, args)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
     history = [{"iteration": 0, **baseline["raw_errors"]}]
     save_checkpoint(args.out_dir / "model_latest.pth", model, iteration=0, config=config, manifest_sha256=manifest_sha256)
+    save_checkpoint(args.out_dir / "model_update_00000.pth", model, iteration=0, config=config, manifest_sha256=manifest_sha256)
+
+    audit_records: list[dict[str, object]] = []
+    audit_handle = None
+    if train_sampler is not None:
+        audit_handle = (args.out_dir / "window_audit.jsonl").open("w", encoding="utf-8")
+
+        def prepare_random_epoch(epoch: int, *, announce: bool = False) -> None:
+            train_sampler.set_epoch(epoch)
+            records = train_sampler.audit_records()
+            audit_records.extend(records)
+            for record in records:
+                audit_handle.write(json.dumps(record, sort_keys=True) + "\n")
+            audit_handle.flush()
+            if announce:
+                for record in records[:3]:
+                    starts = list(range(int(record["first_start"]), int(record["last_start"]) + 1, 20))
+                    print(f"traj {record['trajectory']} phase={record['phase']} starts={starts}", flush=True)
+
+        prepare_random_epoch(0, announce=True)
 
     interrupted = False
 
@@ -182,9 +265,11 @@ def run(args: argparse.Namespace) -> None:
     previous_term = signal.signal(signal.SIGTERM, request_stop)
     train_started = time.monotonic()
     iterator = iter(train_loader)
+    current_epoch = 0
     latest_parts: dict[str, float] = {}
     stop_reason = "max_updates"
     actual_updates = 0
+    early_gate_result: dict[str, object] | None = None
     try:
         for step in range(1, args.updates + 1):
             if interrupted:
@@ -196,6 +281,9 @@ def run(args: argparse.Namespace) -> None:
             try:
                 x, y, _, _ = next(iterator)
             except StopIteration:
+                current_epoch += 1
+                if train_sampler is not None:
+                    prepare_random_epoch(current_epoch)
                 iterator = iter(train_loader)
                 x, y, _, _ = next(iterator)
             x = x.to(device, non_blocking=True)
@@ -209,7 +297,8 @@ def run(args: argparse.Namespace) -> None:
             optimizer.step()
             actual_updates = step
             latest_parts = {key: float(value.detach().cpu()) for key, value in parts.items()} | {"total": float(loss.detach().cpu())}
-            if step % args.eval_interval == 0:
+            should_eval = (step in eval_updates) if eval_updates is not None else step % args.eval_interval == 0
+            if should_eval or step == args.updates:
                 dev = evaluate(model, builder, dev_paths, args, device, args.out_dir / f"eval_{step:05d}")
                 raw = dev["raw_errors"]
                 row = {"iteration": step, **raw, "official_v9_subscores": dev["official_v9_subscores"],
@@ -217,10 +306,22 @@ def run(args: argparse.Namespace) -> None:
                 history.append(row)
                 save_checkpoint(args.out_dir / "model_latest.pth", model, iteration=step,
                                 config=config, manifest_sha256=manifest_sha256)
+                save_checkpoint(args.out_dir / f"model_update_{step:05d}.pth", model, iteration=step,
+                                config=config, manifest_sha256=manifest_sha256)
                 print(json.dumps({"B1_DEV": row}, sort_keys=True), flush=True)
+                if step == args.early_gate_update and args.early_gate_summary:
+                    reference = json.loads(args.early_gate_summary.read_text(encoding="utf-8"))
+                    reference_row = next(item for item in reference["history"] if int(item["iteration"]) == step)
+                    early_gate_result = early_screen_gate(reference_row, raw)
+                    print(json.dumps({"RW_EARLY_GATE": early_gate_result}, sort_keys=True), flush=True)
+                    if early_gate_result["status"] == "STOP_EARLY":
+                        stop_reason = "STOP_EARLY"
+                        break
     finally:
         signal.signal(signal.SIGINT, previous_int)
         signal.signal(signal.SIGTERM, previous_term)
+        if audit_handle is not None:
+            audit_handle.close()
 
     if not history or history[-1]["iteration"] != actual_updates:
         dev = evaluate(model, builder, dev_paths, args, device, args.out_dir / f"eval_{actual_updates:05d}")
@@ -231,12 +332,21 @@ def run(args: argparse.Namespace) -> None:
         print(json.dumps({"B1_DEV": row}, sort_keys=True), flush=True)
     save_checkpoint(args.out_dir / "model_latest.pth", model, iteration=actual_updates,
                     config=config, manifest_sha256=manifest_sha256)
+    save_checkpoint(args.out_dir / f"model_update_{actual_updates:05d}.pth", model, iteration=actual_updates,
+                    config=config, manifest_sha256=manifest_sha256)
+    audit_summary = None
+    if audit_records:
+        audit_summary = summarize_window_audit(audit_records, seed=args.seed)
+        core.json_dump(args.out_dir / "window_audit_summary.json", audit_summary)
     summary = {
         "metadata": metadata | {"end_time": time.time(), "actual_updates": actual_updates,
                                  "train_seconds": time.monotonic() - train_started, "stop_reason": stop_reason,
-                                 "train_windows": len(train_ds), "last_train_loss_parts": latest_parts},
+                                 "train_windows": len(train_sampler) if train_sampler is not None else len(train_ds),
+                                 "train_dataset_refs": len(train_ds), "last_train_loss_parts": latest_parts,
+                                 "early_gate": early_gate_result},
         "baseline": baseline,
         "history": history,
+        "window_audit_summary": audit_summary,
     }
     core.json_dump(args.out_dir / "summary.json", summary)
     print(json.dumps({"B1_DONE": {"out_dir": str(args.out_dir), "stop_reason": stop_reason,
@@ -253,13 +363,19 @@ def main() -> None:
     parser.add_argument("--updates", type=int, default=20000)
     parser.add_argument("--max-train-seconds", type=float, default=7200.0)
     parser.add_argument("--eval-interval", type=int, default=820)
+    parser.add_argument("--eval-updates", type=str, default=None,
+                        help="Comma-separated absolute updates to evaluate, e.g. 1000,2000,3000,5000,7500")
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--max-windows", type=int, default=None)
     parser.add_argument("--lr", type=float, default=1e-5)
+    parser.add_argument("--train-window-mode", choices=("fixed", "random_phase"), default="fixed")
+    parser.add_argument("--early-gate-summary", type=Path, default=None,
+                        help="RW-00 summary used for the RW-01 @3000 early screen")
+    parser.add_argument("--early-gate-update", type=int, default=3000)
     args = parser.parse_args()
-    if args.updates < 1 or args.eval_interval < 1 or args.max_train_seconds <= 0:
-        parser.error("updates, eval-interval, and max-train-seconds must be positive")
+    if args.updates < 1 or args.eval_interval < 1 or args.max_train_seconds <= 0 or args.early_gate_update < 1:
+        parser.error("updates, eval-interval, max-train-seconds, and early-gate-update must be positive")
     run(args)
 
 

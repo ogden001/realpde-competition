@@ -15,7 +15,7 @@ import h5py
 import numpy as np
 import torch
 from torch import Tensor
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, Sampler
 
 
 @dataclass(frozen=True)
@@ -56,20 +56,34 @@ class H5WindowDataset(Dataset[tuple[Tensor, Tensor, Tensor, Tensor]]):
     """Reads paired input/target windows without materializing derived features."""
 
     def __init__(self, paths: Sequence[Path], *, in_steps: int = 20, out_steps: int = 20, stride: int = 20,
-                 sub_sample: int = 2, max_windows_per_trajectory: int | None = None, include_pressure: bool = False):
+                 sub_sample: int = 2, max_windows_per_trajectory: int | None = None, include_pressure: bool = False,
+                 window_mode: str = "fixed"):
         if min(in_steps, out_steps, stride, sub_sample) < 1:
             raise ValueError("in_steps, out_steps, stride, and sub_sample must be positive")
+        if window_mode not in {"fixed", "random_phase"}:
+            raise ValueError("window_mode must be 'fixed' or 'random_phase'")
         self.in_steps, self.out_steps, self.sub_sample = in_steps, out_steps, sub_sample
+        self.stride = stride
+        self.window_mode = window_mode
+        self.max_windows_per_trajectory = max_windows_per_trajectory
         self.include_pressure = include_pressure
         self.refs: list[WindowRef] = []
         self.paths = list(paths)
+        self.lengths: dict[Path, int] = {}
         for path in self.paths:
             with h5py.File(path, "r") as f:
                 field = f["u"] if "u" in f else f["measured_data/u"]
                 length = int(field.shape[0])
-            starts = list(range(0, length - in_steps - out_steps + 1, stride))
-            if max_windows_per_trajectory is not None:
-                starts = starts[:max_windows_per_trajectory]
+            self.lengths[path] = length
+            if window_mode == "fixed":
+                starts = list(range(0, length - in_steps - out_steps + 1, stride))
+                if max_windows_per_trajectory is not None:
+                    starts = starts[:max_windows_per_trajectory]
+            else:
+                # Random-phase selection happens in the main-process sampler.
+                # Keep every legal start available as a lightweight WindowRef so
+                # workers never need synchronized mutable Dataset state.
+                starts = list(range(0, length - in_steps - out_steps + 1))
             self.refs.extend(WindowRef(path, start) for start in starts)
         if not self.refs:
             raise ValueError("the requested windows do not fit into supplied trajectories")
@@ -96,3 +110,74 @@ class H5WindowDataset(Dataset[tuple[Tensor, Tensor, Tensor, Tensor]]):
         full = torch.from_numpy(np.stack([u, v, p], axis=-1))
         condition = torch.tensor([re, aoa], dtype=torch.float32)
         return full[:self.in_steps], full[self.in_steps:], condition, torch.tensor(index, dtype=torch.long)
+
+
+class RandomPhaseWindowSampler(Sampler[int]):
+    """Select one independent phase per trajectory for a deterministic epoch."""
+
+    def __init__(self, dataset: H5WindowDataset, *, seed: int):
+        if dataset.window_mode != "random_phase":
+            raise ValueError("RandomPhaseWindowSampler requires window_mode='random_phase'")
+        self.dataset = dataset
+        self.seed = int(seed)
+        self.epoch = 0
+        self.phases: dict[str, int] = {}
+        self._selected_indices: list[int] = []
+        self._index_by_path_start = {(str(ref.path), ref.start): index for index, ref in enumerate(dataset.refs)}
+        self.set_epoch(0)
+
+    def set_epoch(self, epoch: int, *, phases: dict[str, int] | None = None) -> None:
+        if epoch < 0:
+            raise ValueError("epoch must be non-negative")
+        self.epoch = int(epoch)
+        if phases is None:
+            rng = np.random.default_rng(np.random.SeedSequence([self.seed, self.epoch]))
+            self.phases = {path.name: int(rng.integers(0, self.dataset.stride)) for path in self.dataset.paths}
+        else:
+            expected = {path.name for path in self.dataset.paths}
+            if set(phases) != expected:
+                raise ValueError("phases must contain exactly one phase for each trajectory")
+            self.phases = {name: int(phase) for name, phase in phases.items()}
+            if any(phase < 0 or phase >= self.dataset.stride for phase in self.phases.values()):
+                raise ValueError("each phase must be in [0, stride)")
+
+        selected: list[int] = []
+        for path in self.dataset.paths:
+            phase = self.phases[path.name]
+            starts = list(range(phase, self.dataset.lengths[path] - self.dataset.in_steps - self.dataset.out_steps + 1,
+                               self.dataset.stride))
+            if self.dataset.max_windows_per_trajectory is not None:
+                starts = starts[:self.dataset.max_windows_per_trajectory]
+            selected.extend(self._index_by_path_start[(str(path), start)] for start in starts)
+        self._selected_indices = selected
+
+    def audit_records(self) -> list[dict[str, object]]:
+        records = []
+        for path in self.dataset.paths:
+            phase = self.phases[path.name]
+            starts = list(range(phase, self.dataset.lengths[path] - self.dataset.in_steps - self.dataset.out_steps + 1,
+                               self.dataset.stride))
+            if self.dataset.max_windows_per_trajectory is not None:
+                starts = starts[:self.dataset.max_windows_per_trajectory]
+            strides = [right - left for left, right in zip(starts, starts[1:])]
+            records.append({
+                "epoch": self.epoch,
+                "trajectory": path.name,
+                "phase": phase,
+                "window_count": len(starts),
+                "first_start": starts[0] if starts else None,
+                "last_start": starts[-1] if starts else None,
+                "min_stride": min(strides) if strides else self.dataset.stride,
+                "max_stride": max(strides) if strides else self.dataset.stride,
+                "invalid_window_count": sum(
+                    not (0 <= start and start + self.dataset.in_steps + self.dataset.out_steps - 1 < self.dataset.lengths[path])
+                    for start in starts
+                ),
+            })
+        return records
+
+    def __iter__(self):
+        return iter(self._selected_indices)
+
+    def __len__(self) -> int:
+        return len(self._selected_indices)
