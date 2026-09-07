@@ -52,3 +52,11 @@ def test_prepare_out_dir_accepts_empty_mountpoint_and_rejects_nonempty(tmp_path:
     (empty / "prior.txt").write_text("evidence")
     with pytest.raises(FileExistsError):
         prepare_out_dir(empty)
+
+
+def test_horizon_csv_fields_include_plain_piv_control_when_requested():
+    from horizon_cliff_audit import horizon_csv_fieldnames
+
+    assert horizon_csv_fieldnames(include_plain=True) == [
+        "horizon", "persist_rel_l2", "official_cno_rel_l2", "p0a_cno_rel_l2", "plain_piv_cno_rel_l2",
+    ]

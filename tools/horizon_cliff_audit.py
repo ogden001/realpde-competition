@@ -111,6 +111,13 @@ def prepare_out_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
+def horizon_csv_fieldnames(*, include_plain: bool) -> list[str]:
+    fields = ["horizon", "persist_rel_l2", "official_cno_rel_l2", "p0a_cno_rel_l2"]
+    if include_plain:
+        fields.append("plain_piv_cno_rel_l2")
+    return fields
+
+
 @torch.no_grad()
 def run(args: argparse.Namespace) -> None:
     train_paths = paths_from_manifest(args.manifest, args.data_root, "train")
@@ -125,29 +132,43 @@ def run(args: argparse.Namespace) -> None:
     config = p0a_config_from_checkpoint(payload)
     builder = P0FeatureBuilder(config).to(device)
     p0a = load_cno(args.kit_root, in_dim=len(builder.feature_names), checkpoint=args.p0a_checkpoint, device=device)
+    plain = None if args.plain_piv_checkpoint is None else load_cno(args.kit_root, in_dim=3, checkpoint=args.plain_piv_checkpoint, device=device)
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=0)
     persist_all: list[np.ndarray] = []
     official_all: list[np.ndarray] = []
     p0a_all: list[np.ndarray] = []
+    plain_all: list[np.ndarray] = []
     target_all: list[np.ndarray] = []
     for past, target, _, _ in loader:
         x = past.to(device)
         persist_all.append(np.repeat(past[:, -1:].numpy(), 20, axis=1))
         official_all.append(baseline(x.permute(0, 4, 1, 2, 3)).permute(0, 2, 3, 4, 1).cpu().numpy())
         p0a_all.append(forward_p0a(p0a, builder, x).cpu().numpy())
+        if plain is not None:
+            plain_all.append(plain(x.permute(0, 4, 1, 2, 3)).permute(0, 2, 3, 4, 1).cpu().numpy())
         target_all.append(target.numpy())
     persist, official, p0a, target = (np.concatenate(values) for values in (persist_all, official_all, p0a_all, target_all))
     for name, value in {"persist": persist, "official": official, "p0a": p0a, "target": target}.items():
         if value.shape != EXPECTED_SHAPE:
             raise AssertionError(f"{name} has unexpected shape {value.shape}")
     metrics = {"persist": windowwise_horizon_rel_l2(persist, target), "official": windowwise_horizon_rel_l2(official, target), "p0a": windowwise_horizon_rel_l2(p0a, target)}
+    if plain is not None:
+        plain_prediction = np.concatenate(plain_all)
+        if plain_prediction.shape != EXPECTED_SHAPE:
+            raise AssertionError(f"plain PIV CNO has unexpected shape {plain_prediction.shape}")
+        metrics["plain"] = windowwise_horizon_rel_l2(plain_prediction, target)
     prepare_out_dir(args.out_dir)
     with (args.out_dir / "horizon_metrics.csv").open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=["horizon", "persist_rel_l2", "official_cno_rel_l2", "p0a_cno_rel_l2"])
+        writer = csv.DictWriter(handle, fieldnames=horizon_csv_fieldnames(include_plain=plain is not None))
         writer.writeheader()
-        for h in range(20): writer.writerow({"horizon": h + 1, "persist_rel_l2": metrics["persist"][h], "official_cno_rel_l2": metrics["official"][h], "p0a_cno_rel_l2": metrics["p0a"][h]})
+        for h in range(20):
+            row = {"horizon": h + 1, "persist_rel_l2": metrics["persist"][h], "official_cno_rel_l2": metrics["official"][h], "p0a_cno_rel_l2": metrics["p0a"][h]}
+            if plain is not None: row["plain_piv_cno_rel_l2"] = metrics["plain"][h]
+            writer.writerow(row)
     ratios = {name: {"t19_t18": values[18] / values[17], "t20_t18": values[19] / values[17], "t20_mean_t1_t18": values[19] / float(np.mean(values[:18]))} for name, values in metrics.items()}
-    (args.out_dir / "audit_evidence.json").write_text(json.dumps({"shape": list(target.shape), "train_trajectories": len(train_paths), "dev_trajectories": len(dev_paths), "dev_windows": len(dataset), "alignment": alignment, "ratios": ratios, "official_checkpoint_sha256": sha256(args.official_checkpoint), "p0a_checkpoint_sha256": sha256(args.p0a_checkpoint), "manifest_sha256": sha256(args.manifest)}, indent=2) + "\n", encoding="utf-8")
+    evidence = {"shape": list(target.shape), "train_trajectories": len(train_paths), "dev_trajectories": len(dev_paths), "dev_windows": len(dataset), "alignment": alignment, "ratios": ratios, "official_checkpoint_sha256": sha256(args.official_checkpoint), "p0a_checkpoint_sha256": sha256(args.p0a_checkpoint), "manifest_sha256": sha256(args.manifest)}
+    if args.plain_piv_checkpoint is not None: evidence["plain_piv_checkpoint_sha256"] = sha256(args.plain_piv_checkpoint)
+    (args.out_dir / "audit_evidence.json").write_text(json.dumps(evidence, indent=2) + "\n", encoding="utf-8")
 
 
 def main() -> None:
@@ -155,6 +176,7 @@ def main() -> None:
     parser.add_argument("--data-root", type=Path, required=True); parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--kit-root", type=Path, required=True); parser.add_argument("--official-checkpoint", type=Path, required=True)
     parser.add_argument("--p0a-checkpoint", type=Path, required=True); parser.add_argument("--out-dir", type=Path, required=True)
+    parser.add_argument("--plain-piv-checkpoint", type=Path)
     parser.add_argument("--batch-size", type=int, default=8)
     run(parser.parse_args())
 
