@@ -1,0 +1,9 @@
+{
+  "execution_commit": "7a862cc6c7ac3629244a9b3e90c404843714f5fa",
+  "required_base_commit": "28a235d9dacb60ab7f66297c73a2598bebe19c25",
+  "runner_status": "STOP_REVIEW_REQUIRED",
+  "rw01_started": false,
+  "rw_ctrl_remote_output": "/home/chyfuture/realpde_runs/rw01_shuffle_revalidation_20260907/output/RW-CTRL_random_phase0_shuffle",
+  "rw00_reference_remote_output": "/home/chyfuture/realpde_runs/rw00_rw01_random_phase_20260907_v8/output/RW-00_fixed",
+  "raw_log_sha256": "ee75724c352857f1f4fd46a6181727e4b2a1978b7a76e474c342d4e2a4d29cc9"
+}

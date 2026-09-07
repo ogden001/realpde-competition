@@ -23,3 +23,5 @@ Trajectory wins at the formal available point @3000: Rel-L2 `0/16`, TKE `0/16`, 
 Window audit: 50 trajectories × 12 epochs; phase counts are recorded in `RW-01_random_phase/window_audit_summary.json`; `invalid_window_count=0`, `non_stride20_count=0`, window counts per trajectory `12–42`.
 
 The requested trend cannot be assessed from this run. A replacement with a deterministic global shuffle after phase selection is required before review.
+
+The replacement control is recorded in [RW-01 shuffle revalidation](../rw01_shuffle_revalidation_20260907/README_FOR_CHATGPT.md). Its matched phase-0 control triggered `STOP_REVIEW_REQUIRED` on MVPE, so it did not proceed to a new RW-01 comparison.

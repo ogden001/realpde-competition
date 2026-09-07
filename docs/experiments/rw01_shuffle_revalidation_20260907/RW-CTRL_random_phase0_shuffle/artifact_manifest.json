@@ -1,0 +1,154 @@
+{
+  "checkpoints": [
+    {
+      "feature_config": {
+        "dt": null,
+        "dx": 0.003421663772314787,
+        "dy": -0.0034216642379760742,
+        "include_p0_a": true,
+        "include_p0_b": false,
+        "re_center": 0.0,
+        "re_scale": 1.0
+      },
+      "feature_set": "P0-A",
+      "iteration": 1000,
+      "loss_weights": {
+        "fluct": 0.0,
+        "mean": 0.0,
+        "mse": 1.0,
+        "mvpe": 0.009757,
+        "rel": 0.027514,
+        "tke": 0.05
+      },
+      "name": "model_latest.pth",
+      "optimizer_state": false,
+      "path": "/out/RW-CTRL_random_phase0_shuffle/model_latest.pth",
+      "run": null,
+      "sha256": "e3f419e8109843339b0b1744354b28ec2997fb46dedbcd0dbabefe4fd3faabca"
+    },
+    {
+      "feature_config": {
+        "dt": null,
+        "dx": 0.003421663772314787,
+        "dy": -0.0034216642379760742,
+        "include_p0_a": true,
+        "include_p0_b": false,
+        "re_center": 0.0,
+        "re_scale": 1.0
+      },
+      "feature_set": "P0-A",
+      "iteration": 0,
+      "loss_weights": {
+        "fluct": 0.0,
+        "mean": 0.0,
+        "mse": 1.0,
+        "mvpe": 0.009757,
+        "rel": 0.027514,
+        "tke": 0.05
+      },
+      "name": "model_update_00000.pth",
+      "optimizer_state": false,
+      "path": "/out/RW-CTRL_random_phase0_shuffle/model_update_00000.pth",
+      "run": null,
+      "sha256": "53fc9ca609e1a4fd688ea5861088bf0f50868e54f0aa5a3a622906c81a3d40c8"
+    },
+    {
+      "feature_config": {
+        "dt": null,
+        "dx": 0.003421663772314787,
+        "dy": -0.0034216642379760742,
+        "include_p0_a": true,
+        "include_p0_b": false,
+        "re_center": 0.0,
+        "re_scale": 1.0
+      },
+      "feature_set": "P0-A",
+      "iteration": 1000,
+      "loss_weights": {
+        "fluct": 0.0,
+        "mean": 0.0,
+        "mse": 1.0,
+        "mvpe": 0.009757,
+        "rel": 0.027514,
+        "tke": 0.05
+      },
+      "name": "model_update_01000.pth",
+      "optimizer_state": false,
+      "path": "/out/RW-CTRL_random_phase0_shuffle/model_update_01000.pth",
+      "run": null,
+      "sha256": "48202330643b58a492fafd24cc7880ff4529238512bd01d2b25adb513f5361da"
+    }
+  ],
+  "generated_at": 1788767654.981252,
+  "metadata": {
+    "batch_size": 8,
+    "checkpoint": "/home/chyfuture/RealPDE_data/baseline_checkpoints/sim_pretrain/sim_cno.pth",
+    "checkpoint_sha256": "af85374bfd06c0e386ec803d777396c21484978392213025697c5a7470106b6b",
+    "device": "cuda",
+    "eval_interval": 820,
+    "eval_updates": [
+      1000,
+      2000,
+      3000,
+      5000,
+      7500
+    ],
+    "feature_config": {
+      "dt": null,
+      "dx": 0.003421663772314787,
+      "dy": -0.0034216642379760742,
+      "include_p0_a": true,
+      "include_p0_b": false,
+      "re_center": 0.0,
+      "re_scale": 1.0
+    },
+    "feature_names": [
+      "u",
+      "v",
+      "p",
+      "velocity_magnitude",
+      "du_dx",
+      "du_dy",
+      "dv_dx",
+      "dv_dy",
+      "vorticity",
+      "abs_vorticity",
+      "strain_magnitude",
+      "delta_u",
+      "delta_v",
+      "u_history_mean",
+      "v_history_mean",
+      "u_history_std",
+      "v_history_std",
+      "u_fluctuation",
+      "v_fluctuation",
+      "history_tke_proxy"
+    ],
+    "kit_root": "/kit",
+    "kit_scorer_sha256": "a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39",
+    "loss_weights": {
+      "fluct": 0.0,
+      "mean": 0.0,
+      "mse": 1.0,
+      "mvpe": 0.009757,
+      "rel": 0.027514,
+      "tke": 0.05
+    },
+    "lr": 1e-05,
+    "manifest": "/home/chyfuture/RealPDE_data/id_seed20260901.json",
+    "manifest_sha256": "42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347",
+    "max_train_seconds": 21600.0,
+    "random_phase_forced_phase": 0,
+    "run": "B1_P0A_N2",
+    "seed": 20260901,
+    "start_time": 1788764185.127419,
+    "submission_compatibility": "P0-A only; no metadata required by predict(input_array, metadata={})",
+    "train_window_mode": "random_phase",
+    "updates": 1000,
+    "workers": 2
+  },
+  "resumable_checkpoints": [],
+  "run_dir": "/out/RW-CTRL_random_phase0_shuffle",
+  "schema_version": 1,
+  "status": {}
+}

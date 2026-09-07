@@ -1,0 +1,26 @@
+{
+  "control_metrics": {
+    "mvpe": 0.18156015872955322,
+    "rel_l2": 0.19692248106002808,
+    "tke": 0.6544645428657532
+  },
+  "gate": {
+    "degradation_percent": {
+      "mvpe": 8.901731624173026,
+      "rel_l2": -1.794405646788011,
+      "tke": -0.5379330435732577
+    },
+    "status": "STOP_REVIEW_REQUIRED",
+    "thresholds_percent": {
+      "mvpe": 5.0,
+      "rel_l2": 5.0,
+      "tke": 10.0
+    }
+  },
+  "reference_metrics": {
+    "mvpe": 0.1667192578315735,
+    "rel_l2": 0.20052063465118408,
+    "tke": 0.6580041646957397
+  },
+  "update": 1000
+}
