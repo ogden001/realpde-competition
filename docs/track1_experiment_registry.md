@@ -368,3 +368,11 @@ FE 结论：Temporal、SpatialPhysics、PixelPosition 都未通过同时保护 R
 - Frozen CLEAN protocol: 50 Train / 16 Dev manifest SHA `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`; P0-A, N2, stride 20, seed `20260901`, AdamW `1e-5`, batch `8`, workers `2`, Direct@1500 initialization, continuation `+1500` updates with absolute evaluations `2000/2500/3000`.
 - Ordered arms: C0 Direct control; T1 adds calibrated fixed Future20 velocity-increment MSE; T2 adds calibrated fixed interior `dv/dx-du/dy` MSE; T3 adds only a zero-initialized Future20 temporal residual mixer `Conv3d(2,16,(3,1,1)) → GELU → Conv3d(16,2,(3,1,1))`.
 - All arms preserve zero pressure, do not access locked-final, full-data, SPS or Codabench. Required evidence includes aggregate, horizon, trajectory, trajectory×horizon, window, temporal, training and runtime outputs, plus final Dev u/v predictions. Final status is `REVIEW_REQUIRED`; no research decision is implied.
+
+### `T1-ID-STRUCTURED-TEMPORAL-DYNAMICS-R1-S20260907` — COMPLETED / REVIEW_REQUIRED
+
+- All C0/T1/T2/T3 arms completed under the pre-registered frozen 50/16 protocol; locked-final, full-data, SPS and Codabench were not accessed. Execution commit `95965b3b0c8e3f124991de109ffa82bbdf2430dc`; manifest/scorer/shared Direct@1500 checkpoint SHA-256 values are recorded in the handoff.
+- Shared-GPU OOM recovery was task-authorized: micro-batch `2`, gradient accumulation `4`, effective batch `8`, evaluation batch `2`, CUDA allocator cap `12 GiB`. Peak reserved memory was C0/T1/T2/T3 `5.272/5.272/5.272/2.854 GB`; the first batch-8 attempt is excluded from evidence.
+- Fixed calibrated coefficients: T1 `lambda_delta=34.9553070068`; T2 `lambda_vort=21.3653831482`. C0/T1/T2 Direct initialization parity was exact; pressure was exact zero; T3 zero-init parity was exact and mixer output gradient was nonzero (`0.1028610542`).
+- Dev raw errors at absolute update 3000 (Rel-L2/TKE/MVPE): C0 `0.197545/0.633871/0.170807`; T1 `0.186753/0.654265/0.170106`; T2 `0.199202/0.630783/0.170158`; T3 `0.198035/0.634338/0.166572`. Full checkpoint curves and diagnostic CSVs are retained for Sol analysis; no interpretation is recorded here.
+- Evidence: `/home/chyfuture/realpde_runs/structured_temporal_dynamics_round1_20260907_lowmem/`; handoff `docs/coordination/CHATGPT_HANDOFF_STRUCTURED_TEMPORAL_DYNAMICS_R1.md`.
