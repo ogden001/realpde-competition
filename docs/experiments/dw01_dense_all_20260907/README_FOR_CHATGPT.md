@@ -1,6 +1,6 @@
 # DW-01 Dense-All Temporal Supervision
 
-Status: `REVIEW_REQUIRED`.
+Status: `KEEP / STRONG_SIGNAL` after ChatGPT / Sol framewise review.
 
 ## Frozen contract and provenance
 
@@ -40,21 +40,45 @@ The registered DW-01 checkpoints at 7,500/20,000/30,000 updates were replayed on
 | DW-01 @30k | 0.1100919 | 0.4793978 | 0.0808311 | PASS |
 | RW-00 fixed @7.5k | 0.1492184 | 0.5285975 | 0.1183250 | PASS |
 
-Window-horizon means (early h1–5 / mid h6–15 / late h16–20) show improvement from 7.5k to 30k: DW-01 frame Rel-L2 is 0.1183/0.1241/0.1787 at 7.5k and 0.0894/0.1008/0.1387 at 30k; late-horizon error remains dominant. Late temporal-energy ratio falls 2.27→1.43 and late probe error 0.2306→0.1988. These are diagnostics, not official per-frame leaderboard scores.
+Window-horizon means (early h1-5 / mid h6-15 / late h16-20) show improvement from 7.5k to 30k: DW-01 frame Rel-L2 is `0.1183 / 0.1241 / 0.1787` at 7.5k and `0.0894 / 0.1008 / 0.1387` at 30k. Relative improvement is about `24.5% / 18.8% / 22.4%`; the benefit is broad across the full horizon, not confined to the easy early frames.
 
-Artifacts: `by_horizon/by_horizon.csv` (20 rows per replay), `by_horizon/by_trajectory_horizon.csv` (trajectory × horizon), `by_horizon/summary.json`, and replay provenance metadata. **REVIEW_REQUIRED**: ChatGPT / Sol must perform final frame-by-frame review before any scientific KEEP/NO-GO decision.
+Matched at 7.5k, Dense-All vs RW-00 fixed improves mean frame Rel-L2 by about `6.6% / 6.6% / 4.0%` in early/mid/late buckets. Dense-All has lower frame Rel-L2 on `18/20` horizons, lower probe diagnostic on `19/20`, and lower TKE-contribution relative error on `18/20`. This is strong evidence that the Dense-All gain is not an aggregate-only artifact.
+
+The late-horizon failure is not a smooth monotonic drift. Error rises gradually through h18, then shows a sharp h19 spike, with h20 partially recovering. At 30k, h19 remains the worst frame: frame Rel-L2 `0.1705`, TKE-contribution relative error `2.0733`, energy ratio `2.4300`, probe diagnostic `0.2694`; h20 is materially lower at `0.1480 / 0.9611 / 1.2924 / 0.2117`. The same h19/h20 irregularity is present in earlier checkpoints and the RW-00 control. This points more toward late phase/amplitude mismatch or temporal event alignment than simple smooth error accumulation.
+
+Continued Dense-All training strongly suppresses the tail spike. From 7.5k to 30k, h19 frame Rel-L2 falls `0.2400 -> 0.1705`, h20 falls `0.2216 -> 0.1480`; late temporal-energy ratio mean falls `2.27 -> 1.43`, and late probe diagnostic mean falls `0.2306 -> 0.1988`. TKE diagnostics are not uniformly monotone at every frame: 30k improves TKE-contribution error on `17/20` horizons vs 7.5k, with regressions at h15/h17/h18. These are diagnostic decompositions, not official per-frame leaderboard scores.
+
+## ChatGPT / Sol final review
+
+**Decision: `KEEP / STRONG_SIGNAL`.**
+
+Established facts:
+- Dense-All expands real-PIV temporal supervision by `19.731x` without changing Dev protocol.
+- Matched same-`sim_pretrain` 7.5k evidence favors Dense-All on all three official aggregate errors and on the great majority of Future20 horizons.
+- Continued Dense-All training improves frame Rel-L2 on all `20/20` horizons from 7.5k to 30k; probe diagnostic improves on `19/20`; TKE-contribution diagnostic improves on `17/20`.
+- 30k reaches `0.110092 / 0.479399 / 0.080831` aggregate raw errors and reduces the late h19/h20 failure substantially.
+
+Remaining limits:
+- The historical long canonical run uses `sim_real_ft`, so it is not a strict long-run causal control for Dense-All.
+- Within DW-01, 20k to 30k improves Rel-L2 and MVPE on all 16 dev trajectories, but trajectory-level TKE improves on only `2/16` and worsens on `14/16`, despite aggregate TKE improving. This remains a robustness warning.
+- Therefore Dense-All is a validated training-strategy direction, but not yet `MERGE_WORTHY` for the expensive SOTA merge solely from DW-01.
+
+Next research question: test Dense-All as the single changed variable inside the current competition-oriented / SOTA validation family. If the gain survives there, the direction can be reconsidered for `MERGE_WORTHY`. The h19 tail anomaly is also a high-value mechanism target, but no new experiment is authorized automatically.
 
 ## What this run does and does not establish
 
 Within DW-01, 20k to 30k improved Rel-L2 and MVPE on all 16 dev trajectories. TKE improved on 2/16 and worsened on 14/16 trajectories, although aggregate TKE improved from `0.491995` to `0.479399`. This is a late-stage trade-off signal, not a claim of universal per-case TKE improvement; `trajectory_late_comparison.csv` contains every case.
 
-The only available long canonical curve is `T1-ID-P0A-N2-VALIDATION-30900-S20260903`. Its recorded initialization is `sim_real_ft/sim_real_cno.pth` (SHA `82e842...4f61`), while DW-01 is `sim_pretrain`; several other provenance fields are missing in that historical metadata. `closest_official_warm_start_comparison.csv` gives transparent nearest-update deltas, but every row is `INCOMPATIBLE_PROVENANCE`. It must not be interpreted as a matched causal estimate of Dense-All. A matched canonical control is a Sol decision, not automatically launched here.
+The only available long canonical curve is `T1-ID-P0A-N2-VALIDATION-30900-S20260903`. Its recorded initialization is `sim_real_ft/sim_real_cno.pth` (SHA `82e842...4f61`), while DW-01 is `sim_pretrain`; several other provenance fields are missing in that historical metadata. `closest_official_warm_start_comparison.csv` gives transparent nearest-update deltas, but every row is `INCOMPATIBLE_PROVENANCE`. It must not be interpreted as a matched causal estimate of Dense-All.
 
 ## Review package
 
 - `DW-01_Dense-All/summary.json` and `run_metadata.json`: raw aggregate metrics and immutable run provenance.
 - `DW-01_Dense-All/eval_*/trajectory_metrics.csv`: all 16 dev cases at every registered evaluation.
+- `by_horizon/by_horizon.csv`: 20 horizon rows per replay.
+- `by_horizon/by_trajectory_horizon.csv`: trajectory x horizon evidence.
+- `by_horizon/summary.json`: replay parity and provenance summary.
 - `DW-01_Dense-All/training.review.log` and `.meta.json`: deterministic full-copy review log; remote raw source was `/home/chyfuture/realpde_runs/dw01_dense_all_codex_20260907/outputs/DW-01_Dense-All.train.log`, SHA-256 `d7cff3388ee071fad535ebd8ba22803c247ec637ee516ee1bce8a8ce8bfd8060`.
 - `artifact_manifest.json`: hashes for Git review evidence. Checkpoints and full remote artifacts remain outside Git at `/home/chyfuture/realpde_runs/dw01_dense_all_codex_20260907/outputs/DW-01_Dense-All/`.
 
-`NEXT_ACTION = REVIEW_REQUIRED`. No KEEP/NO-GO conclusion or follow-on experiment is authorized by this package.
+`SOL_REVIEW = KEEP / STRONG_SIGNAL`. No follow-on experiment is authorized automatically.
