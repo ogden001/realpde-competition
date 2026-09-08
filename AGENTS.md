@@ -40,6 +40,33 @@ Codex / Luna-medium 负责明确任务的工程落地、环境适配、smoke tes
 
 提交前再次同步 `origin/main`。若 rebase 出现实质性冲突，停止并报告，不自行猜测解决。完成后 commit、push，并确认工作树干净；无法提交的文件必须明确报告。
 
+### GitHub 交付闭环
+
+正式实验的标准交付链路固定为：
+
+`Codex 实现/训练/评估/分析 → commit → push origin/main → ChatGPT/Sol 从 GitHub 读取证据并复核`
+
+因此：
+- 本地 commit、临时目录或仅聊天摘要都不算正式实验交付完成；
+- Codex 必须在同一任务会话中把可复核的代码、轻量结果、CSV/JSON/Markdown、review evidence commit 并 push 到 `origin/main`；
+- ChatGPT / Sol 默认只基于已经进入 GitHub `main` 的证据做最终科研结论，不要求用户代为搬运本地结果；
+- 大 checkpoint、原始大日志等仍按 artifact 规则留在远程计算环境，Git 只保存可审计的轻量证据和路径/哈希。
+
+凡预计进行长训练、长评估或较重分析，Codex 在启动前必须额外验证当前执行环境具有 GitHub 写权限。至少执行：
+
+```bash
+git fetch origin
+git pull --rebase origin main
+git push --dry-run origin HEAD:main
+```
+
+若 `git push --dry-run` 因认证、权限或 remote 配置失败：
+- 不启动新的长训练/长分析；
+- 先修复当前 Codex 执行环境的 GitHub authentication / remote 写权限，或停止并报告；
+- 不得把“任务做完后由用户手动 push”作为正常交付方案。
+
+已在运行中的历史任务若事后才发现认证失败，应先保护本地产物；但这属于异常恢复，不作为后续标准流程。
+
 ## 实验记录
 
 每个实质性实验都应记录到本方向 `README.md`，至少包含：
@@ -60,6 +87,8 @@ Codex / Luna-medium 负责明确任务的工程落地、环境适配、smoke tes
 ## 长时任务
 
 启动长时间 CPU/GPU 任务前，先完成实现与 smoke test，并明确实验配置、评估方法和分析输出。
+
+在启动 long runner 前，除实验与版本 preflight 外，还必须确认 `git push --dry-run origin HEAD:main` 成功；GitHub 写权限是长任务启动条件之一。
 
 以 detached 方式启动 Runner，记录主机、命令、日志、PID 和 artifact 路径。确认 `RUNNING` 后停止持续轮询，仅在后续得到明确请求时回收结果。
 
