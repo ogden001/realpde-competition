@@ -4,6 +4,8 @@
 
 训练策略先保证证据可比较：固定 split、seed、预算与 checkpoint 规则，只改变预注册变量；同时严格区分 Clean Offline Research 与 Official Warm-start / Competition。
 
+对所有正式 Future20 时序实验，overall 指标不再视为充分证据。凡结果用于 `KEEP / PROMISING / NO_GO / MERGE_WORTHY` 等科研判断，必须按 [Experiment By-Horizon / 逐帧分析协议](../EXPERIMENT_BY_HORIZON_PROTOCOL.md) 同时保留 overall、trajectory-level 与 `t+1...t+20` 的逐帧证据。逐帧 TKE / MVPE 只作为明确标注的机制拆解，不冒充 official 单帧分数。
+
 CFD / PIV Sim2Real 已完成两轮粗筛。当前不再把“重新做 CFD long pretraining”作为独立训练主线；官方 `sim_pretrain` 仍可作为现有 CLEAN 链路中的合法 initialization，但其 frozen representation 没有显示 PIV forecasting 增量。
 
 ## 2. 当前结论
@@ -15,19 +17,22 @@ CFD / PIV Sim2Real 已完成两轮粗筛。当前不再把“重新做 CFD long 
 | CFD representation transfer | 冻结 official `sim_pretrain` CNO，只训练同预算 tiny linear probe，与同架构 random frozen CNO 对照。 | CFD representation：Rel-L2 `0.9026` / TKE `32.0180` / MVPE `1.1509`；random control：`0.7680 / 13.0809 / 0.7800`，三项均更差。 | **STOP / PARKED** | [REP-01](../coordination/CHATGPT_HANDOFF_SIM2REAL_REP01.md) |
 | Clean CNO E0 | 通用 clean CNO E0 baseline 已登记但尚未完成。 | 仅 `PLANNED`，不得写成已有性能。 | REVIEW | [Registry](../track1_experiment_registry.md) |
 | P0-A + N2 长程 validation | `OFFICIAL_WARM_START` 50/16 validation 已从 10,300 延伸到 30,900 updates。10.3k 后仍持续改善，约 22k 后进入平台/振荡区，没有出现明确长期过拟合崩坏。 | 最优 Rel-L2 `0.112398@27880`；最优 TKE `0.492848@30340`；最优 MVPE `0.084671@26240`。`26240` 是当前 balanced dev candidate。 | REVIEW | [30.9k handoff](../coordination/CHATGPT_HANDOFF_P0A_N2_VALIDATION_30900.md) |
-| DW-01 Dense-All temporal supervision | 在 `sim_pretrain` P0-A+N2 上，仅将 50-train temporal pool 从 fixed stride-20 改为所有合法 starts；dev 固定协议不变。 | 40,488 windows（vs 2,052 canonical；`19.731x`），30k final raw: Rel-L2 `0.110092` / TKE `0.479399` / MVPE `0.080831`。历史 30.9k canonical 使用 `sim_real_ft`，不能作为 matched 因果对照。 | REVIEW_REQUIRED | [DW-01 review](../experiments/dw01_dense_all_20260907/README_FOR_CHATGPT.md) |
+| DW-01 Dense-All temporal supervision | 在 `sim_pretrain` P0-A+N2 上，仅将 50-train temporal pool 从 fixed stride-20 改为所有合法 starts；dev 固定协议不变。 | 40,488 windows（vs 2,052 canonical；`19.731x`），30k final raw: Rel-L2 `0.110092` / TKE `0.479399` / MVPE `0.080831`。与同 `sim_pretrain` RW-00 fixed 的 matched 7.5k 对照三项均改善；long historical canonical 为 `sim_real_ft`，不能作为严格因果对照。当前先判为强正信号，逐帧证据待补。 | **PROMISING / STRONG_SIGNAL** | [DW-01 review](../experiments/dw01_dense_all_20260907/README_FOR_CHATGPT.md) |
 | 长训练门槛 | 高成本训练前需实现、smoke test、登记 protocol；未经明确授权不访问 locked final/Codabench。 | 当前没有必要自动继续到 40k/50k；也不启动 long CFD pretraining、raw CFD/PIV mixed curriculum 或 teacher/student Campaign。 | KEEP | [STATUS](../coordination/STATUS.md) |
 
 ## 3. TODO
 
 | 技术方向 | 内容概要 | 优先级 |
 |---|---|---|
+| DW-01 逐帧复核 | 使用现有 checkpoint 做 prediction-only replay，补 `t+1...t+20` Frame Rel-L2 / RMSE / TKE contribution / MVPE-probe diagnostic；不重新训练。至少分析 7.5k、20k、30k，并在资产可用时加入 matched RW-00 fixed@7.5k。 | P0 |
 | Late-checkpoint 选择 | 后续若研究提交/SPS，优先比较现有 `26240 / 27880 / 30340` checkpoints；不要仅按单一 dev 指标或自定义 final proxy 选模。 | P0 |
 | 下一轮训练 | 仅执行 ChatGPT/Sol 明确授权、带 baseline family 和资源边界的单一任务；当前不自动延长训练预算。 | P1 |
 | CFD / Sim2Real | 当前状态 `WEAK_SIGNAL / PARKED`。除非出现可靠 CFD→PIV calibration、明确 OOD failure linkage 或新的低风险利用机制，否则不启动新的 CFD 训练 Campaign。 | PARKED |
 
 ## 4. 相关文档
 
+- [Experiment By-Horizon / 逐帧分析协议](../EXPERIMENT_BY_HORIZON_PROTOCOL.md)
+- [DW-01 Dense-All review](../experiments/dw01_dense_all_20260907/README_FOR_CHATGPT.md)
 - [Sim2Real / CFD 利用概要](../sim2real/sim2real概要.md)
 - [Official Sim2Real Recipe Audit](../coordination/CHATGPT_HANDOFF_SIM2REAL_OFFICIAL_RECIPE.md)
 - [REP-01](../coordination/CHATGPT_HANDOFF_SIM2REAL_REP01.md)
