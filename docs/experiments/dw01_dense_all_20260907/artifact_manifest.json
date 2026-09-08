@@ -17,6 +17,12 @@
     "update_curve_csv_sha256": "d39c06e5147fb75c051ad8600a4ccd8c8e98b8006a36b0470536db2f0a71d9df",
     "closest_comparison_csv_sha256": "bc33eff53f51010e2254f647cb7c48b9f57c1f1bd1ba0c738d75608b71812397",
     "trajectory_late_comparison_csv_sha256": "4d64cc77e22d446797b679daeda70137f3059a078e61c9a63064331433a895ed"
+    ,"by_horizon_summary_json_sha256": "e45268fd36cac97e2e457b0bdb98f2fff951365bf2fca4168e115ce78dcea389"
+    ,"by_horizon_csv_sha256": "f25eac1070dbebf8299b43b705fbf70fdfec70739be699141a22ea23627704da"
+    ,"by_trajectory_horizon_csv_sha256": "deb64593e4cb7624946dc8967fa49f1b283b6a26f6793706bba6499442882e06"
+    ,"by_horizon_replay_metadata_sha256": "644b839afd1cf907b3ca1835f80d235650943a78d033050ca7eb1eac356cb3e9"
+    ,"by_horizon_aggregate_metrics_sha256": "366f08767cd9e8cad8e71ac50af6625738543bc8063080cf27cf733196f89005"
+    ,"by_horizon_inventory_csv_sha256": "069564cd283a1a88e60ae52f9287e03619816f97618b70a36957aa97f778c1ad"
   },
   "trajectory_metric_csv_sha256_by_update": {
     "3000": "64295d6b4b6a0268ea0c7257b5a1f9f45171640dd53b2e7add8da6fe128b2aa6",

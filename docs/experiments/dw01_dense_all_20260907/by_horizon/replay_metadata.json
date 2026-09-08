@@ -1,0 +1,11 @@
+{
+  "checkpoint_count": 4,
+  "dev_trajectories": 16,
+  "dev_windows": 659,
+  "device": "cuda",
+  "execution_commit": "8c9065b48670876bf3794e3910c5074f985b8c0d",
+  "kit_scorer_sha256": "a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39",
+  "manifest_sha256": "42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347",
+  "prediction_only": true,
+  "replay_count": 4
+}

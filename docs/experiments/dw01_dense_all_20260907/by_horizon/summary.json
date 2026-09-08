@@ -1,0 +1,54 @@
+{
+  "dev_trajectories": 16,
+  "dev_windows": 659,
+  "experiments": [
+    {
+      "experiment": "DW-01_Dense-All@07500",
+      "mvpe": 0.10407251119613647,
+      "parity_status": "PASS",
+      "rel_l2": 0.14106130599975586,
+      "tke": 0.5188255310058594,
+      "trajectories": 16,
+      "update": 7500,
+      "windows": 659
+    },
+    {
+      "experiment": "DW-01_Dense-All@20000",
+      "mvpe": 0.09001792967319489,
+      "parity_status": "PASS",
+      "rel_l2": 0.12038293480873108,
+      "tke": 0.49199366569519043,
+      "trajectories": 16,
+      "update": 20000,
+      "windows": 659
+    },
+    {
+      "experiment": "DW-01_Dense-All@30000",
+      "mvpe": 0.08083108812570572,
+      "parity_status": "PASS",
+      "rel_l2": 0.1100919097661972,
+      "tke": 0.47939780354499817,
+      "trajectories": 16,
+      "update": 30000,
+      "windows": 659
+    },
+    {
+      "experiment": "RW-00_fixed@07500",
+      "mvpe": 0.11832495033740997,
+      "parity_status": "PASS",
+      "rel_l2": 0.14921842515468597,
+      "tke": 0.5285975337028503,
+      "trajectories": 16,
+      "update": 7500,
+      "windows": 659
+    }
+  ],
+  "horizons": 20,
+  "prediction_only": true,
+  "provenance": {
+    "execution_commit": "8c9065b48670876bf3794e3910c5074f985b8c0d",
+    "kit_scorer_sha256": "a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39",
+    "manifest_sha256": "42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347"
+  },
+  "status": "PASS"
+}

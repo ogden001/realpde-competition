@@ -29,6 +29,21 @@ Canonical train pool was 2,052 windows. Dense-All was 40,488 windows (`19.730994
 
 The run completed all 30,000 updates normally (`stop_reason=max_updates`) in 25,122.65 optimizer-active seconds. `update_curve.csv` is the machine-readable curve.
 
+## Future20 prediction-only by-horizon replay (2026-09-08)
+
+The registered DW-01 checkpoints at 7,500/20,000/30,000 updates were replayed on the frozen 50/16 manifest with fixed-start, stride-20 Future20 windows (659 windows, 16 trajectories). A matched RW-00 fixed@7,500 replay is included as an A/B reference. No training, locked-final data, Codabench, or checkpoint modification was used. Per-frame Rel-L2/RMSE, temporal-energy diagnostics, and the official v9 probe-geometry diagnostic are in `by_horizon/`.
+
+| Replay | Rel-L2 | TKE | MVPE | Parity |
+|---|---:|---:|---:|---|
+| DW-01 @7.5k | 0.1410613 | 0.5188255 | 0.1040725 | PASS |
+| DW-01 @20k | 0.1203829 | 0.4919937 | 0.0900179 | PASS |
+| DW-01 @30k | 0.1100919 | 0.4793978 | 0.0808311 | PASS |
+| RW-00 fixed @7.5k | 0.1492184 | 0.5285975 | 0.1183250 | PASS |
+
+Window-horizon means (early h1–5 / mid h6–15 / late h16–20) show improvement from 7.5k to 30k: DW-01 frame Rel-L2 is 0.1183/0.1241/0.1787 at 7.5k and 0.0894/0.1008/0.1387 at 30k; late-horizon error remains dominant. Late temporal-energy ratio falls 2.27→1.43 and late probe error 0.2306→0.1988. These are diagnostics, not official per-frame leaderboard scores.
+
+Artifacts: `by_horizon/by_horizon.csv` (20 rows per replay), `by_horizon/by_trajectory_horizon.csv` (trajectory × horizon), `by_horizon/summary.json`, and replay provenance metadata. **REVIEW_REQUIRED**: ChatGPT / Sol must perform final frame-by-frame review before any scientific KEEP/NO-GO decision.
+
 ## What this run does and does not establish
 
 Within DW-01, 20k to 30k improved Rel-L2 and MVPE on all 16 dev trajectories. TKE improved on 2/16 and worsened on 14/16 trajectories, although aggregate TKE improved from `0.491995` to `0.479399`. This is a late-stage trade-off signal, not a claim of universal per-case TKE improvement; `trajectory_late_comparison.csv` contains every case.

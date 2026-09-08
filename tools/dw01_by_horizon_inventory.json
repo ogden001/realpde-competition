@@ -1,0 +1,6 @@
+[
+  {"experiment":"DW-01_Dense-All@07500","update":7500,"checkpoint_relative":"dw01_dense_all_codex_20260907/outputs/DW-01_Dense-All/model_update_07500.pth","checkpoint_sha256":"e778bf50b05873e0ab425ddf35c2c1e97e11d36982c1ade44900b1e823c471a0","parity_summary_relative":"docs/experiments/dw01_dense_all_20260907/DW-01_Dense-All/summary.json"},
+  {"experiment":"DW-01_Dense-All@20000","update":20000,"checkpoint_relative":"dw01_dense_all_codex_20260907/outputs/DW-01_Dense-All/model_update_20000.pth","checkpoint_sha256":"31fda4aa223db816f850dc9088018b36043913bf24c0abd254210ac728471c09","parity_summary_relative":"docs/experiments/dw01_dense_all_20260907/DW-01_Dense-All/summary.json"},
+  {"experiment":"DW-01_Dense-All@30000","update":30000,"checkpoint_relative":"dw01_dense_all_codex_20260907/outputs/DW-01_Dense-All/model_update_30000.pth","checkpoint_sha256":"91331ebd0197eb5090d7eddfab92a7be48aac236655498ba95bd36d4dcf58b3c","parity_summary_relative":"docs/experiments/dw01_dense_all_20260907/DW-01_Dense-All/summary.json"},
+  {"experiment":"RW-00_fixed@07500","update":7500,"checkpoint_relative":"rw00_rw01_random_phase_20260907_v8/output/RW-00_fixed/model_update_07500.pth","checkpoint_sha256":"d18009c0efb48cabfd27f833e9ae927aa9bcd8e9e9cbdace6f4d14b766b76e49","parity_summary_relative":"docs/experiments/rw00_rw01_random_phase_20260907/RW-00_fixed/summary.json"}
+]
