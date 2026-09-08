@@ -1,25 +1,20 @@
 # NEXT_ACTION
 
 ## Goal
-补齐 DW-01 Dense-All 的 Future20 逐帧 / By-Horizon 证据；只做 prediction-only replay，不重新训练。
+DW-01 逐帧复核已完成。当前不自动执行新的 Training 实验。
 
 ## Tasks
-1. 读取 `docs/EXPERIMENT_BY_HORIZON_PROTOCOL.md`，在现有评估管线最小实现通用 by-horizon analyzer，并用 TDD 验证 20-horizon、perfect-prediction、trajectory aggregation 和 probe geometry。
-2. 固定原 50 Train / 16 Dev manifest、P0-A、N2、official v9 scorer，重放 DW-01 `7.5k / 20k / 30k` checkpoints；aggregate replay 必须与原 summary 做 parity check。
-3. 若能从 artifact manifest 唯一解析同 `sim_pretrain` RW-00 fixed@7.5k checkpoint，则加入 matched 7.5k by-horizon A/B；若资产不存在，只记录缺失，不替代 checkpoint。
-4. 输出并解释 early / middle / late horizon：Frame Rel-L2、Frame RMSE、TKE contribution relative error / ratio、MVPE-probe diagnostic，以及 trajectory × horizon 数据。
-5. 更新 DW-01 README，commit + push evidence 到 `main`，状态 `REVIEW_REQUIRED`。
+1. 保持 DW-01 状态为 `KEEP / STRONG_SIGNAL`。
+2. 等待 ChatGPT/Sol 明确授权下一轮实验。
+3. 下一候选高信息增益方向是：在 current competition-oriented / SOTA validation family 中，仅将 train window pool 替换为 Dense-All，做 matched A/B。
 
 ## Constraints
-- `REQUIRED_BASE_COMMIT = f5043847bdc2b8617c3caf33c8040e18e97f501b`。
-- 不训练、不 continuation、不改模型 / Loss / Feature / split / scorer / checkpoint。
-- Dev 始终 `start=0,stride=20`；不访问 locked-final / Codabench / full-data。
-- TKE / MVPE 的逐帧量只标记为 diagnostic decomposition，不称为 official per-frame score。
+- 未经新授权，不启动训练、continuation、full-data、locked-final 或 Codabench。
+- 不把历史 `sim_real_ft` canonical long run 当作 Dense-All 的严格因果对照。
+- h19 late-tail anomaly 记录为机制问题，不自动扩展成新实验。
 
 ## Deliverables
-- `by_horizon.csv`、`by_trajectory_horizon.csv`、`summary.json`，可选 `by_horizon.png`。
-- replay parity、checkpoint / manifest / scorer SHA、tests / compile 结果。
-- DW-01 README 的逐帧结论与 `REVIEW_REQUIRED` handoff。
+- 无。等待下一份 Sol 授权任务。
 
 ## Stop
-完成 DW-01 逐帧 replay、分析、commit + push 后停止；不要设计或启动下一实验。
+保持 STOP，直到 ChatGPT/Sol 给出新的 `IMPLEMENT_AND_EXECUTE_AUTHORIZED` 或 `READY_FOR_EXECUTION`。
