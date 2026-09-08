@@ -18,7 +18,7 @@
 - 做必要的仓库 / 环境适配；
 - unit test / TDD / smoke test；
 - 启动训练、评估和分析；
-- 记录实验事实、结果和 commit。
+- 记录实验事实、结果并完成 commit + push 到远端 `main`。
 
 Codex 可以写实验代码，但不承担开放式研究规划，不自行改变实验含义，不自行扩大实验范围，不自行设计下一轮实验。
 
@@ -83,10 +83,38 @@ ChatGPT 和 Codex 默认都直接与 `main` 同步：
 - Codex 完成任务后 commit 并 push 到 `main`；
 - 除非用户明确要求，不创建 branch。
 
+### GitHub 交付闭环
+
+正式实验的标准研发闭环固定为：
+
+`ChatGPT/Sol 冻结实验语义 → Codex 实现/训练/评估/分析 → Codex commit + push origin/main → ChatGPT/Sol 从 GitHub 拉取证据复核`
+
+规则：
+- 本地 commit、临时 clone、临时目录或聊天中的结果摘要，都不算正式交付完成；
+- Codex 应在同一任务会话中将本实验相关代码、轻量 CSV/JSON/Markdown、review evidence、README/handoff 等 commit 并 push 到 `origin/main`；
+- ChatGPT / Sol 默认从 GitHub `main` 读取实验证据后做最终科研判断，不把“由用户手动 push 本地结果”当作正常流程；
+- 大 checkpoint、raw full log、大 prediction artifact 仍留在计算环境，Git 中记录轻量证据、路径、SHA 和必要摘要。
+
+GitHub authentication 属于 Codex 执行环境的基础能力。对于预计进行长训练、长评估或较重分析的任务，必须在消耗主要算力之前验证远端写权限：
+
+```bash
+git fetch origin
+git pull --rebase origin main
+git push --dry-run origin HEAD:main
+```
+
+若 `git push --dry-run` 因认证、权限或 remote 配置失败：
+- 不启动新的长训练 / 长分析；
+- 先修复当前 Codex 执行环境的 GitHub 写权限，或停止并报告；
+- 不得把“任务完成后让用户手动 push”作为预期交付方案。
+
+对于已经完成计算才暴露认证故障的历史任务，应优先保护本地产物并迁移 commit；这属于异常恢复，不是标准研发路径。
+
 任务开始前，Codex 应：
 1. 确认当前工作区没有未知未提交改动；
 2. 执行 `git pull --rebase origin main`；
-3. 再开始本方向任务。
+3. 对长训练 / 长分析任务执行 `git push --dry-run origin HEAD:main` 验证写权限；
+4. 再开始本方向任务。
 
 遇到未知未提交改动，不得擅自 stash、reset、restore、clean 或覆盖，应先报告。
 
@@ -140,6 +168,12 @@ git rev-parse HEAD
 git rev-parse origin/main
 ```
 
+对长训练 / 长分析任务还必须执行：
+
+```bash
+git push --dry-run origin HEAD:main
+```
+
 模式 A 还必须执行：
 
 ```bash
@@ -155,12 +189,23 @@ git merge-base --is-ancestor "$REQUIRED_BASE_COMMIT" HEAD
 启动条件：
 - `HEAD == origin/main`；
 - required commit / base commit（若有）是当前 `HEAD` 的祖先；
+- 长任务的 `git push --dry-run origin HEAD:main` 成功；
 - runtime snapshot / preflight / tests / smoke 满足本任务要求；
 - 实验契约没有发生未经授权的变化。
 
 任一条件不满足，停止并报告，不启动 GPU 长任务。
 
 实验 handoff 必须记录**实际执行 commit SHA**。运行中的任务不因 `main` 后续出现与该任务无关的新 commit 而自动停止或切换代码；是否需要重启由 ChatGPT / Sol 根据 diff 决定。
+
+实验结束后，Codex 必须完成：
+1. 更新本方向实验事实与必要 review evidence；
+2. commit；
+3. 同步最新 `origin/main`，处理无语义冲突的正常 rebase；
+4. push 到 `origin/main`；
+5. 验证远端 `main` 已包含结果 commit；
+6. 再向用户返回 `REVIEW_REQUIRED` / handoff。
+
+若结果 commit 尚未进入远端 `main`，不得把任务表述为“已完成交付”。
 
 ## 3. 优化方向文档
 
@@ -422,13 +467,14 @@ python tools/realpde_runtime_context.py resolve \
 - 评估方法已固定；
 - 分析输出已定义；
 - runtime snapshot 已覆盖关键远程事实；
-- unit / invariant / smoke test 已通过。
+- unit / invariant / smoke test 已通过；
+- `git push --dry-run origin HEAD:main` 已验证当前 Codex 环境具备 GitHub 写权限。
 
 对于已经明确 `IMPLEMENT_AND_EXECUTE_AUTHORIZED` 的 bounded 无人值守任务，只要实现没有语义漂移、测试 / preflight 通过、版本锁定条件成立，Codex 可以按预授权直接启动，不需要等待用户再次确认。
 
 Codex 启动长时任务后，只需记录命令、日志、PID、artifact 路径和 `RUNNING` 状态，不持续轮询，除非用户明确要求。
 
-长时任务完成后，应确保 `artifact_manifest.json` 已生成，并在 handoff 中记录 resumable checkpoint 清单。
+长时任务完成后，应确保 `artifact_manifest.json` 已生成，并在 handoff 中记录 resumable checkpoint 清单；同时把可复核的轻量实验结果 commit + push 到 `origin/main`，之后才算完成交付。
 
 ## 8. 决策边界
 
@@ -466,6 +512,8 @@ Codex 不应自主决定：
 **远程环境事实先盘点，再设计依赖这些事实的实验；长任务结束后留下可机器读取的 artifact manifest。**
 
 **实验先冻结语义，再决定由谁写代码；代码作者不是研究决策者。**
+
+**Codex 正式实验必须完成“执行 → 证据 → commit → push main”的 GitHub 交付闭环；ChatGPT / Sol 再从 GitHub 拉取证据复核，不把用户手动 push 当作正常步骤。**
 
 **Codex / Luna-medium 优先交付过程证据和可审计实现，不以其总结标签替代科研结论；重要实验由 ChatGPT / Sol 基于 Git 中的证据和关键实现完成最终复核。**
 
