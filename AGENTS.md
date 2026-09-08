@@ -51,6 +51,8 @@ Codex / Luna-medium 负责明确任务的工程落地、环境适配、smoke tes
 
 失败实验同样记录，避免重复试错。
 
+对于 Future-K / Future20 等多步时序预测，凡结果用于正式科研判断，都必须按 `docs/EXPERIMENT_BY_HORIZON_PROTOCOL.md` 补齐逐帧 / By-Horizon 分析。至少保留 overall、trajectory-level 和 `t+1...t+K` 三层证据；不得仅凭 Future20 汇总指标做最终结论。
+
 `docs/track1_experiment_registry.md`、`docs/realpde整体优化概要.md` 等共享文档用于跨方向汇总，不要求每个并行实验都即时修改。只有任务明确要求或形成稳定跨方向结论时再更新。
 
 不得将数据集、checkpoint、凭证、绝对私有路径或生成的 submission archive 写入 Git。
