@@ -1,0 +1,25 @@
+{
+  "epoch_count": 6,
+  "epochs": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "invalid_window_count": 0,
+  "max_window_count_per_trajectory": 829,
+  "min_window_count_per_trajectory": 243,
+  "non_stride20_count": 300,
+  "seed": 20260901,
+  "trajectory_count": 50,
+  "windows_per_epoch": {
+    "0": 40488,
+    "1": 40488,
+    "2": 40488,
+    "3": 40488,
+    "4": 40488,
+    "5": 40488
+  }
+}

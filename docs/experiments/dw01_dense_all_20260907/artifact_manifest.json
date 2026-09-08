@@ -1,0 +1,31 @@
+{
+  "experiment": "DW-01 Dense-All",
+  "status": "REVIEW_REQUIRED",
+  "execution_commit": "bc4fc7a14d611c30799f613148e8b1a3ba28dbfa",
+  "remote_artifact_root": "/home/chyfuture/realpde_runs/dw01_dense_all_codex_20260907/outputs/DW-01_Dense-All",
+  "raw_log": {
+    "remote_path": "/home/chyfuture/realpde_runs/dw01_dense_all_codex_20260907/outputs/DW-01_Dense-All.train.log",
+    "sha256": "d7cff3388ee071fad535ebd8ba22803c247ec637ee516ee1bce8a8ce8bfd8060",
+    "line_count": 10,
+    "size_bytes": 2950
+  },
+  "git_evidence": {
+    "summary_json_sha256": "d655bea1ee2a6e53cc7906c773afac51d6969e65dea98d7e32b190c9dd892cd8",
+    "run_metadata_json_sha256": "77b397f828928a0dfa6f07ec20b7d975554370205f4ac51cb850d740c1e4f51f",
+    "window_audit_summary_json_sha256": "9a993dc6a4ee2a652c000ad3af3408f90c66a4a6fc95abe4aa12e608fd51c64c",
+    "review_log_sha256": "d7cff3388ee071fad535ebd8ba22803c247ec637ee516ee1bce8a8ce8bfd8060",
+    "update_curve_csv_sha256": "d39c06e5147fb75c051ad8600a4ccd8c8e98b8006a36b0470536db2f0a71d9df",
+    "closest_comparison_csv_sha256": "bc33eff53f51010e2254f647cb7c48b9f57c1f1bd1ba0c738d75608b71812397",
+    "trajectory_late_comparison_csv_sha256": "4d64cc77e22d446797b679daeda70137f3059a078e61c9a63064331433a895ed"
+  },
+  "trajectory_metric_csv_sha256_by_update": {
+    "3000": "64295d6b4b6a0268ea0c7257b5a1f9f45171640dd53b2e7add8da6fe128b2aa6",
+    "5000": "9328458aab1c500417f14a1bed8149e7e5569dc38de40ef1898f5e945ae5c225",
+    "7500": "7d74bc917cef91818b35455aa1540e899cc34b833501769e6895af281848c715",
+    "10000": "0aa6e8823ed0d30dd08712faaf36b0ec947f43d04387785985cadc42c467be08",
+    "15000": "62a265dd335c8aee3eedcef379bf1ede3eb748c1bea49e1f8f802b408eff7287",
+    "20000": "10297b38a591132924f4ed5a993838862b41851b6fc91d57e00713f9f39f53f8",
+    "25000": "4fb5a05b0efcce675aa0f5fd83b450c322190e16089dca061c184b4c3c451b82",
+    "30000": "9d2a2e1001b6c072b5962932535c401e81e1d8eff120c30bc64db5dfda3d335b"
+  }
+}
