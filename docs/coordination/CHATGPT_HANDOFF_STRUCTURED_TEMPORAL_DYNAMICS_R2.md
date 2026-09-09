@@ -106,4 +106,4 @@ Percentages are relative to C0; blank TKE means the R1 single-frame horizon diag
 
 ## 9. Commit SHA
 
-`8a05bdc2297b39c4f2bc2ce26fab207e8aa0aef2`
+`9deb41edd07259cc3c290e1ce640517a7b437088` (implementation commit; handoff update follows in the next commit)
