@@ -70,3 +70,36 @@ def test_write_rows_accepts_metrics_with_late_added_columns(tmp_path):
     rows = list(csv.DictReader(output.open()))
     assert rows[0]["inference_time"] == ""
     assert rows[1]["inference_time"] == "0.01"
+
+
+def test_latent_temporal_conv_is_time_only_and_zero_init_preserves_prediction():
+    from realpde_structured_temporal_dynamics_r2 import LatentTemporalConv
+
+    torch.manual_seed(3)
+    z = torch.randn(2, 12, 20, 4, 5)
+    module = LatentTemporalConv(12, 8)
+    assert module.input.kernel_size == (3, 1, 1)
+    assert module.output.kernel_size == (3, 1, 1)
+    assert torch.equal(module(z), z)
+    module(z).square().mean().backward()
+    assert torch.count_nonzero(module.output.weight.grad).item() > 0
+
+
+def test_latent_attention_is_future20_only_and_zero_init_preserves_prediction():
+    from realpde_structured_temporal_dynamics_r2 import LatentTemporalAttention
+
+    torch.manual_seed(4)
+    z = torch.randn(1, 8, 20, 2, 3)
+    module = LatentTemporalAttention(8, 4)
+    assert module.attention.num_heads == 4
+    assert torch.equal(module(z), z)
+    module(z).square().mean().backward()
+    assert torch.count_nonzero(module.output.weight.grad).item() > 0
+
+
+def test_r2_rejects_accumulation_and_nonphysical_batch():
+    from realpde_structured_temporal_dynamics_r2 import validate_r2_protocol
+    import pytest
+
+    validate_r2_protocol(8, 1)
+    with pytest.raises(ValueError): validate_r2_protocol(2, 4)
