@@ -135,3 +135,69 @@ def test_long_final_gate_uses_registered_late_thresholds_only():
     assert gate["median_checks"]["median_rel_improvement_ge_2pct"]
     assert gate["median_checks"]["median_mvpe_improvement_ge_4pct"]
     assert not gate["at_least_two_late_checkpoints_pass"]
+
+
+def test_lowmem_protocol_requires_one_matched_effective_batch_and_cap():
+    from realpde_vorticity_lowmem_final import validate_lowmem_protocol
+
+    config = validate_lowmem_protocol(
+        micro_batch=4,
+        accumulation_steps=2,
+        effective_batch=8,
+        memory_cap_gib=12.0,
+        seed=20260901,
+        lr=1e-5,
+        start_update=3000,
+        final_update=12000,
+        lambda_vort=15.5385751724,
+        arm="V1",
+    )
+    assert config["effective_batch"] == 8
+    assert config["micro_batch"] == 4
+    assert config["accumulation_steps"] == 2
+
+    with pytest.raises(ValueError):
+        validate_lowmem_protocol(
+            micro_batch=4, accumulation_steps=1, effective_batch=8,
+            memory_cap_gib=12.0, seed=20260901, lr=1e-5,
+            start_update=3000, final_update=12000,
+            lambda_vort=15.5385751724, arm="V1",
+        )
+
+
+def test_old_task_filter_excludes_shared_unrelated_processes():
+    from realpde_vorticity_lowmem_final import is_owned_old_vorticity_command
+
+    assert is_owned_old_vorticity_command(
+        "python realpde_vorticity_long_final.py --arm V1 --out-dir /runs/vorticity_long_final_20260914/V1-LONG"
+    )
+    assert not is_owned_old_vorticity_command(
+        "python /runs/strict/residual_multi.py --batch-size 8 --out-dir /runs/residual_all81_20260915"
+    )
+
+
+def test_lowmem_gate_uses_6000_9000_12000_only():
+    from realpde_vorticity_lowmem_final_summary import compute_gate
+
+    rows = [
+        {"update": str(update), "rel_l2_improvement_pct": str(rel),
+         "tke_improvement_pct": str(tke), "mvpe_improvement_pct": str(mvpe)}
+        for update, rel, tke, mvpe in (
+            (3000, -20.0, -20.0, -20.0),
+            (4500, -20.0, -20.0, -20.0),
+            (6000, 2.0, -0.5, 4.0),
+            (9000, 3.0, 0.0, 6.0),
+            (12000, 1.0, 0.0, 5.0),
+        )
+    ]
+    gate = compute_gate(rows)
+    assert gate["FINAL_GATE"] == "MERGE_CANDIDATE"
+    assert gate["late_updates"] == [6000, 9000, 12000]
+
+
+def test_lowmem_replay_creates_arm_output_directory(tmp_path):
+    from realpde_vorticity_lowmem_final_replay import arm_output_dir
+
+    output = arm_output_dir(tmp_path, "C0")
+    assert output == tmp_path / "C0"
+    assert output.is_dir()
