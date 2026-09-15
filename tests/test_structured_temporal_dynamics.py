@@ -3,6 +3,7 @@ from pathlib import Path
 
 import csv
 
+import pytest
 import torch
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "tools"))
@@ -103,3 +104,34 @@ def test_r2_rejects_accumulation_and_nonphysical_batch():
 
     validate_r2_protocol(8, 1)
     with pytest.raises(ValueError): validate_r2_protocol(2, 4)
+
+
+def test_long_final_protocol_is_frozen_and_v1_lambda_is_exact():
+    from realpde_vorticity_long_final import FIXED_LAMBDA_VORT, validate_long_protocol
+
+    validate_long_protocol(arm="V1", batch_size=8, accumulation_steps=1, seed=20260901,
+                           lr=1e-5, start_update=3000, final_update=15000,
+                           lambda_vort=FIXED_LAMBDA_VORT)
+    with pytest.raises(ValueError):
+        validate_long_protocol(arm="V1", batch_size=2, accumulation_steps=4, seed=20260901,
+                               lr=1e-5, start_update=3000, final_update=15000,
+                               lambda_vort=FIXED_LAMBDA_VORT)
+    with pytest.raises(ValueError):
+        validate_long_protocol(arm="V1", batch_size=8, accumulation_steps=1, seed=20260901,
+                               lr=1e-5, start_update=3000, final_update=15000,
+                               lambda_vort=15.5)
+
+
+def test_long_final_gate_uses_registered_late_thresholds_only():
+    from realpde_vorticity_long_final_summary import compute_gate
+
+    rows = [
+        {"update": str(update), "rel_l2_improvement_pct": str(value),
+         "tke_improvement_pct": str(tke), "mvpe_improvement_pct": str(mvpe)}
+        for update, value, tke, mvpe in ((9000, 2.0, -2.0, 4.0), (12000, 3.0, 0.0, 6.0), (15000, 1.0, 0.0, -2.0))
+    ]
+    gate = compute_gate(rows)
+    assert gate["FINAL_GATE"] == "PARK"
+    assert gate["median_checks"]["median_rel_improvement_ge_2pct"]
+    assert gate["median_checks"]["median_mvpe_improvement_ge_4pct"]
+    assert not gate["at_least_two_late_checkpoints_pass"]
