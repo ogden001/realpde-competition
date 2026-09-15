@@ -21,6 +21,7 @@
 | MF Energy Campaign 02 | Scorer-aligned TKE、RMS、high-energy weighting、frozen conditional/spatial gain。 | E5 有 `15/16` TKE wins 但损伤 MVPE；E4 弱；E6 损伤 MVPE 与 high-energy cases；E7/E8 gain 近 identity。 | NO-GO / REVIEW | [Campaign02 handoff](../coordination/CHATGPT_HANDOFF_MF_ENERGY_CAMPAIGN02.md) |
 | MF Campaign02 Full Evidence Review | Cross-experiment replay of MF@1500→C0@3000 and E4–E8。 | C0 长训收益主要来自 Mean convergence；E5 的 TKE 信号实质存在但不 MVPE-safe；E6 high-energy weighting 失败。 | REVIEW | [Full evidence review](../coordination/CHATGPT_HANDOFF_MF_CAMPAIGN02_FULL_EVIDENCE_REVIEW.md) |
 | **MF Direction Closeout** | Direct@1500→Direct@3000 matched continuation versus MF@1500/MF@3000。 | **MF@3000 vs Direct@3000：Rel-L2 `-6.541%`、TKE `-1.971%`、MVPE `-14.019%`；trajectory wins `16/16`、`8/16`、`15/16`。** | **PROMISING_PARKED** | [Closeout](../coordination/CHATGPT_HANDOFF_MF_DIRECTION_CLOSEOUT.md) |
+| **Vorticity Supervision** | Shared-GPU low-memory matched C0/V1 paired final；V1 为 N2 + fixed `lambda_vort=15.5385751724`。 | Late `6000/9000/12000` median improvement：Rel-L2 `3.243%`、TKE `-0.564%`、MVPE `2.059%`；MVPE median `4%` threshold 与 2-of-3 late rule 未通过。 | **PARK** | [Low-memory final](../coordination/CHATGPT_HANDOFF_VORTICITY_LOWMEM_FINAL.md) |
 
 ### 2.1 Mean / Fluctuation 第一阶段收口结论
 
@@ -68,6 +69,12 @@ Sol 复核 matched checkpoint 后得到：
 - final local residual 真实非零，量级约为 global output 的 1% 左右；runtime 增加约 2.65%。
 
 因此当前具体实现定为 **`WEAK_SIGNAL_PARKED`**。不继续扫 local width、kernel、gate 或更多 Local residual 变体；`Local + Global` 大方向并未被整体否定，但当前优先级下降。Architecture breadth-first 下一步应测试一个机制明显不同的方向，优先 **Multi-scale / coarse+fine modeling**。
+
+### 2.4 Structured Temporal Dynamics / Vorticity Supervision 终局收口
+
+共享 GPU 低显存 matched final 使用相同的 micro-batch `4`、accumulation `2`、effective batch `8` 和 12 GiB cap，C0/V1 均从 R2@3000 恢复并训练到 absolute update `12000`。late `6000/9000/12000` 的机械 gate 为：Rel-L2 median `3.242654%`（PASS）、TKE median `-0.564134%`（PASS）、MVPE median `2.059027%`（FAIL），且只有 `12000` 同时满足三点 checkpoint 条件（FAIL）。
+
+因此：**Vorticity Supervision = PARK**。独立 official v9 replay 在两臂 `12000` checkpoint 上均通过，最大 raw-error delta 为 `0.0`。不启动后续 R4、额外调参或 SOTA merge。**Structured Temporal Dynamics exploration = CLOSED**。
 
 ## 3. TODO
 

@@ -121,7 +121,8 @@ def summarize(root: Path) -> dict:
     shutil.copy2(root / "V1-LOWMEM" / "training_curve.csv", root / "training_curve_v1.csv")
     runtime = {"C0-LOWMEM": json.loads((root / "C0-LOWMEM" / "runtime.json").read_text()),
                "V1-LOWMEM": json.loads((root / "V1-LOWMEM" / "runtime.json").read_text())}
-    metadata = {"C0-LOWMEM": json.loads((root / "C0-LOWMEM" / "run_metadata.json").read_text()),
+    metadata = {"status": "COMPLETED", "final_gate": gate["FINAL_GATE"],
+                "C0-LOWMEM": json.loads((root / "C0-LOWMEM" / "run_metadata.json").read_text()),
                 "V1-LOWMEM": json.loads((root / "V1-LOWMEM" / "run_metadata.json").read_text()),
                 "gate": gate}
     (root / "runtime.json").write_text(json.dumps(runtime, indent=2, sort_keys=True), encoding="utf-8")

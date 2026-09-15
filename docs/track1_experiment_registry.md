@@ -376,3 +376,16 @@ FE 结论：Temporal、SpatialPhysics、PixelPosition 都未通过同时保护 R
 - Fixed calibrated coefficients: T1 `lambda_delta=34.9553070068`; T2 `lambda_vort=21.3653831482`. C0/T1/T2 Direct initialization parity was exact; pressure was exact zero; T3 zero-init parity was exact and mixer output gradient was nonzero (`0.1028610542`).
 - Dev raw errors at absolute update 3000 (Rel-L2/TKE/MVPE): C0 `0.197545/0.633871/0.170807`; T1 `0.186753/0.654265/0.170106`; T2 `0.199202/0.630783/0.170158`; T3 `0.198035/0.634338/0.166572`. Full checkpoint curves and diagnostic CSVs are retained for Sol analysis; no interpretation is recorded here.
 - Evidence: `/home/chyfuture/realpde_runs/structured_temporal_dynamics_round1_20260907_lowmem/`; handoff `docs/coordination/CHATGPT_HANDOFF_STRUCTURED_TEMPORAL_DYNAMICS_R1.md`.
+
+### `T1-ID-VORTICITY-LOWMEM-FINAL-S20260915` — COMPLETED / PARK
+
+- Final matched validation of Vorticity Supervision under shared-GPU low-memory conditions; historical batch-8 C0-LONG evidence was preserved and excluded from this gate.
+- Research cleanliness: frozen 50 Train / 16 Dev manifest SHA-256 `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`; P0-A, N2, stride 20, seed `20260901`, AdamW `1e-5`, official v9 scorer; locked-final, full-data, SPS and Codabench were not accessed.
+- Starting checkpoints: R2 C0@3000 SHA-256 `369d6fc281b0e4ed371e32c1f43aa6c8b610557ec549cdbc9d6ecc7777134d4b`; R2 V1@3000 SHA-256 `e40c43b06b5457a6e2a82d2d2845a53ba4d45a607de28ea0075307fb1e150edb`. Both model and optimizer states restored at absolute update 3000.
+- Shared low-memory protocol: micro-batch `4`, accumulation `2`, effective batch `8`, CUDA cap `12 GiB`, workers `2`; both arms used the same configuration. C0 used N2 only; V1 used N2 + fixed `lambda_vort=15.5385751724`.
+- Official raw errors at 12000 (Rel-L2 / TKE / MVPE): C0 `0.130150 / 0.518528 / 0.110468`; V1 `0.125012 / 0.510238 / 0.108193`. Improvement: `3.948% / 1.599% / 2.059%`.
+- Late `6000/9000/12000` medians: Rel-L2 `3.242654%`, TKE `-0.564134%`, MVPE `2.059027%`. Rel and TKE median thresholds passed; MVPE median threshold and the 2-of-3 late-checkpoint rule failed. Mechanical result: `FINAL_GATE = PARK`.
+- Trajectory stability at `6000/9000/12000`: Rel wins `16/16,14/16,16/16`; TKE wins `5/16,15/16,14/16`; MVPE wins `5/16,12/16,9/16`; all-three `1/16,11/16,7/16`; Rel+MVPE with TKE degradation ≤2% `3/16,11/16,7/16`.
+- Independent official-v9 replay at 12000 passed for both arms; maximum raw-error delta was `0.0` for each arm. Peak reserved memory was `9.80 GiB` for both arms.
+- Evidence: `/home/chyfuture/realpde_runs/vorticity_lowmem_final_20260915/`; handoff `docs/coordination/CHATGPT_HANDOFF_VORTICITY_LOWMEM_FINAL.md`.
+- `Structured Temporal Dynamics exploration = CLOSED`.
