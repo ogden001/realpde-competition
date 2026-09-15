@@ -21,6 +21,7 @@ from realpde_p0_features import P0FeatureBuilder, P0FeatureConfig  # noqa: E402
 
 FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures" / "realpde"
 EXPECTED_SCHEMA = {"u", "v", "p", "x", "y", "re", "aoa"}
+FROZEN_TRAIN_SOURCES = {"3750_10.h5", "20325_0.h5", "16500_0.h5"}
 EXPECTED_FILES = {
     "train_sample_a.h5": (80, 3, "3750_10.h5"),
     "train_sample_b.h5": (80, 3, "20325_0.h5"),
@@ -85,13 +86,20 @@ def test_train_fixtures_have_schema_shape_windows_and_provenance() -> None:
         assert torch.isfinite(features).all()
 
         fixed = H5WindowDataset([path], in_steps=20, out_steps=20, stride=20, sub_sample=1, window_mode="fixed")
-        dense = H5WindowDataset([path], in_steps=20, out_steps=20, stride=20, sub_sample=1, window_mode="dense_all")
+        dense = H5WindowDataset([path], in_steps=20, out_steps=20, stride=1, sub_sample=1, window_mode="dense_all")
         assert len(fixed) == fixed_count
         assert len(dense) == (829 if frames == 868 else 41)
 
         summary = json.loads(summary_path.read_text(encoding="utf-8"))
         assert summary["source_trajectory_filename"] == source_name
+        assert summary["source_split"] == "train"
+        assert source_name in FROZEN_TRAIN_SOURCES
         assert summary["retained_frame_range"] == {"start": 0, "stop_exclusive": frames}
+        assert summary["spatial_subsampling"] == {
+            "source_shape": [64, 128],
+            "step": 2,
+            "output_shape": [32, 64],
+        }
         assert summary["u_shape"] == list(u.shape)
         assert summary["v_shape"] == list(v.shape)
         assert summary["p_shape"] == list(p.shape)
@@ -99,6 +107,14 @@ def test_train_fixtures_have_schema_shape_windows_and_provenance() -> None:
         assert summary["y_shape"] == list(y.shape)
         assert summary["re"] == data["re"]
         assert summary["aoa"] == data["aoa"]
+        assert summary["pressure_semantics"] == "real PIV has no measured pressure; p is exactly zero"
+        for name, field in (("u_stats", u), ("v_stats", v)):
+            for stat in ("min", "max", "mean", "std"):
+                assert summary[name][stat] == pytest.approx(float(getattr(field, stat)()))
+        assert summary["dx"] == pytest.approx(dx)
+        assert summary["dy"] == pytest.approx(dy)
+        assert summary["fixed_window_protocol"] == {"tin": 20, "tout": 20, "stride": 20}
+        assert summary["dense_all_window_protocol"] == {"tin": 20, "tout": 20, "stride": 1}
         assert summary["fixed_window_count"] == fixed_count
         assert summary["dense_all_legal_window_count"] == (829 if frames == 868 else 41)
         assert summary["sha256"] == _sha256(path)
@@ -108,7 +124,7 @@ def test_full_868_fixture_has_all_dense_all_legal_windows() -> None:
     path = FIXTURE_ROOT / "train_full_868.h5"
     if not path.is_file():
         pytest.skip("full 868-frame fixture is intentionally omitted when it exceeds 20 MB")
-    dataset = H5WindowDataset([path], in_steps=20, out_steps=20, stride=20, sub_sample=1, window_mode="dense_all")
+    dataset = H5WindowDataset([path], in_steps=20, out_steps=20, stride=1, sub_sample=1, window_mode="dense_all")
 
     assert len(dataset) == 829
     assert [ref.start for ref in dataset.refs] == list(range(829))
