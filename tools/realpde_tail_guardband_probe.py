@@ -211,15 +211,15 @@ def run(args: argparse.Namespace) -> None:
     checkpoint_payload = torch.load(args.checkpoint, map_location="cpu")
     config = p0a_config_from_checkpoint(checkpoint_payload)
     evidence: dict[str, object] = {
-        "checkpoint": str(args.checkpoint.resolve()),
+        "checkpoint": args.checkpoint_label,
         "checkpoint_sha256": sha256(args.checkpoint),
         "checkpoint_iteration": checkpoint_payload.get("iteration"),
-        "manifest": str(args.manifest.resolve()),
+        "manifest": args.manifest.name,
         "manifest_sha256": sha256(args.manifest),
-        "kit_root": str(args.kit_root.resolve()),
+        "kit_root": args.kit_root.name,
         "scorer_sha256": sha256(args.kit_root / "scoring.py"),
         "execution_commit": args.execution_commit or execution_commit(),
-        "data_root": str(args.data_root.resolve()),
+        "data_root": args.data_root.name,
         "train_trajectories": len(train_paths),
         "dev_trajectories": len(dev_paths),
         "dev_windows": len(dataset),
@@ -230,6 +230,11 @@ def run(args: argparse.Namespace) -> None:
         "feature_config": vars(config),
         "locked_final_access": False,
     }
+    if checkpoint_payload.get("iteration") != args.expected_iteration:
+        raise ValueError(
+            f"checkpoint iteration is {checkpoint_payload.get('iteration')!r}, "
+            f"expected {args.expected_iteration}"
+        )
     try:
         model, builder = load_model(args.kit_root, args.checkpoint, config, device)
         first_past, _, _, _ = dataset[0]
@@ -377,6 +382,8 @@ def main() -> None:
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--kit-root", type=Path, required=True)
     parser.add_argument("--checkpoint", type=Path, required=True)
+    parser.add_argument("--checkpoint-label", default="P0-A/N2 validation update 30900 model_last.pth")
+    parser.add_argument("--expected-iteration", type=int, default=30900)
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--device", default=None)
