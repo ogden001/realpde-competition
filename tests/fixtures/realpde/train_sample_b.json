@@ -1,0 +1,72 @@
+{
+  "source_trajectory_filename": "20325_0.h5",
+  "source_split": "train",
+  "retained_frame_range": {
+    "start": 0,
+    "stop_exclusive": 80
+  },
+  "spatial_subsampling": {
+    "source_shape": [
+      64,
+      128
+    ],
+    "step": 2,
+    "output_shape": [
+      32,
+      64
+    ]
+  },
+  "u_shape": [
+    80,
+    32,
+    64
+  ],
+  "v_shape": [
+    80,
+    32,
+    64
+  ],
+  "p_shape": [
+    80,
+    32,
+    64
+  ],
+  "x_shape": [
+    32,
+    64
+  ],
+  "y_shape": [
+    32,
+    64
+  ],
+  "re": 20369.0,
+  "aoa": 0.0,
+  "pressure_semantics": "real PIV has no measured pressure; p is exactly zero",
+  "u_stats": {
+    "min": -0.006031399999999999,
+    "max": 0.34154295,
+    "mean": 0.22909795245147704,
+    "std": 0.10667156161844749
+  },
+  "v_stats": {
+    "min": -0.06671139999999999,
+    "max": 0.07196295,
+    "mean": -0.0038930884637451172,
+    "std": 0.009806052301115477
+  },
+  "dx": 0.003421663999999991,
+  "dy": -0.003421663999999991,
+  "fixed_window_protocol": {
+    "tin": 20,
+    "tout": 20,
+    "stride": 20
+  },
+  "fixed_window_count": 3,
+  "dense_all_window_protocol": {
+    "tin": 20,
+    "tout": 20,
+    "stride": 1
+  },
+  "dense_all_legal_window_count": 41,
+  "sha256": "326e7cf2891888a60f6c2b1d12454e786f20bc785157132599f58b5e3efcf968"
+}
