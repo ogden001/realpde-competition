@@ -175,7 +175,7 @@ def write_unsupported(out_dir: Path, evidence: dict[str, object], error: BaseExc
     write_csv(out_dir / "frame_metrics.csv", FRAME_FIELDS, [])
     (out_dir / "README.md").write_text(
         "# Future40 Guard-Band Inference Probe\n\n"
-        "结论标签：`GUARDBAND_PROBE_NOT_DIRECTLY_SUPPORTED`\n\n"
+        "结论标签：`GUARDBAND_PROBE_NOT_DIRECTLY_SUPPORTED`；状态：`REVIEW_REQUIRED`\n\n"
         "1. checkpoint / commit / split\n\n"
         f"checkpoint: `{evidence.get('checkpoint')}`\n\n"
         f"execution commit: `{evidence.get('execution_commit')}`\n\n"
@@ -353,7 +353,7 @@ def run(args: argparse.Namespace) -> None:
     pct = lambda value: f"{100.0 * value:.3f}%"
     (args.out_dir / "README.md").write_text(
         "# Future40 Guard-Band Inference Probe\n\n"
-        f"结论标签：`{label}`\n\n"
+        f"结论标签：`{label}`；状态：`REVIEW_REQUIRED`\n\n"
         "1. checkpoint / commit / split\n\n"
         f"checkpoint: `{evidence['checkpoint']}` (iteration `{evidence['checkpoint_iteration']}`; SHA-256 `{evidence['checkpoint_sha256']}`)\n\n"
         f"execution commit: `{evidence['execution_commit']}`\n\n"

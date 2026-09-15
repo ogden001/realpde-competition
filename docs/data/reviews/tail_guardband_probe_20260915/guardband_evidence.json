@@ -1,0 +1,81 @@
+{
+  "checkpoint": "p0a_n2_simreal_validation_20260903/continuation_10300_to30900/run/model_last.pth@30900",
+  "checkpoint_sha256": "e3d5faaf1a71e121b09077dd7dd7d0456a617e2916b8a671986f412fb54f6388",
+  "checkpoint_iteration": 30900,
+  "manifest": "id_seed20260901.json",
+  "manifest_sha256": "42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347",
+  "kit_root": "realpde_t1_starting_kit_v9",
+  "scorer_sha256": "a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39",
+  "execution_commit": "472adbc3253dd130fb9aeceaf3fa74f7f9cbf1fd",
+  "data_root": "p0ab_real_h5_20260830",
+  "train_trajectories": 50,
+  "dev_trajectories": 16,
+  "dev_windows": 659,
+  "batch_size": 4,
+  "device": "cuda",
+  "input_shape_baseline": [
+    4,
+    20,
+    32,
+    64,
+    3
+  ],
+  "input_shape_guardband": [
+    4,
+    40,
+    32,
+    64,
+    3
+  ],
+  "feature_config": {
+    "include_p0_a": true,
+    "include_p0_b": false,
+    "dx": 0.0017108320000000007,
+    "dy": -0.0017108319999999955,
+    "dt": null,
+    "re_center": 0.0,
+    "re_scale": 1.0
+  },
+  "locked_final_access": false,
+  "guardband_supported": true,
+  "status": "COMPLETED",
+  "baseline_probe_output_shape": [
+    1,
+    20,
+    32,
+    64,
+    3
+  ],
+  "guardband_probe_output_shape": [
+    1,
+    40,
+    32,
+    64,
+    3
+  ],
+  "summary": {
+    "label": "RIGHT_BOUNDARY_HYPOTHESIS_NOT_SUPPORTED",
+    "baseline_rel_l2_mean_h1_h10": 0.09632175415754318,
+    "guardband_rel_l2_mean_h1_h10": 0.3687545657157898,
+    "improvement_mean_h1_h10": -2.8333208560943604,
+    "baseline_rel_l2_mean_h11_h18": 0.11487378180027008,
+    "guardband_rel_l2_mean_h11_h18": 0.47857633233070374,
+    "improvement_mean_h11_h18": -3.1584322452545166,
+    "baseline_rel_l2_mean_h19_h20": 0.1642456352710724,
+    "guardband_rel_l2_mean_h19_h20": 0.5059539079666138,
+    "improvement_mean_h19_h20": -2.0941994190216064,
+    "h19_improvement": -2.296189785003662,
+    "h20_improvement": -1.8922089338302612,
+    "h19_over_h18_baseline": 1.282734990119934,
+    "h20_over_h18_baseline": 1.469819188117981,
+    "h19_over_h18_guardband": 1.0284240245819092,
+    "h20_over_h18_guardband": 1.033990740776062,
+    "mean_signed_improvement_h1_h15": -2.9028823375701904,
+    "mean_abs_improvement_h1_h15": 2.9028823375701904,
+    "gate": {
+      "late_both_at_least_10_percent": false,
+      "early_mean_absolute_change_at_most_3_percent": false
+    }
+  },
+  "output40_stats_rows": 40
+}
