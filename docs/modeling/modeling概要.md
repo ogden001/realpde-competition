@@ -10,40 +10,24 @@
 
 | 技术方向 | 内容概要 | 关键实验结果 | 状态 | 详细文档 |
 |---|---|---|---|---|
-| CNO 主线 | CNO 当前拥有最好已知 Codabench 结果。 | 当前 SOTA：`P0-A + N2 + CNO + full@43260 + explicit SPS bounds`，Final `76.149726`。 | KEEP | [SOTA](../sota迭代/README.md) / [Submission log](../submission_log.md) |
+| CNO 主线 | CNO 当前拥有最好已知 Codabench 结果。 | 当前 SOTA：`P0-A + N2 + CNO + full@43260 + learned adaptive uncertainty bounds`，Final `76.694784`。 | KEEP | [SOTA](../sota迭代/README.md) / [Submission log](../submission_log.md) |
 | 纯 Point MLP | 无空间上下文的 Point 模型未通过既定 dev gate。 | Point residual 对 PERSIST 的 Rel-L2/MVPE 未达门槛。 | STOP | [Point-V0](../coordination/CHATGPT_HANDOFF_POINT_V0.md) |
 | LOCAL3 Point | LOCAL3 与降 TKE 权重的 bounded 变体均未在 1500-step screen 通过。 | LOCAL3 Rel-L2/MVPE 均退化；`λ_TKE=0.001` 仍未改善 Rel-L2。 | STOP | [LOCAL3](../coordination/CHATGPT_HANDOFF_POINT_V1_LOCAL3.md), [balanced loss](../coordination/CHATGPT_HANDOFF_POINT_LOCAL3_BALANCED_L001.md) |
 | CNO + Point H1 | 原始 H1 的 TKE 代价触发早停；train-selected `alpha=0.5` 缩放通过 aggregate gate，但 trajectory-level TKE 保护不稳。 | Rel/MVPE 16/16 trajectory 改善；满足 TKE 保护仅 3/16。 | REVIEW | [scale](../coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1_SCALE.md), [stability](../coordination/CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1_SCALE_STABILITY.md) |
-| Hybrid CNO + Local A1 | P0-A CNO global + raw Past20 u/v lightweight Conv3D local residual；zero-init 后 joint training。 | 有效 rerun 中 TKE 在 matched@2000/2500/3000 均略优；A1@2500 三指标仅约 `+0.68%/+0.20%/+0.67%`；A1@3000 为 Rel `-0.286%`、TKE `+0.498%`、MVPE `-2.277%`，wins `2/16,10/16,1/16`。 | **WEAK_SIGNAL_PARKED** | [Sol review](reviews/hybrid_cno_local_a1_rerun_20260904/SOL_REVIEW.md) |
-| Official CFD frozen representation | official `sim_pretrain` CNO 主干冻结，仅训练同预算 tiny probe；与同架构 random frozen CNO 对照。 | CFD rep 的 Rel-L2/TKE/MVPE 为 `0.9026/32.0180/1.1509`，random control 为 `0.7680/13.0809/0.7800`，三项均明显更差。 | **STOP** | [REP-01](../coordination/CHATGPT_HANDOFF_SIM2REAL_REP01.md) |
-| MF-01 Mean/Fluctuation | 输出层 temporal mean + zero-mean fluctuation factorization。 | 1500 updates: Rel-L2 `-2.72%`、MVPE `-2.80%`，但 TKE `+1.79%`；该 checkpoint 后续被证明明显 under-converged。 | HISTORICAL_SCREEN | [MF-01 handoff](../coordination/CHATGPT_HANDOFF_MF01.md), [deep analysis](../coordination/CHATGPT_HANDOFF_MF01_DEEP_ANALYSIS.md) |
-| MF Energy Campaign 01 | MF-01 fixed-factor probes: TKE weight 2x, scalar conditional gain, spatial gain。 | E2/E3 Rel-L2 `-2.624%/-2.644%` 和 MVPE `-3.314%/-3.488%` vs MF-01，但 TKE wins 仅 `4/16` 和 `3/16`；gain 基本未学出有效校准。 | NO-GO / REVIEW | [Campaign handoff](../coordination/CHATGPT_HANDOFF_MF_ENERGY_CAMPAIGN01.md) |
-| MF Energy Campaign 02 | Scorer-aligned TKE、RMS、high-energy weighting、frozen conditional/spatial gain。 | E5 有 `15/16` TKE wins 但损伤 MVPE；E4 弱；E6 损伤 MVPE 与 high-energy cases；E7/E8 gain 近 identity。 | NO-GO / REVIEW | [Campaign02 handoff](../coordination/CHATGPT_HANDOFF_MF_ENERGY_CAMPAIGN02.md) |
-| MF Campaign02 Full Evidence Review | Cross-experiment replay of MF@1500→C0@3000 and E4–E8。 | C0 长训收益主要来自 Mean convergence；E5 的 TKE 信号实质存在但不 MVPE-safe；E6 high-energy weighting 失败。 | REVIEW | [Full evidence review](../coordination/CHATGPT_HANDOFF_MF_CAMPAIGN02_FULL_EVIDENCE_REVIEW.md) |
-| **MF Direction Closeout** | Direct@1500→Direct@3000 matched continuation versus MF@1500/MF@3000。 | **MF@3000 vs Direct@3000：Rel-L2 `-6.541%`、TKE `-1.971%`、MVPE `-14.019%`；trajectory wins `16/16`、`8/16`、`15/16`。** | **PROMISING_PARKED** | [Closeout](../coordination/CHATGPT_HANDOFF_MF_DIRECTION_CLOSEOUT.md) |
-| **Vorticity Supervision** | Shared-GPU low-memory matched C0/V1 paired final；V1 为 N2 + fixed `lambda_vort=15.5385751724`。 | Late `6000/9000/12000` median improvement：Rel-L2 `3.243%`、TKE `-0.564%`、MVPE `2.059%`；MVPE median `4%` threshold 与 2-of-3 late rule 未通过。 | **PARK** | [Low-memory final](../coordination/CHATGPT_HANDOFF_VORTICITY_LOWMEM_FINAL.md) |
+| Hybrid CNO + Local A1 | P0-A CNO global + raw Past20 u/v lightweight Conv3D local residual；zero-init 后 joint training。 | 有效 rerun 中 TKE 在 matched@2000/2500/3000 均略优；A1@2500 三指标仅约 `+0.68%/+0.20%/+0.67%`；A1@3000 为 Rel `-0.286%`、TKE `+0.498%`、MVPE `-2.277%`。 | WEAK_SIGNAL_PARKED | [Sol review](reviews/hybrid_cno_local_a1_rerun_20260904/SOL_REVIEW.md) |
+| Multi-scale / coarse+fine A2 | Lightweight coarse+fine residual branch。 | matched@3000 相对 Direct：Rel `-0.690%`、TKE `-0.005%`、MVPE `-2.010%`，没有形成正收益。 | **NO_GO** | [overnight evidence](../sota迭代/reviews/overnight_integrated_20260905/README.md) |
+| Official CFD frozen representation | official `sim_pretrain` CNO 主干冻结，仅训练同预算 tiny probe；与同架构 random frozen CNO 对照。 | CFD rep 的 Rel-L2/TKE/MVPE 为 `0.9026/32.0180/1.1509`，random control 为 `0.7680/13.0809/0.7800`，三项均明显更差。 | STOP | [REP-01](../coordination/CHATGPT_HANDOFF_SIM2REAL_REP01.md) |
+| Mean / Fluctuation | 输出 temporal mean + zero-mean fluctuation factorization。 | @3000 曾出现 Rel/MVPE 明显收益，但长收敛验证到 15000 后收益 wash out / mixed；最终 @15000 仅 Rel `+1.157%`、TKE `+0.207%`、MVPE `-1.969%`，未通过强 gate。 | **WEAK_SIGNAL_PARKED** | [Closeout](../coordination/CHATGPT_HANDOFF_MF_DIRECTION_CLOSEOUT.md) / long-convergence evidence |
+| ΔUV Temporal Supervision | 对 Future20 帧间速度增量增加辅助监督。 | R1 中 Rel-L2 可改善，但持续牺牲 TKE，属于明确 trade-off。 | PARKED | [R1](../coordination/CHATGPT_HANDOFF_STRUCTURED_TEMPORAL_DYNAMICS_R1.md) |
+| Latent Temporal Conv | 在 CNO project 前 latent 上加入时间卷积。 | R2@3000 相对 C0：Rel-L2约 `+1.08%`、TKE `+0.21%`、MVPE `+2.70%`；Far horizon 信号略强，但幅度不足。 | WEAK_SIGNAL_PARKED | [R2](../coordination/CHATGPT_HANDOFF_STRUCTURED_TEMPORAL_DYNAMICS_R2.md) |
+| Latent Temporal Attention | 在 CNO project 前对 Future20 latent 做 temporal-only self-attention。 | R2@3000 基本无增益：Rel/TKE/MVPE 约 `-0.04%/-0.22%/-0.06%`。 | **NO_GO** | [R2](../coordination/CHATGPT_HANDOFF_STRUCTURED_TEMPORAL_DYNAMICS_R2.md) |
+| Vorticity Supervision | N2 + fixed vorticity MSE；不改变推理结构。 | low-memory matched final 的 late `6000/9000/12000` median：Rel-L2 `+3.243%`、TKE `-0.564%`、MVPE `+2.059%`；MVPE 4% gate 与 2-of-3 rule 均失败。 | **PARK** | [Low-memory final](../coordination/CHATGPT_HANDOFF_VORTICITY_LOWMEM_FINAL.md) |
 
-### 2.1 Mean / Fluctuation 第一阶段收口结论
+### 2.1 Mean / Fluctuation 最终结论
 
-Mean / Fluctuation（MF）已完成 breadth-first 第一阶段验证，当前结论为 **`PROMISING_PARKED`**。
+Mean / Fluctuation 在 matched@3000 曾出现很强的早期信号，但后续 long-convergence 证明该优势并不稳定：继续训练到 6000/9000/12000/15000 后，三项指标反复交叉；@15000 相对 Direct 仅 Rel-L2 `+1.157%`、TKE `+0.207%`，MVPE 反而 `-1.969%`。固定强 gate 从未被满足。
 
-公平 matched comparison：
-
-| Model | Rel-L2 | TKE | MVPE |
-|---|---:|---:|---:|
-| Direct@1500 | 0.193675 | 0.633786 | 0.165178 |
-| MF@1500 | 0.188409 | 0.645156 | 0.160552 |
-| Direct@3000 | 0.175829 | 0.594649 | 0.151631 |
-| MF@3000 | **0.164327** | **0.582928** | **0.130374** |
-
-当前可保留的稳定判断：
-
-1. **MF 方向本身有明确价值。** 在相同 3000-update continuation 语义下，MF 三项官方 raw error 均优于 Direct；Rel-L2 与 MVPE 的收益尤其明显，且分别为 `16/16`、`15/16` trajectory wins。
-2. **MF@1500 不能代表该方向最终能力。** Full Evidence Review 已确认 MF@1500 明显 under-converged；继续训练后的主要收益来自 Mean reconstruction，Fluctuation 也有改善但更不稳定。
-3. **TKE 仍是该方向未来最值得处理的薄弱项。** RMS/amplitude objective 曾产生 `15/16` trajectory TKE wins，但会损伤 Mean/MVPE；简单 scorer-aligned TKE、high-energy weighting 和 conditional/spatial gain 均未形成可保留方案。
-4. **按“60 分原则”当前停止继续精修。** 不再自动推进 RMS decoupling、spectrum、MF-02、temporal head 或其它机制级实验。待其它一级方向完成粗筛后，再决定是否将 MF 作为第二阶段重点方向回收。
-
-因此，未来若重新打开 MF，首要问题不是重新证明“有没有价值”，而是：**如何在保持 Mean/MVPE 优势的同时继续提高 Fluctuation/TKE。**
+因此旧的 `PROMISING_PARKED` 只代表早期粗筛，不再作为当前战略结论。当前状态统一为 **`WEAK_SIGNAL_PARKED`**。不继续做 RMS decoupling、MF-02、spectrum 或其它 MF 精修，除非未来出现新的独立机制证据。
 
 ### 2.2 CFD Representation 收口结论
 
@@ -56,39 +40,49 @@ Sim2Real Round 2 的 REP-01 结论是 **`CFD_REPRESENTATION_NOT_SUPPORTED`**。
 
 按照 60 分原则，不继续设计更复杂的 CFD teacher/student、adversarial alignment 或专门 CFD self-supervised Campaign。其它与 CFD 无关的 Representation 方向仍保持开放。
 
-### 2.3 Local + Global A1 第一阶段结论
+### 2.3 Local + Global / Multi-scale 收口
 
-A1 的第一次执行因 local branch 未进入 optimizer 而判定为 `INVALID_IMPLEMENTATION`；修复后 rerun 已通过 optimizer membership、parameter delta、branch output 与 checkpoint round-trip 等 preflight，最终证据有效。
+Local+Global A1 只有弱 TKE 信号且 Rel/MVPE 不稳，已 `WEAK_SIGNAL_PARKED`。后续 coarse+fine A2 作为机制不同的 multi-scale probe 也没有产生正收益，matched@3000 三项均未改善，因此 **Multi-scale/coarse+fine A2 = NO_GO**。
 
-Sol 复核 matched checkpoint 后得到：
-
-- TKE 在 Direct/A1 matched@2000、2500、3000 三个点均小幅改善，说明 local correction 存在可重复的 energy/TKE 信号；
-- 但 Rel-L2 与 MVPE 不稳定，仅 A1@2500 出现三指标同时改善，幅度均小于 1%；
-- A1@3000 trajectory wins 为 Rel `2/16`、TKE `10/16`、MVPE `1/16`，说明 TKE 信号较普遍，但 reconstruction 增量不稳；
-- by-horizon 显示约 `t+3 ... t+17` 的 Rel/MVPE 主要退化，提示简单 output-level local residual 的时间/相位校准不足；
-- final local residual 真实非零，量级约为 global output 的 1% 左右；runtime 增加约 2.65%。
-
-因此当前具体实现定为 **`WEAK_SIGNAL_PARKED`**。不继续扫 local width、kernel、gate 或更多 Local residual 变体；`Local + Global` 大方向并未被整体否定，但当前优先级下降。Architecture breadth-first 下一步应测试一个机制明显不同的方向，优先 **Multi-scale / coarse+fine modeling**。
+不再把 Multi-scale / coarse+fine 作为当前 P0 建模方向，也不继续扫 local width、kernel、gate 或更多轻量 residual branch。
 
 ### 2.4 Structured Temporal Dynamics / Vorticity Supervision 终局收口
 
-共享 GPU 低显存 matched final 使用相同的 micro-batch `4`、accumulation `2`、effective batch `8` 和 12 GiB cap，C0/V1 均从 R2@3000 恢复并训练到 absolute update `12000`。late `6000/9000/12000` 的机械 gate 为：Rel-L2 median `3.242654%`（PASS）、TKE median `-0.564134%`（PASS）、MVPE median `2.059027%`（FAIL），且只有 `12000` 同时满足三点 checkpoint 条件（FAIL）。
+这个方向最初要验证的是：当前 `Past20 → Future20` 是否因为缺乏 Future20 内部显式时序关系而存在明显结构性瓶颈，以及中间物理变量是否能帮助 u/v 预测。
 
-因此：**Vorticity Supervision = PARK**。独立 official v9 replay 在两臂 `12000` checkpoint 上均通过，最大 raw-error delta 为 `0.0`。不启动后续 R4、额外调参或 SOTA merge。**Structured Temporal Dynamics exploration = CLOSED**。
+R1/R2/终局验证得到：
+
+1. **ΔUV Temporal Supervision**：能明显改变 Rel-L2，但伴随持续 TKE trade-off，`PARKED`。
+2. **Output Temporal Mixer**：没有形成可靠收益，且 R1 optimizer 口径存在混杂，仅作为历史弱证据。
+3. **Latent Temporal Conv**：有约 1%～3% 的小幅信号，far horizon 略强，但不足以成为比赛级增量，`WEAK_SIGNAL_PARKED`。
+4. **Latent Temporal Attention**：基本无收益，`NO_GO`。
+5. **Vorticity Supervision**：R2 短训曾显示 Rel/MVPE 正收益且无推理代价，因此进行了终局长程验证。共享 GPU 低显存 matched final 使用 micro-batch `4`、accumulation `2`、effective batch `8`、12 GiB cap，C0/V1 都从 R2@3000 恢复并训练到 @12000。late `6000/9000/12000` median 为 Rel-L2 `+3.242654%`、TKE `-0.564134%`、MVPE `+2.059027%`；MVPE `>=4%` threshold 失败，2-of-3 checkpoint rule 也失败，仅 @12000 同时满足三项方向条件。因此机械 gate 为 **`FINAL_GATE = PARK`**。独立 official-v9 replay 两臂 raw-error 最大差异均为 `0.0`。
+
+当前直觉结论：**显式 Future20 时序结构不是当前 CNO 的主要性能瓶颈；物理辅助监督有一定价值，但目前也没有形成足够稳定、足够大的 SOTA 增量。**
+
+因此：
+
+- `Vorticity Supervision = PARK`
+- `Structured Temporal Dynamics exploration = CLOSED`
+- 不启动 Temporal Transformer / SSM / autoregressive / Block rollout / ΔUV / Vorticity λ 扫描等后续 R4。
 
 ## 3. TODO
 
 | 技术方向 | 内容概要 | 优先级 |
 |---|---|---|
-| Architecture A2 | 测试与 Local residual 明显不同的 Multi-scale / coarse+fine 机制；保持 bounded breadth-first，不做大规模 backbone sweep。 | P0 |
-| H1 | 等待 ChatGPT/Sol 对 scale stability 的单一、受限 NEXT_ACTION；不自动启动 H2、joint training 或 LOCAL5。 | P1 |
-| CFD representation | 当前 `STOP / PARKED`；仅在出现可靠 calibration、新 OOD failure linkage 或新的明确机制时重新打开。 | PARKED |
+| Random Window / Phase Augmentation | 利用完整 PIV trajectory 的更多合法时间起点，验证 phase/transition coverage 是否是当前数据利用瓶颈。 | **P0 / RUNNING** |
+| Backbone Family | CNO / FNO / Transolver 在统一 PIV protocol 下做 bounded family screen。 | **P0** |
+| POD / Modal Dynamics | 用 POD/PCA 检查流场是否具有明显低维模态结构，并做轻量 temporal predictor probe。 | **P0** |
+| H1 | 保留历史 strong Rel/MVPE signal，但 trajectory-level TKE 风险高；只在全局方向收敛后考虑回收。 | P1 / PARKED |
+| CFD representation | 当前 STOP / PARKED；仅在出现可靠 calibration、新 OOD failure linkage 或新的明确机制时重新打开。 | PARKED |
 
 ## 4. 相关文档
 
+- [Structured Temporal Dynamics R1](../coordination/CHATGPT_HANDOFF_STRUCTURED_TEMPORAL_DYNAMICS_R1.md)
+- [Structured Temporal Dynamics R2](../coordination/CHATGPT_HANDOFF_STRUCTURED_TEMPORAL_DYNAMICS_R2.md)
+- [Vorticity Low-memory Final](../coordination/CHATGPT_HANDOFF_VORTICITY_LOWMEM_FINAL.md)
 - [A1 Sol Review](reviews/hybrid_cno_local_a1_rerun_20260904/SOL_REVIEW.md)
 - [Sim2Real / CFD 利用概要](../sim2real/sim2real概要.md)
 - [REP-01](../coordination/CHATGPT_HANDOFF_SIM2REAL_REP01.md)
-- [Round 2 Decision](../coordination/CHATGPT_HANDOFF_SIM2REAL_ROUND2_DECISION.md)
 - [协调状态](../coordination/STATUS.md)
 - [Track 1 实验注册表](../track1_experiment_registry.md)
