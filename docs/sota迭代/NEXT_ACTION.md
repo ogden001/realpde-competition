@@ -2,11 +2,11 @@
 
 ## Goal
 
-执行一次最终 SPS 候选流水线：先在冻结 50/16 Dev 上验证同事 Codabench 包中真实的 `35-channel future-aligned uncertainty` 配方；只有通过预注册 Gate，才自动训练 full@53582 专属 head、生成候选包并做 clean-room smoke。**本任务绝不提交 Codabench。**
+执行一次最终 SPS 候选流水线：在冻结 50/16 Dev 上验证同事 Codabench 包中真实的 `35-channel future-aligned uncertainty` 配方，同时无论 Phase-A GO/NO_GO 都继续训练 full@53582 专属 head、生成候选包并做 clean-room smoke。**Phase-A Gate 只决定明天是否推荐提交，不再决定 Phase B 是否执行。本任务绝不提交 Codabench。**
 
 状态：`READY_FOR_EXECUTION / REVIEW_REQUIRED`
 
-`REQUIRED_COMMIT = 64a9e8d48db8b60d7ed930e1f51387e07376e850`
+`REQUIRED_COMMIT = 7418b06f80ac2c0314884f3188daf98be277ffea`
 
 源审计：`docs/sota迭代/reviews/sps_teammate_package_audit_20260917/README.md`
 
@@ -80,11 +80,14 @@ Phase-A GO 必须同时满足：
 2. mean UV width `<= 1.15 × 0.02358330972492695`；
 3. point prediction parity `max_abs_diff <= 1e-7`。
 
-若 `SPS_TEAMMATE_NO_GO`：**立即停止**。不得训练 Phase B，不得打包，不得 smoke，不得开启任何新 SPS 实验。
+解释规则：
 
-### Phase B: conditional full-specific head
+- `SPS_TEAMMATE_GO`：Phase A 给出了足够强的干净 Dev 支持，明天可把 Phase-B package 视为有离线支持的提交候选。
+- `SPS_TEAMMATE_NO_GO`：**仍然继续 Phase B/package/smoke**，但最终必须标记 `submission_recommended=false`；不得把 Phase-B package 解释为已有离线收益支持。
 
-仅 Phase A 返回 `SPS_TEAMMATE_GO` 后执行：
+### Phase B: always-run full-specific head
+
+Phase A 完成后**无论 GO/NO_GO 都执行**：
 
 - frozen full point predictor `@53582`，SHA 必须匹配；
 - all 82 released PIV trajectories；
@@ -93,7 +96,8 @@ Phase-A GO 必须同时满足：
 - Phase-B updates **固定为 Phase-A 选中的 best checkpoint iteration**，不得在 full data 重新选 step；
 - 不在 full data 上重新搜索 calibration；
 - bounds 直接复用 Phase-A clean 16-Dev 选出的 `floor/mult`；
-- 保存完整 full-head provenance。
+- 保存完整 full-head provenance，并记录 Phase-A GO/NO_GO；
+- 若 Phase A NO_GO，package 可以生成用于 review，但必须携带 `submission_recommended=false`。
 
 ## Runner invocation
 
@@ -125,11 +129,11 @@ python tools/realpde_sps_teammate_final.py \
   --require-cuda
 ```
 
-Runner 自己负责 Phase-A Gate。NO_GO 时必须自动停止；GO 才可进入 Phase B/package。
+Runner 自己负责 Phase-A Gate，但 Gate 只写入 evidence / submission recommendation。Phase B 和 package 在 Phase A 完成后继续执行。
 
 ## Package + clean-room smoke
 
-仅当 Phase A GO 且 Phase B/package 成功后：
+Phase B/package 成功后，无论 Phase-A GO/NO_GO 都执行 smoke：
 
 1. 使用 runner 生成的 `package_clean/submission.zip`；
 2. 从 frozen 50-train manifest 中选择一条 released Train trajectory 作为 smoke fixture，**不得使用 locked-final/private data**；
@@ -171,9 +175,9 @@ Smoke 必须满足：
 - Phase-A `calibration_grid.csv`
 - Phase-A `checkpoint_evals.json`
 - Phase-A `head_training_summary.json`
-- 若 GO：Phase-B `full_head_summary.json`
-- 若 GO：`package_build.json`
-- 若 GO：`smoke_report.json`
+- Phase-B `full_head_summary.json`
+- `package_build.json`
+- `smoke_report.json`
 - package ZIP 路径、bytes、SHA256（ZIP 不写 Git）
 - frozen asset paths + SHA256
 - tests 结果
@@ -186,7 +190,8 @@ README 必须明确：
 - best floor/mult / coverage / mean width；
 - point prediction parity；
 - Phase-A GO/NO_GO；
-- Phase-B 是否执行；
+- `submission_recommended=true/false`；
+- Phase-B full head 是否完成；
 - package/smoke 状态；
 - `locked-final/private/Codabench NOT accessed`。
 
@@ -200,7 +205,7 @@ README 必须明确：
 - 不引入 stride1、OOF、pinball、asymmetric bounds、direct SPS loss、new architecture。
 - 不访问 locked-final/private Future20。
 - **不提交 Codabench。**
-- NO_GO 后不扩大范围。
+- Phase-A NO_GO 后只允许继续已冻结的 Phase B/package/smoke，不得扩展任何其他 SPS 实验。
 - 大 checkpoint / raw log / ZIP 只留远程 artifact 路径，不写 Git。
 
 ## Stop
@@ -209,4 +214,4 @@ README 必须明确：
 
 `REVIEW_REQUIRED`
 
-若 GO，明天由用户与 ChatGPT Sol 审阅 verified package 后再决定是否提交 Codabench。
+明天由用户与 ChatGPT Sol 根据 Phase-A evidence、Phase-B provenance 和 smoke 决定是否提交 Codabench。Phase-A NO_GO 时 package 仍应存在，但默认 `submission_recommended=false`。
