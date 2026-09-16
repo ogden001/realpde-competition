@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
+import subprocess
 import sys
 import tempfile
 import time
@@ -82,6 +82,31 @@ def _reference_prediction(full_checkpoint: Path, kit_root: Path, x: np.ndarray) 
     return pred
 
 
+def _run_clean_room(root: Path, x: np.ndarray, output_path: Path) -> tuple[dict[str, np.ndarray], float, float]:
+    input_path = root / "smoke_input.npy"
+    np.save(input_path, x)
+    script = r'''
+import json, time, numpy as np
+import submission
+x = np.load("smoke_input.npy")
+t0 = time.perf_counter(); first = submission.predict(x); first_s = time.perf_counter() - t0
+t1 = time.perf_counter(); second = submission.predict(x); second_s = time.perf_counter() - t1
+np.savez("smoke_output.npz", prediction=first["prediction"], lower=first["lower"], upper=first["upper"],
+         prediction2=second["prediction"], lower2=second["lower"], upper2=second["upper"])
+print(json.dumps({"first_call_seconds": first_s, "second_call_seconds": second_s}))
+'''
+    proc = subprocess.run([sys.executable, "-c", script], cwd=root, text=True, capture_output=True, check=True)
+    timing = json.loads(proc.stdout.strip().splitlines()[-1])
+    packed = np.load(root / "smoke_output.npz")
+    result = {name: packed[name].astype(np.float32, copy=False) for name in ("prediction", "lower", "upper")}
+    second = {name: packed[f"{name}2"].astype(np.float32, copy=False) for name in ("prediction", "lower", "upper")}
+    deterministic = max(float(np.max(np.abs(result[name] - second[name]))) for name in result)
+    if deterministic != 0.0:
+        raise ValueError(f"package is not deterministic: {deterministic}")
+    output_path.write_text(proc.stdout, encoding="utf-8")
+    return result, float(timing["first_call_seconds"]), float(timing["second_call_seconds"])
+
+
 def run(args: argparse.Namespace) -> dict[str, object]:
     x = _load_input(args.fixture)
     reference = _reference_prediction(args.full_checkpoint, args.kit_root, x)
@@ -90,21 +115,12 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         root = Path(tmp)
         with zipfile.ZipFile(args.zip, "r") as archive:
             archive.extractall(root)
-        spec = importlib.util.spec_from_file_location("sota_v2_submission_smoke", root / "submission.py")
-        if spec is None or spec.loader is None:
-            raise RuntimeError("cannot import submission.py")
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        t0 = time.perf_counter(); first = module.predict(x); first_s = time.perf_counter() - t0
-        t1 = time.perf_counter(); second = module.predict(x); second_s = time.perf_counter() - t1
-    parity = validate_package_outputs(reference, first, tolerance=args.tolerance)
-    deterministic = max(float(np.max(np.abs(first[k] - second[k]))) for k in ("prediction", "lower", "upper"))
-    if deterministic != 0.0:
-        raise ValueError(f"package is not deterministic: {deterministic}")
+        result, first_s, second_s = _run_clean_room(root, x, root / "clean_room_stdout.txt")
+    parity = validate_package_outputs(reference, result, tolerance=args.tolerance)
     report = {
         "status": "PASS",
         **parity,
-        "deterministic_max_abs_diff": deterministic,
+        "deterministic_max_abs_diff": 0.0,
         "first_call_seconds": first_s,
         "second_call_seconds": second_s,
         "zip": str(args.zip),
