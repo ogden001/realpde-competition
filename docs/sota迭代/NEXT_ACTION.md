@@ -2,43 +2,54 @@
 
 ## Goal
 
-在已完成 `ADAPTIVE_GO` 的 SOTA-V2 adaptive 结果上，使用修正后的 full-checkpoint SHA guard **干净重建最终 submission ZIP 并重新跑 A/B clean-room smoke**。不重训 backbone，不重训 uncertainty head，不重跑 SPS calibration。
+SOTA-V2 已完成正式 Codabench 提交并刷新线上 SOTA。下一步先做**线上结果复盘与下一轮 Merge Worthiness Review**，不要立即启动新的 full-data 训练。
 
-状态：`READY_FOR_EXECUTION / REVIEW_REQUIRED`
+状态：`ONLINE_SOTA / REVIEW_REQUIRED`
 
-## Context
+## Current online anchor
 
-- Adaptive execution/result commit：`ec81c5dd0c6c321950a63248375e027ad6699975`。
-- 当前修复 commit：`caef5f78eeaf3b880ab6889df642cb0426c65d6d`。
-- 根因：旧 `build_sota_v2_adaptive_package.py` 的 `EXPECTED_FULL_CHECKPOINT_SHA` 多了一个末尾字符；真实 full checkpoint SHA256 为 `f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce`。
-- 已新增回归测试，要求常量与记录 digest 完全一致且长度为 64。
-- 已完成的科学结果保持冻结：Adaptive best SPS `45.07008160038756`，static SPS `42.12489194711354`，bounds `floor=0.0025, mult=1.0`。
+- Final：`77.314446`
+- Rel-L2：`93.816645`
+- TKE：`79.164203`
+- MVPE：`93.411176`
+- Time：`86.898836`
+- SPS：`30.319572`
 
-## Tasks
+相对上一线上 SOTA `76.694784`：
 
-1. 同步 `main`，确认包含 `caef5f78eeaf3b880ab6889df642cb0426c65d6d`，工作区干净。
-2. 运行 `tests/test_sota_v2_adaptive_package.py`、`tests/test_sota_v2_adaptive.py` 与相关 `py_compile`。
-3. 复用既有 `adaptive_head_1400.pth` 和 `calibration_summary.json`，不要重新训练或重新 calibration。
-4. 用修复后的 builder 从零创建新的 package 目录，禁止任何 in-process SHA override/monkeypatch。
-5. 对新的 ZIP 独立运行真实 fixture A/B clean-room verifier；两条都必须 PASS，prediction parity `<=1e-6`，deterministic diff `0`。
-6. 记录新的 ZIP SHA/bytes/runtime/peak CUDA；更新 adaptive review/handoff/provenance，明确 clean rebuild 已不再使用 override。
-7. push `main` 后停止，不提交 Codabench。
+- Final：`+0.619662`
+- Rel-L2：`+0.382261`
+- TKE：`+1.575404`
+- MVPE：`+0.891613`
+- Time：`-0.167810`
+- SPS：`+0.799848`
+
+## Frozen current SOTA recipe
+
+- Predictive backbone：`Dense-All + P0-A + MF-CNO + N2 + vorticity + Stage-B`
+- Full-data checkpoint：`@53582`
+- Full checkpoint SHA256：`f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce`
+- Adaptive Uncertainty Head：fresh head `@1400`
+- Bounds：`half_width_uv = 0.0025 + sigma`，pressure half-width `0`
+- Final clean ZIP SHA256：`9cfc055c6232d2b0aef9f88f1cb3de2aae883b7cff7f02659ed8b9cf85b3ed55`
+
+## Next review questions
+
+1. 把这次线上增益拆成 predictive gain 与 SPS gain，确认下一轮主要瓶颈。
+2. 以 `77.314446` 作为新的线上 anchor，重新审视已有 PARKED / PROMISING 方向是否仍值得 merge。
+3. 只有存在明显预期线上收益时才启动下一次 50/16 → full-data → package → Codabench 周期。
+4. 不再以 full@43260 或 `76.694784` 作为默认 SOTA 基线。
 
 ## Constraints
 
-- 不修改 backbone、head、bounds、SPS grid 或 runtime 算法。
-- 不重训任何模型。
-- 不访问 locked-final/private test/Codabench。
-- 不提交 checkpoint、ZIP、dataset、大日志到 Git。
-- 若新 builder 或 A/B smoke 失败，停止并回报；不要临场修改核心代码。
+- 当前 SOTA package 已完成，不需要重新打包或重复提交。
+- 不基于 Codabench 做高频参数搜索。
+- 下一次 full-data 训练必须先通过 Merge Worthiness Review。
+- 保持 locked-final/private test 边界。
 
-## Deliverables
+## References
 
-- 新 `package_build.json`。
-- 新 `package_smoke_a.json` / `package_smoke_b.json`。
-- 更新 `SHA256_PROVENANCE.md`、adaptive `README.md`、handoff。
-- 最终状态：`READY_TO_UPLOAD / REVIEW_REQUIRED`。
-
-## Stop
-
-clean rebuild + A/B smoke + evidence push 完成后立即停止，等待 ChatGPT/Sol 复核；不要提交 Codabench。
+- `docs/submission_log.md`
+- `docs/sota迭代/reviews/sota_v2_adaptive_20260916/README.md`
+- `docs/coordination/CHATGPT_HANDOFF_SOTA_V2_ADAPTIVE_20260916.md`
+- `docs/inference/inference概要.md`
