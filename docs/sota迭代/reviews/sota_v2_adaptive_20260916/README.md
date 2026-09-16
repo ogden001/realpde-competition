@@ -2,7 +2,7 @@
 
 Status: **COMPLETED / REVIEW_REQUIRED**
 
-The frozen SOTA-V2 adaptive uncertainty execution completed from execution commit `22eed1066345da7bb3d541a2472e4eaef0e29320`. No algorithm or model-source files were changed during execution.
+The clean SOTA-V2 adaptive package rebuild completed from `REQUIRED_COMMIT=8b2e74a8dc4bde1ca7f7f8b755b3d902d7a740d9`. No retraining or recalibration was performed, and no algorithm or model-source files were changed during execution.
 
 ## Validation replay
 
@@ -30,12 +30,12 @@ The frozen SOTA-V2 adaptive uncertainty execution completed from execution commi
 
 - Full backbone: `/home/chyfuture/realpde_runs/sota_v2_full_20260916/run/checkpoints/model_update_53582.pth`
 - Full backbone SHA256: `f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce`
-- Package: `/home/chyfuture/realpde_runs/sota_v2_adaptive_20260916/package/submission.zip`
-- ZIP bytes / SHA256: `30191330 / ad13e6ddf2438838df788f4f21204198b1cd121b209377d7cc446499a7246f44`
-- Smoke A: `PASS`, parity `0.0`, first/steady `0.3647943510 / 0.0602133380 s`
-- Smoke B: `PASS`, parity `0.0`, first/steady `0.4066184660 / 0.0308258310 s`
+- Final candidate package: `/home/chyfuture/realpde_runs/sota_v2_adaptive_20260916/package_clean/submission.zip`
+- ZIP bytes / SHA256: `30191330 / 9cfc055c6232d2b0aef9f88f1cb3de2aae883b7cff7f02659ed8b9cf85b3ed55`
+- Smoke A: `PASS`, parity `0.0`, first/steady `0.3303255550 / 0.0307885470 s`
+- Smoke B: `PASS`, parity `0.0`, first/steady `0.3408626430 / 0.0308223500 s`
 - Peak CUDA allocation: `142737920` bytes in both runs
 
-Codabench/private/locked submission was not run or uploaded. The scientific frozen recipe was not changed. The package builder's embedded full-checkpoint SHA guard contained a 65-character typo; the valid 64-character checkpoint digest was supplied only as an in-process execution override, with no repository-source modification.
+The package builder SHA guard is now fixed in the required source commit, and this clean rebuild passed without monkeypatch or in-process SHA override. The prior `package/submission.zip` evidence remains historical; the final candidate is `package_clean/submission.zip`. Codabench/private/locked submission was not run or uploaded.
 
 See the accompanying JSON/CSV evidence and `SHA256_PROVENANCE.md` for the complete provenance.

@@ -1,0 +1,15 @@
+{
+  "deterministic_max_abs_diff": 0.0,
+  "first_call_seconds": 0.3303255550126778,
+  "fixture": "/source/tests/fixtures/realpde/train_sample_a.h5",
+  "full_checkpoint_sha256": "f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce",
+  "max_abs_prediction_diff": 0.0,
+  "mean_width_uv": 0.011583471670746803,
+  "peak_cuda_memory_allocated": 142737920,
+  "second_call_seconds": 0.030788546995609067,
+  "status": "PASS",
+  "total_seconds": 2.0086983290093485,
+  "zip": "/package_clean/submission.zip",
+  "zip_bytes": 30191330,
+  "zip_sha256": "9cfc055c6232d2b0aef9f88f1cb3de2aae883b7cff7f02659ed8b9cf85b3ed55"
+}
