@@ -2,54 +2,44 @@
 
 ## Goal
 
-SOTA-V2 已完成正式 Codabench 提交并刷新线上 SOTA。下一步先做**线上结果复盘与下一轮 Merge Worthiness Review**，不要立即启动新的 full-data 训练。
+复刻同事已在线验证有效的 SPS 基础配方到当前 SOTA-V2：先在固定 50/16 上验证 `stride=1 uncertainty training`，若通过 Gate，再给 full@53582 训练匹配的 full-specific uncertainty head 并生成候选包。
 
-状态：`ONLINE_SOTA / REVIEW_REQUIRED`
+状态：`READY_FOR_EXECUTION / REVIEW_REQUIRED`
 
-## Current online anchor
+## Tasks
 
-- Final：`77.314446`
-- Rel-L2：`93.816645`
-- TKE：`79.164203`
-- MVPE：`93.411176`
-- Time：`86.898836`
-- SPS：`30.319572`
-
-相对上一线上 SOTA `76.694784`：
-
-- Final：`+0.619662`
-- Rel-L2：`+0.382261`
-- TKE：`+1.575404`
-- MVPE：`+0.891613`
-- Time：`-0.167810`
-- SPS：`+0.799848`
-
-## Frozen current SOTA recipe
-
-- Predictive backbone：`Dense-All + P0-A + MF-CNO + N2 + vorticity + Stage-B`
-- Full-data checkpoint：`@53582`
-- Full checkpoint SHA256：`f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce`
-- Adaptive Uncertainty Head：fresh head `@1400`
-- Bounds：`half_width_uv = 0.0025 + sigma`，pressure half-width `0`
-- Final clean ZIP SHA256：`9cfc055c6232d2b0aef9f88f1cb3de2aae883b7cff7f02659ed8b9cf85b3ed55`
-
-## Next review questions
-
-1. 把这次线上增益拆成 predictive gain 与 SPS gain，确认下一轮主要瓶颈。
-2. 以 `77.314446` 作为新的线上 anchor，重新审视已有 PARKED / PROMISING 方向是否仍值得 merge。
-3. 只有存在明显预期线上收益时才启动下一次 50/16 → full-data → package → Codabench 周期。
-4. 不再以 full@43260 或 `76.694784` 作为默认 SOTA 基线。
+1. 按 `AGENTS.md` 做 preflight：工作区干净、`git pull --rebase origin main`、`git push --dry-run origin HEAD:main` 成功。
+2. 先运行测试：
+   - `pytest -q tests/test_sps_stride1_replica.py tests/test_dense_all_windows.py tests/test_adaptive_probe.py`
+   - 再运行仓库现有相关测试；若失败，只允许做不改变实验语义的 bounded 修复并记录。
+3. 执行 `tools/realpde_sps_stride1_replica.py`：
+   - Phase 1：固定 50 Train / 16 Dev、SOTA-V2 validation backbone@32500、h32/b2、Gaussian NLL、1400 updates、固定 28-row calibration grid；唯一实验变量是 uncertainty head 训练窗口由 canonical stride20 改为所有合法 stride1 (`dense_all`)。
+   - Phase-1 Gate：Dev SPS 相对当前 `45.0700816004` 至少 `+1.5`，且 mean UV width 不超过当前 `0.0235833097` 的 `1.15x`。
+   - Phase 1 `NO_GO`：立即停止，不做 Phase 2、不打包。
+   - Phase 1 `GO`：自动进入 Phase 2，用冻结 full SOTA-V2@53582 自己的 residual、all-82 released PIV、stride1 训练 fresh h32/b2 head@1400；禁止在 full 数据重新搜索 floor/mult，必须复用 Phase-1 clean 16-Dev 选出的 bounds。
+4. 若 Phase 2 完成，使用同一 runner 生成 candidate package；随后用 `tools/verify_sota_v2_adaptive_package.py` 做 clean-room smoke / prediction parity。prediction 必须与当前 full SOTA 完全保持，目标 parity `max_abs_diff <= 1e-6`。
+5. 将轻量 evidence（Phase-1 calibration/grid、by-horizon/by-channel、gate、Phase-2 head provenance、package/smoke summary）写入 `docs/sota迭代/reviews/sps_stride1_replica_20260916/`，更新本方向 README 的实验事实，commit + push `origin/main`。
 
 ## Constraints
 
-- 当前 SOTA package 已完成，不需要重新打包或重复提交。
-- 不基于 Codabench 做高频参数搜索。
-- 下一次 full-data 训练必须先通过 Merge Worthiness Review。
-- 保持 locked-final/private test 边界。
+- 不训练或修改 predictive backbone。
+- 不改变 h32/b2、Gaussian NLL、1400 updates、固定 28-row calibration grid。
+- 不引入 OOF、pinball、非对称区间、direct SPS loss 或新模型结构。
+- 不访问 locked-final/private Future20；不提交 Codabench。
+- 不因 Phase-1 `NO_GO` 自行扩大实验范围。
+- 大 checkpoint / package / raw log 留在远程 artifact 路径，不写入 Git。
+- 实现语义若需要变化，立即停止并报告，不自行决定。
 
-## References
+## Deliverables
 
-- `docs/submission_log.md`
-- `docs/sota迭代/reviews/sota_v2_adaptive_20260916/README.md`
-- `docs/coordination/CHATGPT_HANDOFF_SOTA_V2_ADAPTIVE_20260916.md`
-- `docs/inference/inference概要.md`
+- `phase1_50_16_stride1/calibration_summary.json`
+- `phase1_50_16_stride1/calibration_grid.csv`
+- `phase1_50_16_stride1/by_horizon.csv`
+- `phase1_50_16_stride1/by_channel.csv`
+- 若 GO：`phase2_full_specific_stride1/full_head_summary.json`
+- 若 GO：candidate package build summary + clean-room smoke report
+- Git review evidence + commit SHA
+
+## Stop
+
+返回 `REVIEW_REQUIRED`。不要提交 Codabench；由 ChatGPT/Sol 复核后再决定是否消耗唯一一次线上 SPS A/B 提交。
