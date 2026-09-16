@@ -76,14 +76,17 @@ def validate_teammate_head_provenance(meta: dict, *, full_sha: str) -> str:
     return "full_specific_teammate35"
 
 
-def validate_teammate_calibration(calibration: dict) -> tuple[float, float]:
-    if not isinstance(calibration, dict) or calibration.get("gate") != "SPS_TEAMMATE_GO":
-        raise ValueError("teammate calibration gate is not GO")
+def validate_teammate_calibration(calibration: dict) -> tuple[float, float, str]:
+    if not isinstance(calibration, dict):
+        raise ValueError("teammate calibration must be a dict")
+    gate = calibration.get("gate")
+    if gate not in {"SPS_TEAMMATE_GO", "SPS_TEAMMATE_NO_GO"}:
+        raise ValueError("teammate calibration gate is invalid")
     best = calibration.get("best", {})
     floor, mult = float(best["floor"]), float(best["mult"])
     if (floor, mult) not in ALLOWED_BOUNDS:
         raise ValueError("calibration bounds are outside frozen 28-row grid")
-    return floor, mult
+    return floor, mult, str(gate)
 
 
 def _jsonable_config(raw: object) -> dict[str, object]:
@@ -180,7 +183,8 @@ def build(
         raise ValueError("head/full feature_config mismatch")
 
     calibration = json.loads(calibration_summary.read_text(encoding="utf-8"))
-    floor, mult = validate_teammate_calibration(calibration)
+    floor, mult, calibration_gate = validate_teammate_calibration(calibration)
+    submission_recommended = calibration_gate == "SPS_TEAMMATE_GO"
 
     staging = out_root / "staging"
     staging.mkdir(parents=True)
@@ -205,7 +209,8 @@ def build(
             "head_checkpoint_sha256": head_sha,
             "head_scope": head_scope,
             "head_backbone_checkpoint_sha256": meta.get("backbone_checkpoint_sha256"),
-            "calibration_gate": "SPS_TEAMMATE_GO",
+            "calibration_gate": calibration_gate,
+            "submission_recommended": submission_recommended,
             "recipe": "teammate35",
         },
         staging / "model.pth",
@@ -230,6 +235,8 @@ def build(
         "head_checkpoint": str(head_checkpoint),
         "head_checkpoint_sha256": head_sha,
         "head_scope": head_scope,
+        "calibration_gate": calibration_gate,
+        "submission_recommended": submission_recommended,
         "bounds": {"floor": floor, "mult": mult},
         "zip": str(zip_path),
         "zip_bytes": zip_path.stat().st_size,
