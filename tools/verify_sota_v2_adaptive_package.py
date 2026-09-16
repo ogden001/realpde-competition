@@ -82,18 +82,20 @@ def _reference_prediction(full_checkpoint: Path, kit_root: Path, x: np.ndarray) 
     return pred
 
 
-def _run_clean_room(root: Path, x: np.ndarray, output_path: Path) -> tuple[dict[str, np.ndarray], float, float]:
+def _run_clean_room(root: Path, x: np.ndarray, output_path: Path) -> tuple[dict[str, np.ndarray], float, float, int]:
     input_path = root / "smoke_input.npy"
     np.save(input_path, x)
     script = r'''
-import json, time, numpy as np
+import json, time, numpy as np, torch
 import submission
 x = np.load("smoke_input.npy")
+if torch.cuda.is_available(): torch.cuda.reset_peak_memory_stats()
 t0 = time.perf_counter(); first = submission.predict(x); first_s = time.perf_counter() - t0
 t1 = time.perf_counter(); second = submission.predict(x); second_s = time.perf_counter() - t1
+peak = int(torch.cuda.max_memory_allocated()) if torch.cuda.is_available() else 0
 np.savez("smoke_output.npz", prediction=first["prediction"], lower=first["lower"], upper=first["upper"],
          prediction2=second["prediction"], lower2=second["lower"], upper2=second["upper"])
-print(json.dumps({"first_call_seconds": first_s, "second_call_seconds": second_s}))
+print(json.dumps({"first_call_seconds": first_s, "second_call_seconds": second_s, "peak_cuda_memory_allocated": peak}))
 '''
     proc = subprocess.run([sys.executable, "-c", script], cwd=root, text=True, capture_output=True, check=True)
     timing = json.loads(proc.stdout.strip().splitlines()[-1])
@@ -104,7 +106,7 @@ print(json.dumps({"first_call_seconds": first_s, "second_call_seconds": second_s
     if deterministic != 0.0:
         raise ValueError(f"package is not deterministic: {deterministic}")
     output_path.write_text(proc.stdout, encoding="utf-8")
-    return result, float(timing["first_call_seconds"]), float(timing["second_call_seconds"])
+    return result, float(timing["first_call_seconds"]), float(timing["second_call_seconds"]), int(timing["peak_cuda_memory_allocated"])
 
 
 def run(args: argparse.Namespace) -> dict[str, object]:
@@ -115,7 +117,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         root = Path(tmp)
         with zipfile.ZipFile(args.zip, "r") as archive:
             archive.extractall(root)
-        result, first_s, second_s = _run_clean_room(root, x, root / "clean_room_stdout.txt")
+        result, first_s, second_s, peak_cuda = _run_clean_room(root, x, root / "clean_room_stdout.txt")
     parity = validate_package_outputs(reference, result, tolerance=args.tolerance)
     report = {
         "status": "PASS",
@@ -123,6 +125,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "deterministic_max_abs_diff": 0.0,
         "first_call_seconds": first_s,
         "second_call_seconds": second_s,
+        "peak_cuda_memory_allocated": peak_cuda,
         "zip": str(args.zip),
         "zip_bytes": args.zip.stat().st_size,
         "zip_sha256": sha256(args.zip),
