@@ -3,14 +3,16 @@
 
 Phase A keeps the SOTA-V2 @32500 point predictor frozen and trains the exact
 35-channel uncertainty architecture/feature recipe extracted from the
-teammate's 2026-09-15 Codabench package.  It trains for a 2000-update budget,
+teammate's 2026-09-15 Codabench package. It trains for a 2000-update budget,
 evaluates every 200 updates on the frozen 16-trajectory Dev split, and selects
 the best SPS checkpoint on the same frozen 28-row calibration grid.
 
-Only if Phase A passes the preregistered gate does Phase B train a full-specific
-head against the frozen all-82 SOTA-V2 @53582 predictor.  Phase B reuses the
-Phase-A selected update count and calibration; it does not tune on full-data
-labels.  The runner may build a candidate package but never submits Codabench.
+Phase B always runs after Phase A so an overnight execution produces a complete
+full-specific candidate package for morning review. It trains against the frozen
+all-82 SOTA-V2 @53582 predictor, reuses the Phase-A selected update count and
+calibration, and never tunes on full-data labels. Phase-A GO/NO_GO controls only
+the submission recommendation, not whether Phase B/package preparation runs.
+This runner never submits Codabench.
 """
 from __future__ import annotations
 
@@ -110,6 +112,15 @@ def evaluate_phase_a_gate(
     }
 
 
+def execution_policy(phase_a_gate: str) -> dict[str, bool]:
+    if phase_a_gate not in {"SPS_TEAMMATE_GO", "SPS_TEAMMATE_NO_GO"}:
+        raise ValueError(f"unexpected Phase-A gate: {phase_a_gate}")
+    return {
+        "run_phase_b": True,
+        "submission_recommended": phase_a_gate == "SPS_TEAMMATE_GO",
+    }
+
+
 def _canonical_dataset(paths: list[Path]):
     from realpde_p0_data import H5WindowDataset
 
@@ -126,9 +137,6 @@ def _canonical_dataset(paths: list[Path]):
 
 def _init_head(device: torch.device) -> TeammateUncertaintyHead:
     head = TeammateUncertaintyHead(hidden=32, blocks=2, dropout=0.0, include_pressure=True).to(device)
-    # The teammate artifact records sigma0=0.02.  Reproduce the corresponding
-    # output-layer initialization for training; inference checkpoints load
-    # their learned weights strictly.
     torch.nn.init.zeros_(head.net[-1].weight)
     torch.nn.init.constant_(head.net[-1].bias, math.log(SIGMA0))
     return head
@@ -466,8 +474,6 @@ def run_phase_b(
     *,
     device: torch.device,
 ):
-    if phase_a["gate"] != "SPS_TEAMMATE_GO":
-        return {"status": "SKIPPED_PHASE_A_NO_GO"}
     phase_dir = args.out_dir / "phase_b_full_specific_teammate35"
     phase_dir.mkdir(parents=True, exist_ok=False)
     from realpde_sota_v2_full import released_paths
@@ -507,6 +513,7 @@ def run_phase_b(
         "window_mode": "fixed",
         "feature_config": vars(full_config),
         "calibration_source": "Phase-A frozen 50/16 Dev",
+        "phase_a_gate": str(phase_a["gate"]),
         "bound_floor": float(phase_a["best"]["floor"]),
         "bound_mult": float(phase_a["best"]["mult"]),
     }
@@ -528,6 +535,8 @@ def run_phase_b(
         "loss_curve": losses,
         "full_checkpoint_sha256": full_sha,
         "bounds": {"floor": metadata["bound_floor"], "mult": metadata["bound_mult"]},
+        "phase_a_gate": str(phase_a["gate"]),
+        "submission_recommended": phase_a["gate"] == "SPS_TEAMMATE_GO",
     }
     dump_json(phase_dir / "full_head_summary.json", summary)
     return summary
@@ -546,27 +555,28 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     import scoring
 
     phase_a, validation_config = run_phase_a(args, device=device, scoring=scoring)
+    policy = execution_policy(str(phase_a["gate"]))
+    phase_b = run_phase_b(args, phase_a, validation_config, device=device)
     result: dict[str, object] = {
         "phase_a": phase_a,
-        "phase_b": {"status": "SKIPPED_PHASE_A_NO_GO"},
+        "execution_policy": policy,
+        "submission_recommended": policy["submission_recommended"],
+        "phase_b": phase_b,
         "package": None,
     }
-    if phase_a["gate"] == "SPS_TEAMMATE_GO":
-        phase_b = run_phase_b(args, phase_a, validation_config, device=device)
-        result["phase_b"] = phase_b
-        if args.package_out_root is not None:
-            from build_sota_v2_teammate_package import build
+    if args.package_out_root is not None:
+        from build_sota_v2_teammate_package import build
 
-            result["package"] = build(
-                full_checkpoint=args.full_checkpoint,
-                head_checkpoint=Path(phase_b["head"]),
-                calibration_summary=(
-                    args.out_dir / "phase_a_50_16_teammate35" / "calibration_summary.json"
-                ),
-                kit_root=args.kit_root,
-                out_root=args.package_out_root,
-                execution_commit=args.execution_commit,
-            )
+        result["package"] = build(
+            full_checkpoint=args.full_checkpoint,
+            head_checkpoint=Path(phase_b["head"]),
+            calibration_summary=(
+                args.out_dir / "phase_a_50_16_teammate35" / "calibration_summary.json"
+            ),
+            kit_root=args.kit_root,
+            out_root=args.package_out_root,
+            execution_commit=args.execution_commit,
+        )
     result["status"] = "REVIEW_REQUIRED"
     dump_json(args.out_dir / "run_summary.json", result)
     print(json.dumps(result, indent=2, sort_keys=True, default=str))
