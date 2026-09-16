@@ -2,35 +2,43 @@
 
 ## Goal
 
-为冻结的 SOTA-V2 backbone 完成 **fresh Adaptive Uncertainty → Dev SPS calibration → full@53582 package smoke**。核心代码/验证脚本已由 ChatGPT/Sol 提供；Codex 只执行与记录。
+在已完成 `ADAPTIVE_GO` 的 SOTA-V2 adaptive 结果上，使用修正后的 full-checkpoint SHA guard **干净重建最终 submission ZIP 并重新跑 A/B clean-room smoke**。不重训 backbone，不重训 uncertainty head，不重跑 SPS calibration。
 
 状态：`READY_FOR_EXECUTION / REVIEW_REQUIRED`
 
+## Context
+
+- Adaptive execution/result commit：`ec81c5dd0c6c321950a63248375e027ad6699975`。
+- 当前修复 commit：`caef5f78eeaf3b880ab6889df642cb0426c65d6d`。
+- 根因：旧 `build_sota_v2_adaptive_package.py` 的 `EXPECTED_FULL_CHECKPOINT_SHA` 多了一个末尾字符；真实 full checkpoint SHA256 为 `f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce`。
+- 已新增回归测试，要求常量与记录 digest 完全一致且长度为 64。
+- 已完成的科学结果保持冻结：Adaptive best SPS `45.07008160038756`，static SPS `42.12489194711354`，bounds `floor=0.0025, mult=1.0`。
+
 ## Tasks
 
-1. 同步 `main`、验证写权限，运行 adaptive/package focused tests 与 `py_compile`。
-2. 使用 SOTA-V2 50/16 `@32500`：先复现 Dev raw errors `0.0999346 / 0.4692927 / 0.0757780`；不匹配即停止。
-3. 冻结 backbone，用 50 Train canonical `2052` windows 训练 fresh v5 Adaptive Uncertainty Head：`1400` updates；随后在 16 Dev `659` windows 跑固定 `4×7=28` SPS grid，并与同 backbone static bounds 比较。
-4. 仅 `ADAPTIVE_GO` 时，将同一 head + 冻结 bounds 挂到 full `@53582`（SHA256 `f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce8`），构建 ZIP。
-5. 使用真实 fixture 跑 clean-room smoke；package prediction 与裸 full backbone `max_abs_diff <= 1e-6`，pressure prediction/bounds=0，finite/deterministic/shape/dtype 全部通过。
-6. 提交轻量 evidence/handoff 并 push `main`。
+1. 同步 `main`，确认包含 `caef5f78eeaf3b880ab6889df642cb0426c65d6d`，工作区干净。
+2. 运行 `tests/test_sota_v2_adaptive_package.py`、`tests/test_sota_v2_adaptive.py` 与相关 `py_compile`。
+3. 复用既有 `adaptive_head_1400.pth` 和 `calibration_summary.json`，不要重新训练或重新 calibration。
+4. 用修复后的 builder 从零创建新的 package 目录，禁止任何 in-process SHA override/monkeypatch。
+5. 对新的 ZIP 独立运行真实 fixture A/B clean-room verifier；两条都必须 PASS，prediction parity `<=1e-6`，deterministic diff `0`。
+6. 记录新的 ZIP SHA/bytes/runtime/peak CUDA；更新 adaptive review/handoff/provenance，明确 clean rebuild 已不再使用 override。
+7. push `main` 后停止，不提交 Codabench。
 
 ## Constraints
 
-- 不训练/修改 backbone；不使用 Residual Corrector。
-- Head 训练只用 50 Train canonical windows；16 Dev 只做 replay/SPS calibration。
-- 固定 head：15→32、2 residual blocks；AdamW `1e-3`, wd `1e-5`, seed `20260905`, 1400 updates。
-- 固定 grid：floor `{0,0.0025,0.005,0.0075}` × mult `{0.5,1,1.5,2,2.5,3,4}`；不扩 grid、不 sweep。
-- 不访问 locked-final/private test，不提交 Codabench。
+- 不修改 backbone、head、bounds、SPS grid 或 runtime 算法。
+- 不重训任何模型。
+- 不访问 locked-final/private test/Codabench。
 - 不提交 checkpoint、ZIP、dataset、大日志到 Git。
+- 若新 builder 或 A/B smoke 失败，停止并回报；不要临场修改核心代码。
 
 ## Deliverables
 
-- validation replay / head training / calibration grid+summary。
-- 若 GO：package build + clean-room smoke + ZIP path/SHA/size/runtime。
-- `docs/coordination/CHATGPT_HANDOFF_SOTA_V2_ADAPTIVE_20260916.md`。
-- 状态：`REVIEW_REQUIRED`。
+- 新 `package_build.json`。
+- 新 `package_smoke_a.json` / `package_smoke_b.json`。
+- 更新 `SHA256_PROVENANCE.md`、adaptive `README.md`、handoff。
+- 最终状态：`READY_TO_UPLOAD / REVIEW_REQUIRED`。
 
 ## Stop
 
-完成 evidence + push 后立即停止；不要提交 Codabench。
+clean rebuild + A/B smoke + evidence push 完成后立即停止，等待 ChatGPT/Sol 复核；不要提交 Codabench。
