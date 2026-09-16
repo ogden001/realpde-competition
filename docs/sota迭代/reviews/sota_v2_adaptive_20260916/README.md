@@ -1,6 +1,6 @@
 # SOTA-V2 adaptive execution — 2026-09-16
 
-Status: **COMPLETED / REVIEW_REQUIRED**
+Status: **ONLINE_KEEP / NEW_ONLINE_SOTA**
 
 The clean SOTA-V2 adaptive package rebuild completed from `REQUIRED_COMMIT=8b2e74a8dc4bde1ca7f7f8b755b3d902d7a740d9`. No retraining or recalibration was performed, and no algorithm or model-source files were changed during execution.
 
@@ -30,12 +30,27 @@ The clean SOTA-V2 adaptive package rebuild completed from `REQUIRED_COMMIT=8b2e7
 
 - Full backbone: `/home/chyfuture/realpde_runs/sota_v2_full_20260916/run/checkpoints/model_update_53582.pth`
 - Full backbone SHA256: `f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce`
-- Final candidate package: `/home/chyfuture/realpde_runs/sota_v2_adaptive_20260916/package_clean/submission.zip`
+- Final submitted package: `/home/chyfuture/realpde_runs/sota_v2_adaptive_20260916/package_clean/submission.zip`
 - ZIP bytes / SHA256: `30191330 / 9cfc055c6232d2b0aef9f88f1cb3de2aae883b7cff7f02659ed8b9cf85b3ed55`
 - Smoke A: `PASS`, parity `0.0`, first/steady `0.3303255550 / 0.0307885470 s`
 - Smoke B: `PASS`, parity `0.0`, first/steady `0.3408626430 / 0.0308223500 s`
 - Peak CUDA allocation: `142737920` bytes in both runs
 
-The package builder SHA guard is now fixed in the required source commit, and this clean rebuild passed without monkeypatch or in-process SHA override. The prior `package/submission.zip` evidence remains historical; the final candidate is `package_clean/submission.zip`. Codabench/private/locked submission was not run or uploaded.
+The package builder SHA guard is fixed in the required source commit, and the clean rebuild passed without monkeypatch or in-process SHA override. The prior `package/submission.zip` evidence remains historical; the submitted candidate is `package_clean/submission.zip`.
 
-See the accompanying JSON/CSV evidence and `SHA256_PROVENANCE.md` for the complete provenance.
+## Codabench online result
+
+| Metric | Previous online SOTA | SOTA-V2 | Delta |
+|---|---:|---:|---:|
+| Final | `76.694784` | **`77.314446`** | **`+0.619662`** |
+| Rel-L2 | `93.434384` | **`93.816645`** | `+0.382261` |
+| TKE | `77.588799` | **`79.164203`** | `+1.575404` |
+| MVPE | `92.519563` | **`93.411176`** | `+0.891613` |
+| Time | `87.066646` | `86.898836` | `-0.167810` |
+| SPS | `29.519724` | **`30.319572`** | `+0.799848` |
+
+Conclusion: **KEEP / NEW_ONLINE_SOTA**.
+
+The online gain is not SPS-only: Rel-L2, TKE, MVPE and SPS all improve versus the previous online SOTA, while Time decreases slightly. This provides direct online evidence that the integrated SOTA-V2 predictive backbone transferred successfully to the hidden evaluation set and that the fresh adaptive uncertainty layer retained a positive SPS contribution.
+
+See the accompanying JSON/CSV evidence and `SHA256_PROVENANCE.md` for complete package provenance.
