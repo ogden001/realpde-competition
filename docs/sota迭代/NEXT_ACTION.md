@@ -2,37 +2,43 @@
 
 ## Goal
 
-完成当前 adaptive candidate 的**提交前准备**：确认最终 ZIP、复制到本地 Mac、核对 SHA256。**不再训练、不重打包已有正确 ZIP、不提交 Codabench。**
+执行 SOTA-V2 **all-82 released PIV full-data refit**。完整 recipe 已在 50/16 Dev 上验证，full-data 仅按 Dense epoch 对齐训练强度，不再选模或改科学配方。
 
-状态：`EXECUTE_AUTHORIZED / SUBMISSION_PREP_ONLY`
+状态：`READY_FOR_EXECUTION / REVIEW_REQUIRED`
 
 ## Tasks
 
-1. 同步 `main`，确认工作区干净、`HEAD == origin/main`。
-2. 使用已经 clean-room smoke PASS 的唯一 ZIP：
-   - SHA256：`3285ad3a424988ab35061337ca836c23b5f7db04773246167da3a9f8eaa2178a`
-   - 若该 exact ZIP 仍存在，**不要重新 build**。
-3. 确认该 ZIP 的 SHA256 和大小与 review evidence 一致。
-4. 将 ZIP 复制到本地 Mac：
-   - `/Users/oukairi/project/RealPDE Competion/artifacts/full43260_adaptive_package_20260905/submission.zip`
-5. 在 Mac 上再次计算 SHA256，必须仍为：
-   - `3285ad3a424988ab35061337ca836c23b5f7db04773246167da3a9f8eaa2178a`
-6. 返回最终本地路径、SHA256、文件大小和 `READY_TO_UPLOAD`。
+1. 同步 `main`，确认工作区干净、`HEAD == origin/main`，并验证 GitHub 写权限。
+2. 运行 `tests/test_sota_v2_full.py`、SOTA-V2/real-fixture/Dense-All/MF focused tests 与 `py_compile`。
+3. 使用 `tools/realpde_sota_v2_full.py --preflight-only` 在 RTX 3090/CUDA 环境核验：
+   - released PIV trajectories = `82`；
+   - canonical windows = `3383`；
+   - Dense-All windows = `66755`；
+   - P0-A features = `20`；
+   - official `sim_real_ft` SHA、scorer SHA、Direct→MF parity、pressure=0、finite loss/gradient 全部通过。
+4. preflight PASS 后 detached 训练到 update `53582`：
+   - Stage A：`1..49461`, LR `1e-5`；
+   - Stage B：`49462..53582`, LR `3e-6`，额外 Rel-L2 `0.027514`；
+   - effective batch 固定 `8`；
+   - milestones：`12365,24730,32974,41217,49461,51109,53582`。
+5. 训练完成后记录 final checkpoint path/SHA、runtime、peak GPU、training milestone evidence，commit + push `main`。
 
 ## Constraints
 
-- 不训练、不 recalibration、不使用 corrector。
-- 不重新跑完整测试，不做 benchmark，不扩展 package 流程。
-- 不访问 locked-final/private-test。
-- 不提交 Codabench。
-- 只有 exact ZIP 缺失或 SHA 不匹配时才停止并报告，不自行重建替代包。
+- 科学 recipe 固定：`Dense-All + P0-A + MF-CNO + N2 + vorticity + Stage-B extra Rel`。
+- 初始化固定 official `sim_real_ft` Direct CNO：SHA256 `82e842928a25dbf5a74c4e336bdd28e89bcf40e68bb8cdd213547f1246af4f61`。
+- scorer SHA256 固定 `a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39`。
+- `53582` 是在 full refit 前由 Dev `32.5k` sweet spot 按 Dense epoch 映射后预先冻结的 primary checkpoint；**不要继续到 57704，也不要用 training loss 重新选 checkpoint**。
+- 不访问 Codabench/private test，不做 SPS/Adaptive Uncertainty/package，不做消融或超参搜索。
+- 不提交 checkpoint、dataset、大日志到 Git。
 
 ## Deliverables
 
-- Mac 上最终 `submission.zip`。
-- 本地 SHA256 核验结果。
-- 状态：`READY_TO_UPLOAD` 或 `FAILED`。
+- `docs/sota迭代/reviews/sota_v2_full_20260916/`：轻量 preflight/run metadata/runtime/status/training milestones/README。
+- `docs/coordination/CHATGPT_HANDOFF_SOTA_V2_FULL_20260916.md`。
+- full checkpoint 保留在远程 artifact 目录并记录 SHA256。
+- 状态：`REVIEW_REQUIRED`。
 
 ## Stop
 
-本地文件与 SHA256 核对完成后立即停止。
+update `53582` 完成、轻量 evidence 和 handoff push 到 `main` 后立即停止，等待 ChatGPT/Sol 复核；不要自动进入 SPS 或提交。
