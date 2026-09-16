@@ -1,0 +1,74 @@
+{
+  "backbone_b_prediction_parity_head_swap_max_abs": 0.0,
+  "codabench_accessed": false,
+  "combinations": [
+    {
+      "backbone": "A@30000",
+      "calibration_source": "A",
+      "combination": "A_headA_Acal",
+      "coverage": 0.842655475616277,
+      "floor": 0.0025,
+      "head": "Head-A",
+      "mean_width_uv": 0.024530485272407532,
+      "mult": 1.0,
+      "sigma_error_pearson": 0.6844905288113411,
+      "sigma_error_sampled_points": 199946,
+      "sigma_error_spearman": 0.6436330639370169,
+      "sps": 43.21291033455746
+    },
+    {
+      "backbone": "B@32500",
+      "calibration_source": "B",
+      "combination": "B_headB_Bcal",
+      "coverage": 0.8558713772975425,
+      "floor": 0.0025,
+      "head": "Head-B",
+      "mean_width_uv": 0.02358330972492695,
+      "mult": 1.0,
+      "sigma_error_pearson": 0.673554148900692,
+      "sigma_error_sampled_points": 199946,
+      "sigma_error_spearman": 0.6351773921881435,
+      "sps": 45.07008160038756
+    },
+    {
+      "backbone": "B@32500",
+      "calibration_source": "A",
+      "combination": "B_headA_Acal",
+      "coverage": 0.8630128898979591,
+      "floor": 0.0025,
+      "head": "Head-A",
+      "mean_width_uv": 0.023998944088816643,
+      "mult": 1.0,
+      "sigma_error_pearson": 0.6760302511241982,
+      "sigma_error_sampled_points": 199946,
+      "sigma_error_spearman": 0.6290179264521235,
+      "sps": 45.11577471806446
+    },
+    {
+      "backbone": "B@32500",
+      "calibration_source": "B-on-Head-A",
+      "combination": "B_headA_Bcal",
+      "coverage": 0.8630128898979591,
+      "floor": 0.0025,
+      "head": "Head-A",
+      "mean_width_uv": 0.023998944088816643,
+      "mult": 1.0,
+      "sigma_error_pearson": 0.6760302511241982,
+      "sigma_error_sampled_points": 199946,
+      "sigma_error_spearman": 0.6290179264521235,
+      "sps": 45.11577471806446
+    }
+  ],
+  "dev_trajectories": 16,
+  "dev_windows": 659,
+  "grid_rows_per_source": 28,
+  "head_b_reused_frozen": true,
+  "locked_final_accessed": false,
+  "mismatch": {
+    "mismatch_after_recalibration": -0.04569311767689754,
+    "mismatch_total": -0.04569311767689754
+  },
+  "private_test_accessed": false,
+  "provenance": "/out/run/head_provenance.json",
+  "status": "REVIEW_REQUIRED"
+}

@@ -259,7 +259,22 @@ KEEP / ROLLBACK
 
 ---
 
-## 10. 关键文档
+## 10. 2026-09-17 SPS-A2 backbone/head mismatch audit
+
+实验状态：`COMPLETED / REVIEW_REQUIRED`。固定 50/16 Dev、同一 validation run 的 Backbone A=`@30000` 与 B=`@32500`，只训练 A-matched Head-A，并复用现有 frozen B Head-B；四组合均使用同一 28-row calibration grid。
+
+- B + Head-B + Bcal：SPS `45.07008160038756`，严格复现当前 baseline
+- B + Head-A + Acal：SPS `45.11577471806446`
+- B + Head-A + Bcal：SPS `45.11577471806446`
+- `mismatch_total = -0.04569311767689754`
+- `mismatch_after_recalibration = -0.04569311767689754`
+- 结论：`BACKBONE_HEAD_MISMATCH_NOT_SUPPORTED`
+
+两次 calibration 都选择 `(floor=0.0025, mult=1.0)`，因此 recalibration 没有改变 cross-backbone 结果。未访问 locked-final/private/Codabench，也未进入 full head、package 或 smoke。完整证据见 [`reviews/sps_backbone_head_mismatch_20260917/README.md`](reviews/sps_backbone_head_mismatch_20260917/README.md)。
+
+---
+
+## 11. 关键文档
 
 - 当前战略：`docs/realpde整体优化概要.md`
 - Submission log：`docs/submission_log.md`
