@@ -1,10 +1,13 @@
 # RealPDE Track 1 整体优化概要
 
-> 本文只维护 **Track 1 当前战略地图、方向状态和下一步优先级**。具体实验过程、配置和指标不在这里展开，统一链接到各方向概要、`track1_experiment_registry.md` 和 coordination handoff。
+> 本文只维护 **Track 1 当前战略地图、方向状态和下一步优先级**。具体实验过程、配置和指标统一回溯到各方向概要、`track1_experiment_registry.md`、SOTA review 和 coordination handoff。
 
 - Deadline：**2026-09-28**
-- 当前阶段：**探索收口期**；优先完成仍未覆盖的大方向，避免继续深挖已关闭弱信号。
-- 当前线上 SOTA：**P0-A + N2 + CNO + full-data late continuation + learned adaptive uncertainty bounds**，Codabench Final **76.694784**。
+- 当前阶段：**SOTA 收口 / 提交冲刺期**。
+- 当前线上 SOTA：**Dense-All + P0-A + MF-CNO + N2 + vorticity + Stage-B + full@53582 + fresh Adaptive Uncertainty Head@1400**。
+- Codabench Final：**77.314446**。
+- 线上子分：Rel-L2 `93.816645` / TKE `79.164203` / MVPE `93.411176` / Time `86.898836` / SPS `30.319572`。
+- 相对上一线上 SOTA `76.694784`：Final `+0.619662`；Rel-L2 `+0.382261`；TKE `+1.575404`；MVPE `+0.891613`；SPS `+0.799848`；Time `-0.167810`。
 
 ---
 
@@ -15,10 +18,11 @@
 1. `docs/realpde整体优化概要.md`
 2. `docs/sota迭代/README.md`
 3. `docs/submission_log.md`
-4. 对应方向 `*概要.md` / closeout
-5. `docs/track1_experiment_registry.md` 与相关 coordination handoff
+4. `docs/sota迭代/reviews/sota_v2_adaptive_20260916/README.md`
+5. 对应方向 `*概要.md` / closeout
+6. `docs/track1_experiment_registry.md` 与相关 coordination handoff
 
-原则：不能因为当前 SOTA 是 CNO 就只围绕 CNO 微调；也不能因为做战略探索就忽略已获得的线上/离线证据。
+当前默认线上锚点已经升级为 SOTA-V2；后续实验不能继续把 full@43260 / Final `76.694784` 当成默认 SOTA baseline。
 
 ---
 
@@ -30,23 +34,24 @@
 
 > **有没有大台阶？值不值得继续投资？**
 
-默认先做 1～2 小时级粗筛或少量代表性方案，不在弱信号上连续做超参雕琢。
+默认先做 bounded screening，不在弱信号上持续扫参。
 
-方向状态统一使用：
+方向状态：
 
-- `PROMISING`：有明显工程收益，记录后 PARK；
+- `ONLINE_KEEP`：已通过正式 Codabench 验证，进入当前 SOTA recipe；
+- `PROMISING`：有明显工程收益，等待合并时机；
 - `WEAK_SIGNAL / PARKED`：有小幅或冲突信号，暂不继续；
 - `NO_GO / STOP`：当前实现路线停止；
-- `CLOSED`：该一级方向已完成本阶段探索，不再自动追加实验。
+- `CLOSED`：该一级方向已完成本阶段探索。
 
 ### 2.2 SOTA Merge 门槛
 
-一次完整 merge 通常消耗约 **4～6 轮 ChatGPT/Codex + 4～6 GPU 小时**，因此任何 merge 前必须先做 `Merge Worthiness Review`：
+完整 merge 成本高，任何下一轮 merge 仍必须先做 `Merge Worthiness Review`：
 
 - `MERGE_WORTHY`：存在大台阶变量，或多个证据强且兼容的增量；
-- `SKIP_MERGE`：只有孤立小收益、weak signal、线上迁移不确定或继续 exploration 的信息收益更高。
+- `SKIP_MERGE`：只有孤立小收益、weak signal、线上迁移不确定，或不值得消耗完整 50/16 → full-data → package → Codabench 周期。
 
-`+1%` 左右的小离线收益默认不足以单独触发完整 merge。
+当前新的比较基线是 Final `77.314446`，因此过去相对弱 backbone 的小收益需要重新审视，不能机械沿用旧百分比。
 
 ---
 
@@ -54,68 +59,82 @@
 
 | 一级方向 | 当前结论 | 状态 | 优先级 |
 |---|---|---|---|
-| **Data Regime / Random Window** | 完整 PIV trajectory 仍可能存在大量未利用的 temporal phase / window coverage；随机窗口实验正在验证。 | **RUNNING** | **P0** |
-| **Backbone Family** | 项目长期主要围绕 CNO 展开，FNO / Transolver 尚未完成同协议 family screen。 | **OPEN** | **P0** |
-| **POD / Modal Dynamics** | 尚未回答“高维流场是否主要由低维 coherent modes 驱动”；信息增益高、实验成本低。 | **OPEN** | **P0** |
-| **Structured Temporal Dynamics** | ΔUV 有 trade-off；latent Temporal Conv 仅弱信号；Temporal Attention 无收益；显式 Future20 temporal architecture 未发现大台阶。 | **CLOSED / WEAK_SIGNAL** | PARKED |
-| **Vorticity Supervision** | long paired final：late median Rel `+3.243%`、TKE `-0.564%`、MVPE `+2.059%`；MVPE gate 与 2-of-3 rule 失败。 | **PARK** | PARKED |
-| **Mean / Fluctuation** | @3000 曾有强收益，但 long-convergence 后 wash out / mixed；@15000 未保持强 gate。 | **WEAK_SIGNAL_PARKED** | PARKED |
-| **Local / Point / Hybrid residual** | Point/LOCAL3 STOP；H1 Rel/MVPE 强但 trajectory-level TKE 保护不稳；Local+Global A1 只有弱 TKE 信号。 | **PARKED** | P1/PARKED |
-| **Multi-scale / coarse+fine A2** | matched@3000 三项无正收益。 | **NO_GO** | STOP |
-| **Feature Engineering** | runtime-safe temporal/spatial features在简单 probe 有预测价值，但现有 CNO fusion 路线未形成稳定三指标收益；Feature Discovery 已关闭。 | **PARKED** | P1/PARKED |
-| **Sim2Real / CFD** | raw temporal transfer 不支持；official frozen CFD representation 不支持；CFD-only conditions 仅保留 OOD/coverage 价值。 | **WEAK_SIGNAL / PARKED** | PARKED |
-| **Loss / Objective** | N2 已是当前有效基础；继续做简单 scalar weight scan 信息价值低。 | **KEEP BASE / PARK SCAN** | P1 |
-| **SPS / Uncertainty** | learned adaptive uncertainty 已在线上验证有效并提升 Final；当前作为 submission-layer 默认组件。 | **KEEP** | Exploit |
-| **Data Split / Distribution Audit** | 50/16/16 `SPLIT_OK`；无明显 Final-only coverage gap。Train `6300_0.h5` 与 Final `7575_0.h5` Past20 exact duplicate，locked-final 审计需同时报告 all16 / unique15。 | **CLOSED** | Support |
+| **Data Regime / Dense-All** | 使用全部合法 Past20→Future20 temporal starts 明显扩大 PIV exposure；50-train Dense-All `40488` windows，all-82 `66755` windows。已进入 SOTA-V2 full refit并线上提升。 | **ONLINE_KEEP** | SOTA CORE |
+| **P0-A Feature Engineering** | runtime-safe 20-channel P0-A 已稳定进入当前线上 SOTA。 | **ONLINE_KEEP** | SOTA CORE |
+| **Mean / Fluctuation** | 单独 long-convergence 证据曾 mixed/wash-out，但在 Dense-All + N2 + vorticity + Stage-B integrated recipe 中随整体方案线上成功。当前只能确认“组合内可用”，不能独立归因其收益。 | **INTEGRATED_KEEP / ATTRIBUTION_UNRESOLVED** | SOTA CORE |
+| **Vorticity Supervision** | 单独 long paired gate 曾 mixed；但已作为 SOTA-V2 integrated recipe 的组成部分并通过线上整体验证。不能将线上增益单独归因给 vorticity。 | **INTEGRATED_KEEP / ATTRIBUTION_UNRESOLVED** | SOTA CORE |
+| **Loss / Objective** | N2 继续作为主 objective；Stage-B 低 LR + extra Rel 在 50/16 上带来关键 late improvement，并进入线上 SOTA。 | **ONLINE_KEEP** | SOTA CORE |
+| **Adaptive Uncertainty / SPS** | fresh head 用 50 Train canonical 训练、16 Dev calibration；Dev SPS `42.124892 → 45.070082`，线上 SPS `29.519724 → 30.319572`。 | **ONLINE_KEEP** | SOTA CORE |
+| **Local / Point / Residual Corrector** | Rel/MVPE 有信号，但 trajectory-level TKE 保护不稳；未进入 SOTA-V2。 | **PARKED** | PARKED |
+| **Multi-scale / coarse+fine A2** | matched screen 三项无正收益。 | **NO_GO** | STOP |
+| **Structured Temporal Dynamics** | ΔUV trade-off、Temporal Mixer/Attention 无稳定收益；显式 future temporal architecture 未发现大台阶。 | **CLOSED / WEAK_SIGNAL** | PARKED |
+| **Backbone Family** | FNO / Transolver 尚未形成足以替换当前 SOTA-V2 的同协议证据。若再做，只做高信息增益 bounded screen。 | **OPEN** | P1 |
+| **POD / Modal Dynamics** | 尚未形成可并入当前 SOTA 的强证据。 | **OPEN** | P1 |
+| **Sim2Real / CFD** | raw transfer / frozen representation 均未形成强增益，CFD 主要保留 OOD/coverage 研究价值。 | **WEAK_SIGNAL / PARKED** | PARKED |
+| **Data Split / Distribution Audit** | 50/16/16 `SPLIT_OK`；已完成 duplicate / OOD-like 审计。 | **CLOSED** | Support |
 
 ---
 
-## 4. Structured Temporal Dynamics 最新收口
+## 4. SOTA-V2 已验证事实
 
-该方向最初验证两个假设：
+### 4.1 50/16 predictive result
 
-1. `Past20 → Future20` 一次性预测是否缺少未来帧内部时序关系；
-2. 除直接 u/v 外，速度增量、涡量等中间变量能否提供更稳定监督。
+固定 50 Train / 16 Dev 上，SOTA-V2 @32500：
 
-最终结果：
+- Rel-L2 `0.0999346152`
+- TKE `0.4692927301`
+- MVPE `0.0757779852`
 
-- ΔUV Temporal Supervision：Rel 有明显信号，但持续牺牲 TKE；
-- output Temporal Mixer：无稳定收益；
-- Latent Temporal Conv：约 1%～3% 弱信号，far horizon 略强；
-- Latent Temporal Attention：基本无收益；
-- Vorticity：短训曾明显改善 Rel/MVPE，但 long paired final 未达到稳定 merge gate。
+相对 historical balanced anchor `0.112925 / 0.494840 / 0.084671`，raw error 分别下降约：
 
-因此：
+- Rel-L2 `11.50%`
+- TKE `5.16%`
+- MVPE `10.50%`
 
-> **显式 Future20 temporal structure 不是当前 CNO 的主要性能瓶颈；物理辅助监督有一定价值，但目前也没有形成足够稳定、足够大的 SOTA 增量。**
+### 4.2 Full-data refit
 
-结论：
+- released PIV trajectories：`82`
+- Dense-All windows：`66755`
+- Stage A end：`49461`
+- Final update：`53582`
+- Full checkpoint SHA256：`f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce`
 
-- `Vorticity Supervision = PARK`
-- `Structured Temporal Dynamics exploration = CLOSED`
-- 不继续 Temporal Transformer / SSM / autoregressive / Block rollout / ΔUV / Vorticity λ 扫描。
+### 4.3 Adaptive uncertainty
 
-完整过程：`docs/modeling/structured_temporal_dynamics_closeout.md`
+- Head training：50 Train canonical `2052` windows，`1400` updates
+- Dev calibration：16 Dev `659` windows
+- Best bounds：`half_width_uv = 0.0025 + 1.0 * sigma`
+- pressure half-width：`0`
+- Dev adaptive SPS：`45.0700816004`
+- same-backbone static SPS：`42.1248919471`
+
+### 4.4 Online result
+
+Final clean package SHA256：`9cfc055c6232d2b0aef9f88f1cb3de2aae883b7cff7f02659ed8b9cf85b3ed55`。
+
+Codabench：
+
+| Metric | Previous SOTA | SOTA-V2 | Delta |
+|---|---:|---:|---:|
+| Final | `76.694784` | **`77.314446`** | **`+0.619662`** |
+| Rel-L2 | `93.434384` | **`93.816645`** | `+0.382261` |
+| TKE | `77.588799` | **`79.164203`** | `+1.575404` |
+| MVPE | `92.519563` | **`93.411176`** | `+0.891613` |
+| Time | `87.066646` | `86.898836` | `-0.167810` |
+| SPS | `29.519724` | **`30.319572`** | `+0.799848` |
+
+结论：**SOTA-V2 = ONLINE_KEEP / NEW_ONLINE_SOTA**。这次提升不是单纯 SPS 校准收益，三个 physical prediction subscore 同时上涨。
 
 ---
 
-## 5. 当前 P0 队列
+## 5. 下一轮主要问题
 
-### P0-1 Random Window / Phase Augmentation
+下一轮先复盘而不是立即 full train：
 
-核心问题：现有 stride20 是否严重浪费完整 PIV trajectory 的 temporal phase coverage。当前实验正在执行，等待结果后再决定是否进入 merge pool。
-
-### P0-2 Backbone Family Screen
-
-使用统一 PIV protocol 对 CNO / FNO / Transolver 做 bounded 粗筛。目标不是调到各自最优，而是判断是否存在 5% 级 family difference 或互补 metric profile。
-
-### P0-3 POD / Modal Dynamics
-
-先做 POD/PCA reconstruction ceiling，再用轻量 temporal predictor 预测 modal coefficients。目标是判断：
-
-> 当前任务真正难的是 spatial field reconstruction，还是低维 temporal dynamics？
-
-若低维 modal ceiling 很高，再升级为正式建模方向。
+1. **TKE 仍是相对最低的主要物理子分。** 已有诊断显示趋势/方向相关性高，但能量幅值存在系统性偏差；值得研究 amplitude calibration / energy-aware correction，但不能破坏 Rel/MVPE。
+2. **SPS 仍有线上 calibration generalization gap。** Dev `45.07` 对线上 `30.32`，说明下一轮收益重点可能来自更稳健的 uncertainty calibration 泛化，而不是盲目加复杂 head。
+3. **Late horizon 仍是结构性误差来源。** h19/h20 在 integrated Dev 中仍占较高 squared-error fraction。
+4. **任何新 merge 都以 `77.314446` 为唯一线上 anchor。** 若预期只是小幅单指标改善，默认不值得再烧完整 merge 周期。
 
 ---
 
@@ -123,28 +142,28 @@
 
 除非出现新的独立机制证据，否则不继续：
 
-- Temporal Transformer / SSM / autoregressive rollout；
+- Temporal Transformer / SSM / autoregressive rollout 大规模展开；
 - Vorticity / ΔUV 权重扫描；
-- MF 机制精修；
+- MF 单独机制精修；
 - Local / Point / coarse+fine residual 变体扫描；
 - raw CFD transfer / 长 CFD pretraining / 复杂 Sim2Real campaign；
 - Feature 21/22/23 式继续堆手工特征；
 - 同 LR 的无目的超长训练；
-- SPS 固定 bounds 微调。
+- 直接在 Codabench 上高频搜索 SPS 参数。
 
 ---
 
 ## 7. 关键文档
 
 - 当前线上：`docs/sota迭代/README.md`
+- 最新线上 review：`docs/sota迭代/reviews/sota_v2_adaptive_20260916/README.md`
+- 最新 handoff：`docs/coordination/CHATGPT_HANDOFF_SOTA_V2_ADAPTIVE_20260916.md`
 - Submission：`docs/submission_log.md`
+- Inference：`docs/inference/inference概要.md`
 - Modeling：`docs/modeling/modeling概要.md`
-- Structured Temporal closeout：`docs/modeling/structured_temporal_dynamics_closeout.md`
 - Feature Engineering：`docs/feature_engineering/feature_engineering概要.md`
 - Sim2Real：`docs/sim2real/sim2real概要.md`
 - Dataset：`docs/data/DATASET_PROFILE.md`
-- Duplicate audit：`docs/data/DUPLICATE_AUDIT.md`
 - Experiment registry：`docs/track1_experiment_registry.md`
-- Vorticity final：`docs/coordination/CHATGPT_HANDOFF_VORTICITY_LOWMEM_FINAL.md`
 
-后续战略决策优先以本文件的当前状态为入口，具体数值回溯到对应方向文档和 registry。
+后续战略决策优先以本文件和最新 SOTA review 为入口。
