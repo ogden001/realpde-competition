@@ -1,0 +1,31 @@
+{
+  "best": {
+    "coverage": 0.8558713772975425,
+    "floor": 0.0025,
+    "mean_width_uv": 0.02358330972492695,
+    "mult": 1.0,
+    "sps": 45.07008160038756
+  },
+  "delta_sps": 2.9451896532740207,
+  "dev_trajectories": 16,
+  "dev_windows": 659,
+  "gate": "ADAPTIVE_GO",
+  "grid_rows": 28,
+  "head": "/runs/sota_v2_adaptive_20260916/adaptive/adaptive_head_1400.pth",
+  "head_sha256": "01c1fc06f806ca00a370cf971df0f093d363ab7f3a4c4e473f1727441f3d4d17",
+  "raw_errors": {
+    "mvpe": 0.07577798515558243,
+    "rel_l2": 0.09993461519479752,
+    "tke": 0.4692927300930023
+  },
+  "scorer_sha256": "a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39",
+  "static_reference": {
+    "abs": 0.0075,
+    "coverage": 0.7769141038900076,
+    "mean_width_uv": 0.01834334246814251,
+    "rel": 0.02,
+    "sps": 42.12489194711354
+  },
+  "status": "REVIEW_REQUIRED",
+  "validation_checkpoint_sha256": "6926722895611c38dee79cf16ce43b87c7de3d4a1305e9db431dadd4c1a7bf47"
+}

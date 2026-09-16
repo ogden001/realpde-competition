@@ -1,0 +1,12 @@
+{
+  "iteration": 32500,
+  "raw_errors": {
+    "mvpe": 0.07577798515558243,
+    "rel_l2": 0.09993461519479752,
+    "tke": 0.4692927300930023
+  },
+  "trajectories": 16,
+  "validation_checkpoint": "/runs/sota_v2_integrated_50_16_20260916/run/checkpoints/model_update_32500.pth",
+  "validation_checkpoint_sha256": "6926722895611c38dee79cf16ce43b87c7de3d4a1305e9db431dadd4c1a7bf47",
+  "windows": 659
+}
