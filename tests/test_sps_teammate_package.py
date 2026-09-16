@@ -43,14 +43,18 @@ def test_full_specific_teammate_head_rejects_wrong_backbone_sha() -> None:
         validate_teammate_head_provenance(meta, full_sha="expected")
 
 
-def test_teammate_calibration_requires_go_and_frozen_grid() -> None:
+def test_teammate_calibration_accepts_go_or_no_go_but_requires_frozen_grid() -> None:
     assert validate_teammate_calibration(
         {"gate": "SPS_TEAMMATE_GO", "best": {"floor": 0.0025, "mult": 1.0}}
-    ) == (0.0025, 1.0)
+    ) == (0.0025, 1.0, "SPS_TEAMMATE_GO")
+
+    assert validate_teammate_calibration(
+        {"gate": "SPS_TEAMMATE_NO_GO", "best": {"floor": 0.0025, "mult": 1.0}}
+    ) == (0.0025, 1.0, "SPS_TEAMMATE_NO_GO")
 
     with pytest.raises(ValueError):
         validate_teammate_calibration(
-            {"gate": "SPS_TEAMMATE_NO_GO", "best": {"floor": 0.0025, "mult": 1.0}}
+            {"gate": "UNKNOWN", "best": {"floor": 0.0025, "mult": 1.0}}
         )
     with pytest.raises(ValueError):
         validate_teammate_calibration(
