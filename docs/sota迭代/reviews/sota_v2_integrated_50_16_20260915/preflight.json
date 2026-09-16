@@ -1,0 +1,18 @@
+{
+  "dense_train_windows": 40488,
+  "direct_to_mf_uv_max_abs_diff": 1.1920928955078125e-07,
+  "feature_count": 20,
+  "gradient_max_abs": 4454.681640625,
+  "loss": 112.35651397705078,
+  "loss_parts": {
+    "fluct": 63.659828186035156,
+    "mean": 5.329964637756348,
+    "mse": 0.29411959648132324,
+    "mvpe": 6.6231794357299805,
+    "rel": 5.91372013092041,
+    "tke": 2229.3603515625,
+    "vorticity": 0.023621387779712677
+  },
+  "passed": true,
+  "pressure_max_abs": 0.0
+}

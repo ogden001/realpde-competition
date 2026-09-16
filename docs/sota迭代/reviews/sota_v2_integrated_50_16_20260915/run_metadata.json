@@ -1,0 +1,54 @@
+{
+  "accumulation_steps": 1,
+  "canonical_train_windows": 2052,
+  "checkpoint_sha256": "82e842928a25dbf5a74c4e336bdd28e89bcf40e68bb8cdd213547f1246af4f61",
+  "codabench_accessed": false,
+  "dense_expansion": 19.730994152046783,
+  "dense_train_windows": 40488,
+  "dev_windows": 659,
+  "effective_batch": 8,
+  "feature_config": {
+    "dt": null,
+    "dx": 0.0017108320000000007,
+    "dy": -0.0017108319999999955,
+    "include_p0_a": true,
+    "include_p0_b": false,
+    "re_center": 0.0,
+    "re_scale": 1.0
+  },
+  "full_data_accessed": false,
+  "lambda_vort": 15.5385751724,
+  "locked_final_accessed": false,
+  "manifest_sha256": "42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347",
+  "micro_batch": 8,
+  "milestones": [
+    7500,
+    15000,
+    20000,
+    25000,
+    30000,
+    31000,
+    32500,
+    35000
+  ],
+  "n2": {
+    "mse": 1.0,
+    "mvpe": 0.009757,
+    "rel": 0.027514,
+    "tke": 0.05
+  },
+  "p0a_spacing_mode": "historical_online_sota",
+  "recipe": "Dense-All+P0-A+MF-CNO+N2+Vorticity+StageB-extra-Rel",
+  "scorer_sha256": "a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39",
+  "seed": 20260901,
+  "sps_accessed": false,
+  "stage_a": {
+    "end": 30000,
+    "lr": 1e-05
+  },
+  "stage_b": {
+    "end": 35000,
+    "extra_rel": 0.027514,
+    "lr": 3e-06
+  }
+}

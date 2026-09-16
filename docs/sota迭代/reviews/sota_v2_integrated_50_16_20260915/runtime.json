@@ -1,0 +1,6 @@
+{
+  "dense_epochs_completed": 7,
+  "peak_gpu_memory_allocated": 9974087168,
+  "peak_gpu_memory_reserved": 15235809280,
+  "training_wall_seconds": 23117.199202994998
+}
