@@ -109,7 +109,17 @@ class H5WindowDataset(Dataset[tuple[Tensor, Tensor, Tensor, Tensor]]):
             else:
                 p = np.zeros_like(u)
             re, aoa = float(f["re"][()]), float(f["aoa"][()])
-        full = torch.from_numpy(np.stack([u, v, p], axis=-1))
+        stacked = np.stack([u, v, p], axis=-1)
+        try:
+            full = torch.from_numpy(stacked)
+        except RuntimeError as exc:
+            # Some local PyTorch/NumPy combinations cannot initialize the
+            # NumPy C bridge.  Preserve the exact values via a Python-list
+            # bridge for that environment-only failure; CUDA environments
+            # continue to use the zero-copy path above.
+            if "Numpy is not available" not in str(exc):
+                raise
+            full = torch.tensor(stacked.tolist(), dtype=torch.float32)
         condition = torch.tensor([re, aoa], dtype=torch.float32)
         return full[:self.in_steps], full[self.in_steps:], condition, torch.tensor(index, dtype=torch.long)
 
