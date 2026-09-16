@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import numpy as np
 import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -26,8 +27,8 @@ def test_average_state_dict_rejects_nonfloating_mismatch():
 
 
 def test_prediction_blend_is_weighted_average():
-    a = torch.tensor([1.0, 3.0]).numpy()
-    b = torch.tensor([5.0, 1.0]).numpy()
+    a = np.asarray([1.0, 3.0], dtype=np.float32)
+    b = np.asarray([5.0, 1.0], dtype=np.float32)
     out = soup.blend_predictions([a, b], [0.25, 0.75])
     assert out.tolist() == pytest.approx([4.0, 1.5])
 

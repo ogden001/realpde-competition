@@ -4,7 +4,7 @@
 
 复刻同事已在线验证有效的 SPS 基础配方到当前 SOTA-V2：先在固定 50/16 上验证 `stride=1 uncertainty training`，若通过 Gate，再给 full@53582 训练匹配的 full-specific uncertainty head 并生成候选包。
 
-状态：`READY_FOR_EXECUTION / REVIEW_REQUIRED`
+状态：`COMPLETED / SPS_REPLICA_NO_GO / REVIEW_REQUIRED`
 
 ## Tasks
 

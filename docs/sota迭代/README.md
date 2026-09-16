@@ -245,9 +245,21 @@ KEEP / ROLLBACK
 3. **Late horizon**：h19/h20 仍占较高 squared-error fraction。
 4. **更强 backbone family / modal modeling**：只有出现明显大台阶证据才进入下一次 merge。
 
+## 9. 2026-09-17 SPS stride=1 replica
+
+实验状态：`COMPLETED / SPS_REPLICA_NO_GO / REVIEW_REQUIRED`。在冻结 50 Train / 16 Dev、SOTA-V2 validation backbone@32500 上，按预注册协议训练 `h32/b2` Gaussian-NLL uncertainty head `1400` updates；唯一变量是训练窗口从 fixed stride20 改为全部合法 `dense_all` stride1 窗口（`40488` train windows）。
+
+- baseline Dev SPS：`45.07008160038756`
+- stride1 candidate：`45.0605672284722`，delta `-0.00951437191535831`
+- mean UV width：`0.02358330972492695 → 0.023670747876167297`，ratio `1.0037076284991469`，width guard 通过
+- Gate：`SPS_REPLICA_NO_GO`，未达到预注册 `+1.5` SPS 门槛
+- Phase 2、full-specific head、package 和 clean-room smoke：按 Stop 规则全部跳过
+
+没有访问 locked-final/private Future20，也没有 Codabench。完整轻量证据见 [`reviews/sps_stride1_replica_20260916/README.md`](reviews/sps_stride1_replica_20260916/README.md)。
+
 ---
 
-## 9. 关键文档
+## 10. 关键文档
 
 - 当前战略：`docs/realpde整体优化概要.md`
 - Submission log：`docs/submission_log.md`
