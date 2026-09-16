@@ -1,0 +1,67 @@
+{
+  "accumulation_steps": 2,
+  "canonical_windows": 3383,
+  "checkpoint_sha256": "82e842928a25dbf5a74c4e336bdd28e89bcf40e68bb8cdd213547f1246af4f61",
+  "codabench_accessed": false,
+  "effective_batch": 8,
+  "feature_config": {
+    "dt": null,
+    "dx": 0.0017108320000000007,
+    "dy": -0.0017108319999999955,
+    "include_p0_a": true,
+    "include_p0_b": false,
+    "re_center": 0.0,
+    "re_scale": 1.0
+  },
+  "full_dense_windows": 66755,
+  "full_updates_per_dense_epoch": 8344,
+  "lambda_vort": 15.5385751724,
+  "micro_batch": 4,
+  "milestones": [
+    12365,
+    24730,
+    32974,
+    41217,
+    49461,
+    51109,
+    53582
+  ],
+  "mode": "all-82-released-PIV competition refit",
+  "n2": {
+    "mse": 1.0,
+    "mvpe": 0.009757,
+    "rel": 0.027514,
+    "tke": 0.05
+  },
+  "p0a_spacing_mode": "historical_online_sota",
+  "primary_checkpoint_policy": "Dev-selected reference 32.5k mapped by Dense epochs before full-data refit",
+  "private_test_accessed": false,
+  "recipe": "Dense-All+P0-A+MF-CNO+N2+Vorticity+StageB-extra-Rel",
+  "reference_dense_windows": 40488,
+  "reference_milestones": [
+    7500,
+    15000,
+    20000,
+    25000,
+    30000,
+    31000,
+    32500
+  ],
+  "reference_updates_per_dense_epoch": 5061,
+  "released_trajectories": 82,
+  "scorer_sha256": "a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39",
+  "seed": 20260901,
+  "sps_accessed": false,
+  "stage_a": {
+    "end": 49461,
+    "lr": 1e-05,
+    "reference_update": 30000
+  },
+  "stage_b": {
+    "end": 53582,
+    "extra_rel": 0.027514,
+    "lr": 3e-06,
+    "reference_update": 32500
+  },
+  "update_scale": 1.648686030428769
+}
