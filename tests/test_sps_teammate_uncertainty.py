@@ -18,6 +18,7 @@ from realpde_sps_teammate_final import (
     CURRENT_DEV_SPS,
     MIN_DEV_SPS_GAIN,
     evaluate_phase_a_gate,
+    execution_policy,
 )
 
 
@@ -86,6 +87,17 @@ def test_phase_a_gate_requires_plus_1_5_sps_and_width_guard() -> None:
         prediction_parity_max_abs=2e-7,
     )
     assert parity_fail["status"] == "SPS_TEAMMATE_NO_GO"
+
+
+def test_phase_b_always_executes_but_submission_recommendation_follows_phase_a_gate() -> None:
+    go = execution_policy("SPS_TEAMMATE_GO")
+    assert go == {"run_phase_b": True, "submission_recommended": True}
+
+    no_go = execution_policy("SPS_TEAMMATE_NO_GO")
+    assert no_go == {"run_phase_b": True, "submission_recommended": False}
+
+    with pytest.raises(ValueError):
+        execution_policy("UNKNOWN")
 
 
 def test_phase_a_gate_rejects_nonfinite_values() -> None:
