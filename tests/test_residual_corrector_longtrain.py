@@ -52,8 +52,8 @@ def test_optimizer_scheduler_uses_full_30k_cosine_horizon():
 
 
 def _toy_arrays() -> tuple[dict[str, np.ndarray], np.ndarray, np.ndarray]:
-    # Two trajectories, one canonical window each, Future20, tiny spatial grid.
-    target = np.ones((2, 20, 4, 4, 3), dtype=np.float32)
+    # Two trajectories, one canonical window each, Future20, official 32x64 grid.
+    target = np.ones((2, 20, 32, 64, 3), dtype=np.float32)
     target[..., 2] = 0.0
     base = target.copy()
     base[..., :2] += 0.20
