@@ -92,6 +92,19 @@ def corrector_objective(base: Tensor, target: Tensor, delta: Tensor) -> tuple[Te
     return total, parts
 
 
+def raw_physical_errors(kit_root: Path, pred: np.ndarray, target: np.ndarray) -> dict[str, float]:
+    """Compute only the three physical raw errors from the official scorer.
+
+    Deliberately bypasses final-score, time, SPS, bounds, and uncertainty code.
+    """
+    scoring = core.load_scoring_module(kit_root / "scoring.py")
+    return {
+        "rel_l2": float(np.mean(scoring.rel_l2_per_sample(pred, target))),
+        "tke": float(np.mean(scoring.tke_rel_l2_per_sample(pred, target))),
+        "mvpe": float(scoring.mvpe_rel_l2(pred, target)),
+    }
+
+
 def _checkpoint_payload(path: Path, expected_update: int) -> dict:
     payload = torch.load(path, map_location="cpu", weights_only=False)
     if int(payload.get("iteration", -1)) != expected_update:
@@ -250,8 +263,7 @@ def evaluate_one_backbone(*, update: int, checkpoint: Path, corrector_checkpoint
         variant = f"a{str(alpha).replace('.', 'p')}"
         variant_dir = out_dir / f"eval_{update}_{variant}"
         variant_dir.mkdir(parents=True, exist_ok=True)
-        scored = core.score_bundle(kit_root, pred, target, 0.0, variant_dir)
-        raw = scored["raw_errors"]
+        raw = raw_physical_errors(kit_root, pred, target)
         trajectory, anatomy = core.trajectory_rows(ds, pred, target, kit_root)
         for row in trajectory:
             trajectory_long.append({"backbone_update": update, "alpha": alpha, **row})
@@ -263,9 +275,9 @@ def evaluate_one_backbone(*, update: int, checkpoint: Path, corrector_checkpoint
         result = {
             "backbone_update": update,
             "alpha": alpha,
-            "rel_l2": float(raw["rel_l2"]),
-            "tke": float(raw["tke"]),
-            "mvpe": float(raw["mvpe"]),
+            "rel_l2": raw["rel_l2"],
+            "tke": raw["tke"],
+            "mvpe": raw["mvpe"],
             "fluctuation_energy": energy,
             "target_fluctuation_energy": target_energy,
             "fluctuation_energy_ratio": energy / max(target_energy, 1e-30),
@@ -349,6 +361,7 @@ def run(args: argparse.Namespace) -> dict:
                       "seed": CORRECTOR_SEED},
         "alphas_evaluated": list(ALPHAS),
         "dev_policy": "no Dev access until both fixed-budget correctors finish training",
+        "physical_metric_path_only": True,
         "sps_accessed": False,
         "uncertainty_accessed": False,
         "full_data_accessed": False,
