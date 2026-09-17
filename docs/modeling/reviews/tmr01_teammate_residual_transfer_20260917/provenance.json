@@ -1,0 +1,21 @@
+{
+  "execution_commit": "a2d2dc09e2507c3ad4cc8b6a3282a3797020fb24",
+  "evaluation_recovery_commit": "97d78e0ee8708aee306125cb38c15739ed5f017f",
+  "manifest_sha256": "42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347",
+  "official_scorer_sha256": "a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39",
+  "docker_image": "realpde-pytorch-h5py:0831",
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "cuda": "12.1",
+  "pytorch": "2.2.2+cu121",
+  "numpy": "1.26.4",
+  "h5py": "3.16.0",
+  "run_name": "tmr01_teammate_residual_transfer_20260917",
+  "state": "DONE",
+  "status": "REVIEW_REQUIRED",
+  "sps_accessed": false,
+  "uncertainty_accessed": false,
+  "full_data_accessed": false,
+  "locked_final_accessed": false,
+  "package_built": false,
+  "codabench_accessed": false
+}

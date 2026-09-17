@@ -1,0 +1,9 @@
+{
+  "backbone_sha256": "d57539d97e94ae193997a59a04d02ca61f68f1e8837599a24df2e152ed10059f",
+  "backbone_update": 30000,
+  "corrector_checkpoint": "/out/run/corrector_backbone_30000.pth",
+  "corrector_sha256": "68fe6af062a05a7e5b55b06fc23365604cce1369237d3c8825a9a6e1350f9dca",
+  "dense_train_windows": 40488,
+  "training_wall_seconds": 589.7374775650096,
+  "updates": 2400
+}

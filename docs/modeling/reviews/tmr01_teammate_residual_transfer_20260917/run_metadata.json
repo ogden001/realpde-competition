@@ -1,0 +1,63 @@
+{
+  "alphas_evaluated": [
+    0.0,
+    0.5,
+    1.0
+  ],
+  "backbones": {
+    "30000": {
+      "path": "/sota/checkpoints/model_update_30000.pth",
+      "sha256": "d57539d97e94ae193997a59a04d02ca61f68f1e8837599a24df2e152ed10059f"
+    },
+    "32500": {
+      "path": "/sota/checkpoints/model_update_32500.pth",
+      "sha256": "6926722895611c38dee79cf16ce43b87c7de3d4a1305e9db431dadd4c1a7bf47"
+    }
+  },
+  "canonical_train_windows": 2052,
+  "codabench_accessed": false,
+  "corrector": {
+    "batch_size": 8,
+    "blocks": 2,
+    "hidden": 64,
+    "in_channels": 42,
+    "loss_weights": {
+      "delta_penalty": 0.05,
+      "grad": 0.02,
+      "mse": 0.05,
+      "p_zero": 0.01,
+      "point": 1.0,
+      "residual_mse": 0.15,
+      "temporal": 0.04,
+      "tke": 0.12
+    },
+    "lr": 0.0001,
+    "max_delta": 0.04,
+    "seed": 20260905,
+    "updates": 2400,
+    "weight_decay": 1e-05
+  },
+  "corrector_source": "realpde_adaptive_probe.ResidualCorrector3D + adaptive_features + corrector_loss",
+  "dense_train_windows": 40488,
+  "dev_policy": "no Dev access until both fixed-budget correctors finish training",
+  "dev_trajectories": 16,
+  "dev_windows": 659,
+  "experiment": "TMR-01_SOTA-V2_x_teammate_residual_corrector",
+  "feature_config": {
+    "dt": null,
+    "dx": 0.0017108320000000007,
+    "dy": -0.0017108319999999955,
+    "include_p0_a": true,
+    "include_p0_b": false,
+    "re_center": 0.0,
+    "re_scale": 1.0
+  },
+  "full_data_accessed": false,
+  "locked_final_accessed": false,
+  "manifest_sha256": "42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347",
+  "physical_metric_path_only": true,
+  "sps_accessed": false,
+  "status": "RUNNING",
+  "train_trajectories": 50,
+  "uncertainty_accessed": false
+}
