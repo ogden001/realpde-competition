@@ -1,0 +1,35 @@
+{
+  "alphas": [
+    0.0,
+    0.5,
+    1.0
+  ],
+  "analysis_only": true,
+  "backbone_sha256": "6926722895611c38dee79cf16ce43b87c7de3d4a1305e9db431dadd4c1a7bf47",
+  "backbone_update": 32500,
+  "by_horizon_rows": 20,
+  "by_trajectory_horizon_rows": 960,
+  "corrector_sha256": "fa1c1b46f71a16da7b08c2f36a4de0f735dd9880b007c636d1b774ccbe084dc0",
+  "dev_trajectories": 16,
+  "dev_windows": 659,
+  "experiment": "TMR-01A_trajectory_x_horizon_audit",
+  "manifest_sha256": "42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347",
+  "metric_notes": {
+    "frame_rel_l2": "window-level per-frame u/v relative L2, then aggregated",
+    "frame_rmse": "window-level per-frame u/v RMSE, then aggregated",
+    "mvpe_probe_rel_l2": "v9 probe geometry without Future20 temporal averaging; diagnostic, not official per-frame MVPE",
+    "tke_contrib_ratio": "predicted/target fluctuation-energy contribution ratio; not official per-frame TKE",
+    "tke_contrib_rel_l2": "diagnostic Future20 temporal-mean fluctuation-energy contribution; not official per-frame TKE"
+  },
+  "scope": {
+    "codabench": "NOT_ACCESSED",
+    "full_data": "NOT_ACCESSED",
+    "locked_final_private": "NOT_ACCESSED",
+    "package": "NOT_BUILT",
+    "sps": "NOT_ACCESSED",
+    "training": "NOT_PERFORMED",
+    "uncertainty": "NOT_ACCESSED"
+  },
+  "stability_rows": 40,
+  "status": "REVIEW_REQUIRED"
+}
