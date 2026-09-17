@@ -1,0 +1,86 @@
+{
+  "bounds": {
+    "floor": 0.0025,
+    "mult": 1.0
+  },
+  "elapsed_seconds": 627.3921844259894,
+  "full_checkpoint_sha256": "f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce",
+  "head": "/runs/sps_teammate_final_20260917/run/phase_b_full_specific_teammate35/teammate35_full_head.pth",
+  "head_sha256": "622c521d8cda12d86e625962979753bc221c3c15eca663b0851ef6c4936671e2",
+  "loss_curve": [
+    {
+      "loss": -3.6038906574249268,
+      "update": 1
+    },
+    {
+      "loss": -4.3336615562438965,
+      "update": 100
+    },
+    {
+      "loss": -4.27468729019165,
+      "update": 200
+    },
+    {
+      "loss": -4.7215704917907715,
+      "update": 300
+    },
+    {
+      "loss": -4.470777988433838,
+      "update": 400
+    },
+    {
+      "loss": -4.760939598083496,
+      "update": 500
+    },
+    {
+      "loss": -4.5566911697387695,
+      "update": 600
+    },
+    {
+      "loss": -4.532474517822266,
+      "update": 700
+    },
+    {
+      "loss": -4.613637447357178,
+      "update": 800
+    },
+    {
+      "loss": -4.32049560546875,
+      "update": 900
+    },
+    {
+      "loss": -4.609701633453369,
+      "update": 1000
+    },
+    {
+      "loss": -4.629255771636963,
+      "update": 1100
+    },
+    {
+      "loss": -4.607568264007568,
+      "update": 1200
+    },
+    {
+      "loss": -4.79933500289917,
+      "update": 1300
+    },
+    {
+      "loss": -4.7116923332214355,
+      "update": 1400
+    },
+    {
+      "loss": -4.904963493347168,
+      "update": 1500
+    },
+    {
+      "loss": -4.688243389129639,
+      "update": 1600
+    }
+  ],
+  "phase_a_gate": "SPS_TEAMMATE_NO_GO",
+  "selected_updates": 1600,
+  "status": "REVIEW_REQUIRED",
+  "submission_recommended": false,
+  "train_trajectories": 82,
+  "train_windows": 3383
+}
