@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 import torch
 
@@ -72,3 +73,35 @@ def test_registered_baselines_are_the_frozen_sota_v2_anchors():
     assert transfer.REGISTERED_BASELINES[32_500] == pytest.approx(
         {"rel_l2": 0.099935, "tke": 0.469293, "mvpe": 0.075778}
     )
+
+
+def test_raw_physical_errors_loads_the_supplied_official_scorer(tmp_path):
+    scorer = tmp_path / "scoring.py"
+    scorer.write_text(
+        """
+import numpy as np
+
+def measured_channels(target):
+    return 2
+
+def rel_l2_per_sample(pred, target, c):
+    assert c == 2
+    return np.asarray([1.0])
+
+def tke_rel_l2_per_sample(pred, target, c):
+    assert c == 2
+    return np.asarray([2.0])
+
+def mvpe_rel_l2(pred, target):
+    return 3.0
+""",
+        encoding="utf-8",
+    )
+    pred = np.zeros((1, 20, 2, 2, 3), dtype=np.float32)
+    target = np.zeros_like(pred)
+
+    assert transfer.raw_physical_errors(tmp_path, pred, target) == {
+        "rel_l2": 1.0,
+        "tke": 2.0,
+        "mvpe": 3.0,
+    }

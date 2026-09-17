@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import importlib.util
 import json
 import time
 from argparse import Namespace
@@ -97,10 +98,16 @@ def raw_physical_errors(kit_root: Path, pred: np.ndarray, target: np.ndarray) ->
 
     Deliberately bypasses final-score, time, SPS, bounds, and uncertainty code.
     """
-    scoring = core.load_scoring_module(kit_root / "scoring.py")
+    scorer_path = kit_root / "scoring.py"
+    spec = importlib.util.spec_from_file_location("tmr01_official_scoring", scorer_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load official scorer from {scorer_path}")
+    scoring = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(scoring)
+    measured_channels = scoring.measured_channels(target)
     return {
-        "rel_l2": float(np.mean(scoring.rel_l2_per_sample(pred, target))),
-        "tke": float(np.mean(scoring.tke_rel_l2_per_sample(pred, target))),
+        "rel_l2": float(np.mean(scoring.rel_l2_per_sample(pred, target, measured_channels))),
+        "tke": float(np.mean(scoring.tke_rel_l2_per_sample(pred, target, measured_channels))),
         "mvpe": float(scoring.mvpe_rel_l2(pred, target)),
     }
 
