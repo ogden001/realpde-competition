@@ -2,216 +2,164 @@
 
 ## Goal
 
-执行一次最终 SPS 候选流水线：在冻结 50/16 Dev 上验证同事 Codabench 包中真实的 `35-channel future-aligned uncertainty` 配方，同时无论 Phase-A GO/NO_GO 都继续训练 full@53582 专属 head、生成候选包并做 clean-room smoke。**Phase-A Gate 只决定明天是否推荐提交，不再决定 Phase B 是否执行。本任务绝不提交 Codabench。**
+执行 `SPS-FULL50-01`：固定最终 full point predictor `@53582`，只改变 uncertainty head 的训练范围，比较：
+
+- Baseline：已存在的 `full@53582 + teammate35 head trained on all 82`；
+- Candidate：`full@53582 + 同一 teammate35 head trained on frozen 50 Train only`。
+
+两者都在同一 frozen 16 Dev 上评估，同为 `1600` updates、同一初始化/optimizer/head/features、同一固定 bounds `floor=0.0025, mult=1.0`。唯一变量是 uncertainty-head training scope。
 
 状态：`READY_FOR_EXECUTION / REVIEW_REQUIRED`
 
-`REQUIRED_COMMIT = 7418b06f80ac2c0314884f3188daf98be277ffea`
+`REQUIRED_COMMIT = ee62a3e9bf9278581768033bcc56271f3a8b0736`
 
-源审计：`docs/sota迭代/reviews/sps_teammate_package_audit_20260917/README.md`
+Sol implementation:
+- `tools/realpde_sps_full50_head_ab.py`
+- `tests/test_sps_full50_head_ab.py`
+
+## Interpretation boundary
+
+重要：full `@53582` point predictor 本身使用过全部 released trajectories，因此这 16 Dev **只对 uncertainty head 是未参与训练的**，并不是 point predictor 的 pristine unseen / OOF residual。
+
+本实验只回答：
+
+> 在最终 full predictor 不变时，余量模型用 50 条训练，是否比用全部 82 条训练更好？
+
+不得把结果解释成真正 OOF 泛化证据。
 
 ## Execution role
 
-本任务由 Codex/Luna **只执行**。算法语义、runner、测试、package builder 已由 ChatGPT Sol 写入 Git。
+本任务由 Codex / Luna **只执行**。
 
-允许的 bounded fix 仅限路径、shell quoting、Docker/CUDA、Torch/NumPy ABI、权限或不改变实验语义的环境适配。若需要修改 feature、head、loss、训练步数/选择逻辑、split、Gate、calibration、backbone 或 package inference 逻辑，立即停止并返回 `REVIEW_REQUIRED`，不得自行设计或实现。
+**Do not implement or redesign experimental logic. All algorithmic/source changes are owned by ChatGPT Sol. Codex is execution-only except for bounded environment/runtime fixes.**
+
+允许的 bounded fix 仅限路径、shell quoting、CUDA / Torch / NumPy ABI、权限等不改变实验语义的运行环境问题。若 runner/test 需要算法、数据、Loss、split、update、bounds、评估逻辑等修改，立即停止并返回 `REVIEW_REQUIRED`。
 
 ## Preflight
 
-1. 按 `AGENTS.md` / `MEMORY.md`（如存在）/ `docs/CHATGPT_CODEX_WORK_PROTOCOL.md` 做 preflight。
-2. 必须满足：
-   - 工作区干净；
-   - `git pull --rebase origin main` 成功；
+1. 阅读 `AGENTS.md`、`docs/CHATGPT_CODEX_WORK_PROTOCOL.md`、本文件和 `docs/sota迭代/reviews/sps_teammate_package_audit_20260917/README.md`。
+2. `MEMORY.md` 若不存在，只记录 `NOT_FOUND`，不要创建。
+3. 必须确认：
+   - 工作区无未知未提交改动；
+   - `git fetch origin && git pull --rebase origin main`；
    - `HEAD == origin/main`；
-   - `REQUIRED_COMMIT` 是 `HEAD` 或 `HEAD` 的祖先；
+   - `git merge-base --is-ancestor ee62a3e9bf9278581768033bcc56271f3a8b0736 HEAD` 成功；
    - `git push --dry-run origin HEAD:main` 成功。
-3. 复用此前 SOTA-V2 / SPS audit 已验证的远程资产路径，不重新训练 point backbone：
-   - 固定 50/16 manifest，SHA `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`；
-   - validation checkpoint `@32500`，SHA `6926722895611c38dee79cf16ce43b87c7de3d4a1305e9db431dadd4c1a7bf47`；
-   - full checkpoint `@53582`，SHA `f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce`；
-   - official scorer SHA `a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39`。
-4. 若上述任何 frozen asset 无法唯一解析，停止并报告，不自行替换。
+4. 复用冻结资产，不重新训练 point predictor：
+   - 50/16 manifest SHA `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`；
+   - full checkpoint `@53582` SHA `f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce`；
+   - official scorer SHA `a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39`；
+   - **已有** Phase-B full82 teammate35 head：来自 `sps_teammate_final_20260917`，应为 `1600` updates，metadata `head_scope=full_specific_teammate35`。
+5. 若已有 full82 head artifact 无法找到或 provenance/SHA/metadata 不匹配，**STOP**。不得重训一个 baseline 代替。
 
 ## Tests first
 
-先运行：
-
 ```bash
 pytest -q \
+  tests/test_sps_full50_head_ab.py \
   tests/test_sps_teammate_uncertainty.py \
-  tests/test_sps_teammate_package.py \
-  tests/test_sps_stride1_replica.py \
-  tests/test_sota_v2_adaptive.py \
-  tests/test_sota_v2_adaptive_package.py
+  tests/test_sps_teammate_package.py
 ```
 
-随后运行与本任务相关的现有 package / dense-window tests；成本合理时运行全仓 `pytest -q`。
+随后运行全仓 `pytest -q`，若成本正常。
 
-测试不通过时，只允许 bounded execution fix；任何实验语义修改都必须停止。
+若测试暴露实验语义问题，停止，不自行改算法代码。
 
-## Frozen recipe
+## Frozen experiment
 
-### Phase A: fixed 50 Train / 16 Dev
+- point predictor：full SOTA-V2 `@53582`，完全冻结；
+- uncertainty architecture/features：现有 teammate35，完全冻结；
+- candidate training trajectories：frozen 50 Train；
+- candidate canonical windows：`2052`；
+- baseline head training trajectories：已有 all82；
+- candidate 与 baseline updates：均 `1600`；
+- seed：沿用现有 teammate runner；
+- Loss：现有 Gaussian NLL reconstruction；
+- AdamW：LR `1e-3`，weight decay `1e-5`；
+- batch `8`；
+- bounds：固定 `0.0025 + 1.0 * sigma`，**不重新调参**；
+- evaluation：同一 frozen 16 Dev；
+- point prediction 必须完全相同，parity `<=1e-7`。
 
-执行 `tools/realpde_sps_teammate_final.py`，冻结：
+Primary comparison：
 
-- point predictor：SOTA-V2 validation `@32500`，不训练、不修改；
-- uncertainty training windows：canonical fixed stride-20，50 Train，共 `2052` windows；
-- uncertainty features：`35-channel teammate35`；
-- architecture：LayerNorm(35) + Conv3d(35→32) + GroupNorm + SiLU + 2 residual blocks + Conv3d(32→2)；
-- hidden `32`，blocks `2`，dropout `0.0`，include pressure feature `true`；
-- `sigma0=0.02`，sigma clamp `[1e-4, 1.0]`；
-- Gaussian NLL on log-std；
-- AdamW，LR `1e-3`，weight decay `1e-5`，batch `8`；
-- maximum `2000` updates；
-- every `200` updates 在同一 16 Dev 上扫 frozen 28-row `floor × mult` grid；
-- 从 `200..2000` 的 checkpoint 中按 Dev SPS 选择 best；
-- 不使用 stride1 / dense_all；
-- 不改变 point prediction。
+`Candidate(full53582 + head_train50@1600)` vs `Baseline(full53582 + existing_head_train82@1600)`。
 
-当前 frozen baseline：
+必须输出 aggregate SPS / coverage / mean width，以及 16 条 trajectory 的 paired SPS delta。
 
-- Dev SPS `45.07008160038756`
-- mean UV width `0.02358330972492695`
+## Run
 
-Phase-A GO 必须同时满足：
-
-1. `candidate SPS >= 46.57008160038756`，即至少 `+1.5`；
-2. mean UV width `<= 1.15 × 0.02358330972492695`；
-3. point prediction parity `max_abs_diff <= 1e-7`。
-
-解释规则：
-
-- `SPS_TEAMMATE_GO`：Phase A 给出了足够强的干净 Dev 支持，明天可把 Phase-B package 视为有离线支持的提交候选。
-- `SPS_TEAMMATE_NO_GO`：**仍然继续 Phase B/package/smoke**，但最终必须标记 `submission_recommended=false`；不得把 Phase-B package 解释为已有离线收益支持。
-
-### Phase B: always-run full-specific head
-
-Phase A 完成后**无论 GO/NO_GO 都执行**：
-
-- frozen full point predictor `@53582`，SHA 必须匹配；
-- all 82 released PIV trajectories；
-- canonical fixed stride-20 windows，共 `3383`；
-- 同一 `teammate35` feature/head/loss/optimizer recipe；
-- Phase-B updates **固定为 Phase-A 选中的 best checkpoint iteration**，不得在 full data 重新选 step；
-- 不在 full data 上重新搜索 calibration；
-- bounds 直接复用 Phase-A clean 16-Dev 选出的 `floor/mult`；
-- 保存完整 full-head provenance，并记录 Phase-A GO/NO_GO；
-- 若 Phase A NO_GO，package 可以生成用于 review，但必须携带 `submission_recommended=false`。
-
-## Runner invocation
-
-先解析并记录以下环境变量对应的**既有 frozen 资产**：
+先解析以前已验证的资产路径：
 
 ```bash
-DATA_ROOT=...              # all 82 released PIV h5 root used by current SOTA-V2
-KIT_ROOT=...               # official RealPDE kit root containing scoring.py
-MANIFEST=...               # frozen 50/16 manifest
-VALIDATION_CKPT=...        # exact model_update_32500.pth
-FULL_CKPT=...              # exact full model_update_53582.pth
-RUN_ROOT=/home/chyfuture/realpde_runs/sps_teammate_final_20260917
+DATA_ROOT=...
+KIT_ROOT=...
+MANIFEST=...
+FULL_CKPT=...
+FULL82_HEAD=...   # existing phase-B teammate35_full_head.pth, do not retrain
+RUN_ROOT=/home/chyfuture/realpde_runs/sps_full50_head_ab_20260917
 ```
 
-然后执行一次 runner：
+执行：
 
 ```bash
-python tools/realpde_sps_teammate_final.py \
+python tools/realpde_sps_full50_head_ab.py \
   --data-root "$DATA_ROOT" \
   --kit-root "$KIT_ROOT" \
   --manifest "$MANIFEST" \
-  --validation-checkpoint "$VALIDATION_CKPT" \
   --full-checkpoint "$FULL_CKPT" \
+  --full82-head-checkpoint "$FULL82_HEAD" \
   --out-dir "$RUN_ROOT/run" \
-  --package-out-root "$RUN_ROOT/package_clean" \
-  --execution-commit "$(git rev-parse HEAD)" \
   --batch-size 8 \
   --workers 2 \
   --require-cuda
 ```
 
-Runner 自己负责 Phase-A Gate，但 Gate 只写入 evidence / submission recommendation。Phase B 和 package 在 Phase A 完成后继续执行。
-
-## Package + clean-room smoke
-
-Phase B/package 成功后，无论 Phase-A GO/NO_GO 都执行 smoke：
-
-1. 使用 runner 生成的 `package_clean/submission.zip`；
-2. 从 frozen 50-train manifest 中选择一条 released Train trajectory 作为 smoke fixture，**不得使用 locked-final/private data**；
-3. 执行：
-
-```bash
-python tools/verify_sota_v2_adaptive_package.py \
-  --zip "$RUN_ROOT/package_clean/submission.zip" \
-  --full-checkpoint "$FULL_CKPT" \
-  --kit-root "$KIT_ROOT" \
-  --fixture "$SMOKE_FIXTURE" \
-  --out "$RUN_ROOT/package_clean/smoke_report.json" \
-  --tolerance 1e-7
-```
-
-Smoke 必须满足：
-
-- status `PASS`；
-- point prediction parity `max_abs_prediction_diff <= 1e-7`，目标 `0.0`；
-- deterministic max diff `0.0`；
-- prediction/lower/upper shape、dtype、finite 正常；
-- pressure prediction为0且 pressure interval width为0；
-- prediction 位于 `[lower, upper]`；
-- 无 fallback；
-- ZIP `<256 MiB`。
-
-若 parity/smoke 任一失败：标记 `PACKAGE_INVALID / REVIEW_REQUIRED`，不得自行修改算法后重跑。
-
 ## Evidence
 
-将轻量 evidence 复制/整理到：
+整理轻量 evidence 到：
 
-`docs/sota迭代/reviews/sps_teammate_final_20260917/`
+`docs/sota迭代/reviews/sps_full50_head_ab_20260917/`
 
-至少记录：
-
+至少提交：
 - `README.md`
-- Phase-A `calibration_summary.json`
-- Phase-A `calibration_grid.csv`
-- Phase-A `checkpoint_evals.json`
-- Phase-A `head_training_summary.json`
-- Phase-B `full_head_summary.json`
-- `package_build.json`
-- `smoke_report.json`
-- package ZIP 路径、bytes、SHA256（ZIP 不写 Git）
-- frozen asset paths + SHA256
-- tests 结果
-- bounded fixes（如有）
+- `summary.json`
+- `head_training_summary.json`
+- `per_trajectory_paired.csv`
+- `per_trajectory_paired.json`
 
-README 必须明确：
-
-- baseline SPS / candidate SPS / delta；
-- selected uncertainty iteration；
-- best floor/mult / coverage / mean width；
+README 只记录事实，至少包括：
+- baseline / candidate SPS / delta；
+- coverage 与 mean width；
+- 16 trajectory wins / ties / losses；
+- median / mean / min / max paired SPS delta；
 - point prediction parity；
-- Phase-A GO/NO_GO；
-- `submission_recommended=true/false`；
-- Phase-B full head 是否完成；
-- package/smoke 状态；
-- `locked-final/private/Codabench NOT accessed`。
+- frozen asset SHA / execution commit；
+- tests；
+- bounded runtime fixes（如有）；
+- 明确写 `locked-final/private/Codabench NOT accessed`；
+- 明确写本实验不是 point-model OOF validation。
 
-## Hard constraints
+大 checkpoint、raw log、candidate head 留远程 artifact，不写 Git，只记录路径与 SHA。
 
-- 不训练或修改 point backbone。
-- 不改 35-channel feature recipe。
-- 不改 teammate head architecture。
-- 不改 Gaussian NLL、sigma0、2000 budget、200-step selection cadence。
-- 不改固定 50/16 split、28-row grid 或 Gate。
-- 不引入 stride1、OOF、pinball、asymmetric bounds、direct SPS loss、new architecture。
+## Constraints
+
+- 不训练/修改 point predictor。
+- 不训练新的 all82 baseline head。
+- 不改 50/16 split。
+- 不改 feature/head/loss/optimizer/1600 updates/bounds。
+- 不做 200..2000 checkpoint search。
+- 不做 calibration grid search。
+- 不做 OOF / cross-fitting。
+- 不生成 submission package。
 - 不访问 locked-final/private Future20。
 - **不提交 Codabench。**
-- Phase-A NO_GO 后只允许继续已冻结的 Phase B/package/smoke，不得扩展任何其他 SPS 实验。
-- 大 checkpoint / raw log / ZIP 只留远程 artifact 路径，不写 Git。
+- 不扩展第二个实验。
 
 ## Stop
 
-完成后 evidence commit + push `main`，确认 `HEAD == origin/main`，然后返回：
+实验完成后，将轻量 evidence commit + push 到 `main`，确认远端 `main` 已包含结果 commit，然后返回：
 
 `REVIEW_REQUIRED`
 
-明天由用户与 ChatGPT Sol 根据 Phase-A evidence、Phase-B provenance 和 smoke 决定是否提交 Codabench。Phase-A NO_GO 时 package 仍应存在，但默认 `submission_recommended=false`。
+最终科研结论由 ChatGPT Sol 复核。
