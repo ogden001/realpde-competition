@@ -1,0 +1,178 @@
+[
+  {
+    "baseline_coverage": 0.8836590921331263,
+    "baseline_mean_width_uv": 0.014177818782627583,
+    "baseline_sps": 54.882077066856894,
+    "candidate_coverage": 0.8903860443147626,
+    "candidate_mean_width_uv": 0.01437437254935503,
+    "candidate_sps": 55.06092669585313,
+    "delta_sps": 0.17884962899623247,
+    "prediction_parity_max_abs": 0.0,
+    "trajectory": "10125_0.h5"
+  },
+  {
+    "baseline_coverage": 0.9733589652354973,
+    "baseline_mean_width_uv": 0.010934778489172459,
+    "baseline_sps": 63.622249094445095,
+    "candidate_coverage": 0.9748939142352601,
+    "candidate_mean_width_uv": 0.011118088848888874,
+    "candidate_sps": 63.50631578591583,
+    "delta_sps": -0.11593330852926442,
+    "prediction_parity_max_abs": 0.0,
+    "trajectory": "3750_0.h5"
+  },
+  {
+    "baseline_coverage": 0.8118650780300969,
+    "baseline_mean_width_uv": 0.028235143050551414,
+    "baseline_sps": 39.84084000669554,
+    "candidate_coverage": 0.8467170668291232,
+    "candidate_mean_width_uv": 0.03180408105254173,
+    "candidate_sps": 39.75340859122407,
+    "delta_sps": -0.08743141547146394,
+    "prediction_parity_max_abs": 0.0,
+    "trajectory": "26700_0.h5"
+  },
+  {
+    "baseline_coverage": 0.8498775309984123,
+    "baseline_mean_width_uv": 0.016856320202350616,
+    "baseline_sps": 49.29736322585742,
+    "candidate_coverage": 0.8699167078211124,
+    "candidate_mean_width_uv": 0.01762191206216812,
+    "candidate_sps": 49.746437365974145,
+    "delta_sps": 0.4490741401167284,
+    "prediction_parity_max_abs": 0.0,
+    "trajectory": "13950_5.h5"
+  },
+  {
+    "baseline_coverage": 0.8523035017107905,
+    "baseline_mean_width_uv": 0.021358471363782883,
+    "baseline_sps": 46.54322730492771,
+    "candidate_coverage": 0.8822157786162335,
+    "candidate_mean_width_uv": 0.0231167022138834,
+    "candidate_sps": 46.78884289151329,
+    "delta_sps": 0.24561558658557914,
+    "prediction_parity_max_abs": 0.0,
+    "trajectory": "20325_5.h5"
+  },
+  {
+    "baseline_coverage": 0.921894020420673,
+    "baseline_mean_width_uv": 0.01404542475938797,
+    "baseline_sps": 56.25838680431055,
+    "candidate_coverage": 0.9249931946619527,
+    "candidate_mean_width_uv": 0.014216533862054348,
+    "candidate_sps": 56.270960679949326,
+    "delta_sps": 0.012573875638778986,
+    "prediction_parity_max_abs": 0.0,
+    "trajectory": "8850_5.h5"
+  },
+  {
+    "baseline_coverage": 0.8947211001088249,
+    "baseline_mean_width_uv": 0.01627788506448269,
+    "baseline_sps": 51.12372942255827,
+    "candidate_coverage": 0.9067938098094379,
+    "candidate_mean_width_uv": 0.016991721466183662,
+    "candidate_sps": 51.15916086622521,
+    "delta_sps": 0.03543144366693696,
+    "prediction_parity_max_abs": 0.0,
+    "trajectory": "8850_10.h5"
+  },
+  {
+    "baseline_coverage": 0.86379454965191,
+    "baseline_mean_width_uv": 0.018366588279604912,
+    "baseline_sps": 48.352263834172085,
+    "candidate_coverage": 0.8867687102163931,
+    "candidate_mean_width_uv": 0.019690928980708122,
+    "candidate_sps": 48.52836137144097,
+    "delta_sps": 0.17609753726888755,
+    "prediction_parity_max_abs": 0.0,
+    "trajectory": "11400_10.h5"
+  },
+  {
+    "baseline_coverage": 0.7714475544012631,
+    "baseline_mean_width_uv": 0.034811366349458694,
+    "baseline_sps": 33.45871928769692,
+    "candidate_coverage": 0.8160685863531155,
+    "candidate_mean_width_uv": 0.039618682116270065,
+    "candidate_sps": 33.39867111259786,
+    "delta_sps": -0.06004817509906246,
+    "prediction_parity_max_abs": 0.0,
+    "trajectory": "24150_10.h5"
+  },
+  {
+    "baseline_coverage": 0.8253913621343754,
+    "baseline_mean_width_uv": 0.022388532757759094,
+    "baseline_sps": 43.531436064639095,
+    "candidate_coverage": 0.8594972830592782,
+    "candidate_mean_width_uv": 0.024576356634497643,
+    "candidate_sps": 43.79384064659455,
+    "delta_sps": 0.2624045819554581,
+    "prediction_parity_max_abs": 0.0,
+    "trajectory": "16500_10.h5"
+  },
+  {
+    "baseline_coverage": 0.7544705257020805,
+    "baseline_mean_width_uv": 0.03711385279893875,
+    "baseline_sps": 30.77087305206395,
+    "candidate_coverage": 0.7896103193528277,
+    "candidate_mean_width_uv": 0.04138140752911568,
+    "candidate_sps": 30.508962889901532,
+    "delta_sps": -0.2619101621624189,
+    "prediction_parity_max_abs": 0.0,
+    "trajectory": "22875_15.h5"
+  },
+  {
+    "baseline_coverage": 0.840904622580253,
+    "baseline_mean_width_uv": 0.020164376124739647,
+    "baseline_sps": 44.939942921725645,
+    "candidate_coverage": 0.8685349455063781,
+    "candidate_mean_width_uv": 0.021885350346565247,
+    "candidate_sps": 45.08777402012532,
+    "delta_sps": 0.14783109839967778,
+    "prediction_parity_max_abs": 0.0,
+    "trajectory": "11400_15.h5"
+  },
+  {
+    "baseline_coverage": 0.7380862222943899,
+    "baseline_mean_width_uv": 0.04417978599667549,
+    "baseline_sps": 26.764889996097597,
+    "candidate_coverage": 0.7579988633595843,
+    "candidate_mean_width_uv": 0.04767388850450516,
+    "candidate_sps": 26.411988014266523,
+    "delta_sps": -0.35290198183107435,
+    "prediction_parity_max_abs": 0.0,
+    "trajectory": "25425_15.h5"
+  },
+  {
+    "baseline_coverage": 0.7881416260830035,
+    "baseline_mean_width_uv": 0.03577999398112297,
+    "baseline_sps": 33.05149741043293,
+    "candidate_coverage": 0.8218186349160677,
+    "candidate_mean_width_uv": 0.040373172610998154,
+    "candidate_sps": 32.59803500172941,
+    "delta_sps": -0.4534624087035226,
+    "prediction_parity_max_abs": 0.0,
+    "trajectory": "20325_20.h5"
+  },
+  {
+    "baseline_coverage": 0.836415114103261,
+    "baseline_mean_width_uv": 0.020863696932792664,
+    "baseline_sps": 42.03509635306265,
+    "candidate_coverage": 0.8612241052629621,
+    "candidate_mean_width_uv": 0.02245674841105938,
+    "candidate_sps": 42.16340624105083,
+    "delta_sps": 0.12830988798818055,
+    "prediction_parity_max_abs": 0.0,
+    "trajectory": "8850_20.h5"
+  },
+  {
+    "baseline_coverage": 0.9225325197644846,
+    "baseline_mean_width_uv": 0.014308547601103783,
+    "baseline_sps": 49.98306784751962,
+    "candidate_coverage": 0.923395787192955,
+    "candidate_mean_width_uv": 0.01443459466099739,
+    "candidate_sps": 49.901257257268924,
+    "delta_sps": -0.08181059025069715,
+    "prediction_parity_max_abs": 0.0,
+    "trajectory": "3750_20.h5"
+  }
+]
