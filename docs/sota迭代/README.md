@@ -19,14 +19,14 @@
 
 ## 2. 当前线上 SOTA
 
-截至 **2026-09-16**：
+截至 **2026-09-18**，当前线上最好仍是 2026-09-17 teammate35 full-specific SPS 包：
 
-- Final：**`77.314446`**
+- Final：**`77.732796`**
 - Rel-L2：`93.816645`
 - TKE：`79.164203`
 - MVPE：`93.411176`
-- Time：`86.898836`
-- SPS：`30.319572`
+- Time：`86.699342`
+- SPS：**`31.961724`**
 
 当前 recipe：
 
@@ -38,7 +38,7 @@ Dense-All
 + vorticity supervision
 + Stage-B low-LR extra Rel
 + all-82 full-data refit @53582
-+ fresh Adaptive Uncertainty Head @1400
++ teammate35 full-specific uncertainty head @1600
 + half_width_uv = 0.0025 + sigma
 + pressure half-width = 0
 ```
@@ -48,43 +48,38 @@ Full backbone：
 - update：`53582`
 - SHA256：`f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce`
 
-Final clean package：
+Current SOTA package：
 
-- path：`/home/chyfuture/realpde_runs/sota_v2_adaptive_20260916/package_clean/submission.zip`
-- SHA256：`9cfc055c6232d2b0aef9f88f1cb3de2aae883b7cff7f02659ed8b9cf85b3ed55`
-- bytes：`30191330`
-- package prediction parity A/B：`0.0 / 0.0`
+- path：`/home/chyfuture/realpde_runs/sps_teammate_final_20260917/package_clean/submission.zip`
+- SHA256：`cc236a4926d36568ea9eb2d4c770f08b0a1c058ec3e85f82256d70d3df8db685`
+- bytes：`30260970`
+- package prediction parity：`0.0`
 
-最新完整 review：
+2026-09-18 的 exact teammate uncertainty-recipe submission 得到 Final `77.728857` / SPS `31.899537`，没有超过 2026-09-17 SOTA。
 
-`docs/sota迭代/reviews/sota_v2_adaptive_20260916/README.md`
+最新 review：
+
+- `docs/sota迭代/reviews/sps_teammate_final_20260917/README.md`
+- `docs/sota迭代/reviews/sps_teammate_exact_submit_20260918/README.md`
 
 ---
 
-## 3. 相对上一线上 SOTA
+## 3. 当前 SOTA 的线上增益
 
-上一版：
+相对 2026-09-16 SOTA-V2 adaptive 包，2026-09-17 teammate35 full-specific SPS 包只替换 uncertainty/SPS 路径，point predictor 保持完全一致：
 
-```text
-P0-A + N2 + CNO + full@43260
-+ v5 Adaptive Uncertainty Head@1400
-Final = 76.694784
-```
-
-SOTA-V2 相对增益：
-
-| Metric | Previous SOTA | SOTA-V2 | Delta |
+| Metric | 2026-09-16 | Current SOTA | Delta |
 |---|---:|---:|---:|
-| Final | `76.694784` | **`77.314446`** | **`+0.619662`** |
-| Rel-L2 | `93.434384` | **`93.816645`** | `+0.382261` |
-| TKE | `77.588799` | **`79.164203`** | `+1.575404` |
-| MVPE | `92.519563` | **`93.411176`** | `+0.891613` |
-| Time | `87.066646` | `86.898836` | `-0.167810` |
-| SPS | `29.519724` | **`30.319572`** | `+0.799848` |
+| Final | `77.314446` | **`77.732796`** | **`+0.418350`** |
+| Rel-L2 | `93.816645` | **`93.816645`** | `0.000000` |
+| TKE | `79.164203` | **`79.164203`** | `0.000000` |
+| MVPE | `93.411176` | **`93.411176`** | `0.000000` |
+| Time | `86.898836` | `86.699342` | `-0.199494` |
+| SPS | `30.319572` | **`31.961724`** | **`+1.642152`** |
 
-结论：**`ONLINE_KEEP / NEW_ONLINE_SOTA`**。
+结论：**`ONLINE_KEEP / CURRENT_ONLINE_SOTA`**。
 
-这次提升不是 SPS 单点收益。Rel-L2、TKE、MVPE 三个 predictive subscore 与 SPS 同时上涨，说明 SOTA-V2 integrated backbone 的 50/16 正收益成功迁移到线上 hidden evaluation。
+2026-09-18 exact teammate uncertainty-recipe submission 保持三个 point scores 完全不变，但 SPS 为 `31.899537`、Final 为 `77.728857`；相对 current SOTA，SPS `-0.062187`、Final `-0.003939`。更精确的 recipe 对齐没有带来线上增益。
 
 ---
 
@@ -158,7 +153,7 @@ Calibration：
 2. 本轮真正新增 / 替换哪些独立变量？
 3. 每个变量的证据强度如何？
 4. 预计影响 Rel-L2 / TKE / MVPE / Time / SPS 哪几项？
-5. 相对当前 Final `77.314446`，是否存在足够明显的线上提点预期？
+5. 相对当前 Final `77.732796`，是否存在足够明显的线上提点预期？
 
 决策：
 
@@ -226,7 +221,7 @@ KEEP / ROLLBACK
 
 当前不自动合并：
 
-- Residual Corrector / Local / Point：TKE 保护不足，PARKED；
+- Residual Corrector / Local / Point：作为纯 point 增益路线曾因 TKE 保护不足而 PARKED；但 teammate SPS 证据表明其 `base → residual corrector → final` 结构可能与 uncertainty 泛化耦合。仅允许在下一次完整 SOTA merge 中作为 residual+SPS 联合结构重新评估，不自动单独推进；
 - coarse+fine Multi-scale：NO_GO；
 - Structured Temporal Transformer / Attention / ΔUV：CLOSED / WEAK_SIGNAL；
 - raw CFD / 复杂 Sim2Real：PARKED；
@@ -236,14 +231,14 @@ KEEP / ROLLBACK
 
 ## 8. 下一轮重点
 
-当前先做线上结果复盘，不立即启动新 full-data run。
+2026-09-17/18 两次 teammate SPS 提交已经把纯 uncertainty-head recipe 调整的收益空间基本跑清。下一轮不再继续 SPS-only 微调，重点转为完整 SOTA merge：
 
-值得继续关注：
+1. **Residual + SPS 联合结构**：研究 teammate 的 `base → residual corrector → final` 与 `uncertainty(x, base) → final-error scale` 联合机制，避免继续把 uncertainty head 当作孤立后处理器。
+2. **已验证主链路增量合并**：AoA/数据增强、Stage-B、残差修正等只按已有证据进入完整 merge，不重新铺大规模消融。
+3. **TKE protection**：Residual corrector 若进入 merge，必须继续保护 TKE，不能只追 Rel-L2/MVPE。
+4. **Late horizon / stronger backbone**：保留为后续大台阶方向，不为本轮 SPS 问题额外扩散实验。
 
-1. **TKE amplitude calibration**：当前 TKE 仍是主要物理短板；已有诊断显示趋势相关性高，但能量幅值存在偏差。
-2. **SPS calibration generalization**：Dev adaptive SPS `45.07`，线上 `30.32`，说明 calibration 泛化仍有空间。
-3. **Late horizon**：h19/h20 仍占较高 squared-error fraction。
-4. **更强 backbone family / modal modeling**：只有出现明显大台阶证据才进入下一次 merge。
+SPS-only 关闭项：loss 选择、seed、1600/1800/2000 steps、h32/h64、50/82 uncertainty-head scope、floor/mult 微调。除非出现新的结构级证据，否则不再为这些变量消耗提交机会。
 
 ## 9. 2026-09-17 SPS stride=1 replica
 
@@ -274,7 +269,39 @@ KEEP / ROLLBACK
 
 ---
 
-## 11. 关键文档
+## 11. 2026-09-18 exact teammate SPS online submission
+
+状态：`COMPLETED / ONLINE_NO_GAIN / CLOSE_SPS_ONLY_RECIPE_TUNING`。
+
+在 frozen full SOTA-V2 @53582 point predictor 上执行 teammate uncertainty-head recipe：35-channel features、h32/b2/drop0、masked Gaussian NLL、seed41、2000 updates、每200步 Dev SPS 评估，并对每个 checkpoint 扫描固定 28-row floor × multiplier grid。项目固定 50 Train / 16 Dev 保持不变。
+
+离线：
+
+- selected update：`1800`
+- floor / mult：`0.0025 / 1.0`
+- Dev SPS：`44.48550611699792`
+- coverage：`0.8642850171482572`
+- mean UV width：`0.025083480402827263`
+- point prediction parity：`0.0`
+
+线上：
+
+- Rel-L2：`93.816645`
+- TKE：`79.164203`
+- MVPE：`93.411176`
+- Time：`86.828909`
+- SPS：`31.899537`
+- Final：`77.728857`
+
+相对 2026-09-17 current SOTA，SPS `-0.062187`、Final `-0.003939`，point scores 完全相同。结论：更精确复制 masked NLL、seed、checkpoint search 与 calibration recipe 没有带来线上收益，不能解释 teammate SPS `38.442870` 的差距。
+
+重要边界：这仍不是 teammate 整套端到端结构的完全复刻。teammate uncertainty head 观察 residual correction 前的 base，而区间中心是 residual-corrected final prediction；我们的当前 SOTA 没有同样的 pre-correction base / residual-corrector / final 三段结构。因此后续若继续追 SPS，只在完整 SOTA merge 中联合评估 residual + uncertainty，不再做 uncertainty-head-only 微调。
+
+完整证据：`docs/sota迭代/reviews/sps_teammate_exact_submit_20260918/README.md`。
+
+---
+
+## 12. 关键文档
 
 - 当前战略：`docs/realpde整体优化概要.md`
 - Submission log：`docs/submission_log.md`
