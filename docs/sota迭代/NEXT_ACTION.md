@@ -2,7 +2,7 @@
 
 Status: `READY_FOR_EXECUTION / REVIEW_REQUIRED`
 
-`REQUIRED_COMMIT = 790322044097cdb9421c94057c5de8f91666486f`
+`REQUIRED_COMMIT = 933a5a8c8f74910465ae707aa83c6878b910e68c`
 
 ## Goal
 
@@ -102,7 +102,7 @@ git fetch origin
 git pull --rebase origin main
 git rev-parse HEAD
 git rev-parse origin/main
-git merge-base --is-ancestor 790322044097cdb9421c94057c5de8f91666486f HEAD
+git merge-base --is-ancestor 933a5a8c8f74910465ae707aa83c6878b910e68c HEAD
 git push --dry-run origin HEAD:main
 ```
 
