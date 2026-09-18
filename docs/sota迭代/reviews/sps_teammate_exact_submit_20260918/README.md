@@ -1,6 +1,6 @@
 # SPS-TEAMMATE-EXACT-SUBMIT-01
 
-Status: `REVIEW_REQUIRED`
+Status: `COMPLETED / ONLINE_NO_GAIN / CLOSE_SPS_ONLY_RECIPE_TUNING`
 
 This is an execution-only replication of the frozen teammate SPS recipe on the frozen full SOTA-V2 point predictor. No point-model training or source redesign was performed.
 
