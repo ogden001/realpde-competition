@@ -2,7 +2,7 @@
 
 Status: `READY_FOR_EXECUTION / REVIEW_REQUIRED`
 
-`REQUIRED_COMMIT = 6c7db859ab6cd083ec1f7fca7399fb8efac89739`
+`REQUIRED_COMMIT = 681e49d9a87a8f355ce6eff5353140af24fe2b8d`
 
 ## Goal
 
@@ -16,7 +16,7 @@ Status: `READY_FOR_EXECUTION / REVIEW_REQUIRED`
    - 检查未知未提交改动；有则 STOP。
    - `git fetch origin && git pull --rebase origin main`
    - `HEAD == origin/main`
-   - `git merge-base --is-ancestor 6c7db859ab6cd083ec1f7fca7399fb8efac89739 HEAD`
+   - `git merge-base --is-ancestor 681e49d9a87a8f355ce6eff5353140af24fe2b8d HEAD`
    - `git push --dry-run origin HEAD:main` 必须成功。
 2. 运行定向 tests；通过后再启动 GPU。
 3. 用 `tools/realpde_sps_teammate_exact_submit.py`：
