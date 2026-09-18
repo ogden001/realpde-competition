@@ -49,3 +49,34 @@ The recipe used seed `41`, AdamW `lr=1e-3`, `weight_decay=1e-5`, batch `8`, `200
 - Dev16 is held out only for the uncertainty head; the full `@53582` point predictor was trained on all released trajectories, so this is not point-model OOF validation.
 
 Large checkpoints, raw logs, and the submission ZIP remain on the remote machine and are not committed here.
+
+
+## Online Codabench result
+
+Manual submission completed on 2026-09-18 using the verified package above.
+
+| Metric | Score |
+|---|---:|
+| Rel-L2 | `93.816645` |
+| TKE | `79.164203` |
+| MVPE | `93.411176` |
+| Time | `86.828909` |
+| SPS | `31.899537` |
+| Final | `77.728857` |
+
+Point-model scores are exactly unchanged from the SOTA-V2 backbone submission, which is consistent with offline point-prediction parity `0.0`. The online change is therefore attributable to the interval/SPS path plus normal runtime variation, not to a changed point predictor.
+
+Relative to the prior 2026-09-17 full-specific teammate35 package (`SPS=31.961724`, `Final=77.732796`), this exact-recipe package changed SPS by `-0.062187` and Final by `-0.003939`. The added masked NLL, seed 41, 2000-update budget, and checkpoint/calibration selection did **not** produce an online SPS gain.
+
+## Sol review / stable conclusion
+
+Status after online submission: `COMPLETED / ONLINE_NO_GAIN / CLOSE_SPS_ONLY_RECIPE_TUNING`.
+
+What this experiment supports:
+
+- The teammate uncertainty-head training recipe is now closely replicated on our frozen full SOTA point predictor: 35-channel features, h32/b2/drop0, masked Gaussian NLL, seed 41, 2000 updates, eval every 200, and the exact 28-row SPS calibration grid.
+- These recipe-level changes do not explain the teammate's online SPS `38.442870`; our online SPS remains `31.899537`.
+- Do not spend another submission on SPS-only changes such as loss choice, seed, 1600/1800/2000 steps, h32/h64, 50/82 head scope, or floor/mult micro-tuning without new evidence.
+- This is **not** a full end-to-end replica of the teammate system. Their uncertainty head observes the pre-correction base while the interval is centered on a residual-corrected final prediction. Our SOTA lacks the same `base -> residual corrector -> final` structure, so the remaining gap should be investigated jointly with the residual-correction/main-prediction structure rather than by further uncertainty-head-only tuning.
+
+The submission itself did not access locked-final/private data during training or packaging. Codabench was accessed only later by the user for the manual online submission recorded above.
