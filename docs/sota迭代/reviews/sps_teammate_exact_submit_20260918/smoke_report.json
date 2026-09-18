@@ -1,0 +1,15 @@
+{
+  "deterministic_max_abs_diff": 0.0,
+  "first_call_seconds": 0.39783194300252944,
+  "fixture": "/runs/sps_teammate_final_20260917/smoke_fixture_16500_0_32x64.h5",
+  "full_checkpoint_sha256": "f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce",
+  "max_abs_prediction_diff": 0.0,
+  "mean_width_uv": 0.019712304696440697,
+  "peak_cuda_memory_allocated": 142813184,
+  "second_call_seconds": 0.0333373739849776,
+  "status": "PASS",
+  "total_seconds": 2.445375699957367,
+  "zip": "/runs/sps_teammate_exact_submit_20260918/package/submission.zip",
+  "zip_bytes": 30260939,
+  "zip_sha256": "bb1a8804276767362e835ad4ae15e4c558153c2510efdea7f1d75ec8063a8e71"
+}

@@ -1,0 +1,156 @@
+{
+  "best": {
+    "coverage": 0.8642850171482572,
+    "floor": 0.0025,
+    "mean_width_uv": 0.025083480402827263,
+    "mult": 1.0,
+    "sps": 44.48550611699792
+  },
+  "codabench_accessed": false,
+  "dev_trajectories": 16,
+  "dev_windows": 659,
+  "experiment": "SPS-TEAMMATE-EXACT-SUBMIT-01",
+  "full_checkpoint_sha256": "f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce",
+  "gate": "SPS_TEAMMATE_EXACT_READY",
+  "goal": "Copy teammate SPS recipe onto frozen full SOTA-V2 @53582 for submission.",
+  "head": "/runs/sps_teammate_exact_submit_20260918/run/teammate_exact_full53582_train50_head.pth",
+  "head_sha256": "61bc8714cf6722370685f327f1be572aaea2485d02d63d65ea48e8bbb980e261",
+  "locked_final_accessed": false,
+  "manifest_sha256": "42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347",
+  "prediction_parity_max_abs": 0.0,
+  "raw_point_errors": {
+    "mvpe": 0.0786527469754219,
+    "rel_l2": 0.0995873287320137,
+    "tke": 0.4468454122543335
+  },
+  "recipe": {
+    "architecture": "h32/b2/drop0/include_pressure",
+    "calibration_grid": [
+      {
+        "floor": 0.0,
+        "mult": 0.5
+      },
+      {
+        "floor": 0.0,
+        "mult": 1.0
+      },
+      {
+        "floor": 0.0,
+        "mult": 1.5
+      },
+      {
+        "floor": 0.0,
+        "mult": 2.0
+      },
+      {
+        "floor": 0.0,
+        "mult": 2.5
+      },
+      {
+        "floor": 0.0,
+        "mult": 3.0
+      },
+      {
+        "floor": 0.0,
+        "mult": 4.0
+      },
+      {
+        "floor": 0.0025,
+        "mult": 0.5
+      },
+      {
+        "floor": 0.0025,
+        "mult": 1.0
+      },
+      {
+        "floor": 0.0025,
+        "mult": 1.5
+      },
+      {
+        "floor": 0.0025,
+        "mult": 2.0
+      },
+      {
+        "floor": 0.0025,
+        "mult": 2.5
+      },
+      {
+        "floor": 0.0025,
+        "mult": 3.0
+      },
+      {
+        "floor": 0.0025,
+        "mult": 4.0
+      },
+      {
+        "floor": 0.005,
+        "mult": 0.5
+      },
+      {
+        "floor": 0.005,
+        "mult": 1.0
+      },
+      {
+        "floor": 0.005,
+        "mult": 1.5
+      },
+      {
+        "floor": 0.005,
+        "mult": 2.0
+      },
+      {
+        "floor": 0.005,
+        "mult": 2.5
+      },
+      {
+        "floor": 0.005,
+        "mult": 3.0
+      },
+      {
+        "floor": 0.005,
+        "mult": 4.0
+      },
+      {
+        "floor": 0.0075,
+        "mult": 0.5
+      },
+      {
+        "floor": 0.0075,
+        "mult": 1.0
+      },
+      {
+        "floor": 0.0075,
+        "mult": 1.5
+      },
+      {
+        "floor": 0.0075,
+        "mult": 2.0
+      },
+      {
+        "floor": 0.0075,
+        "mult": 2.5
+      },
+      {
+        "floor": 0.0075,
+        "mult": 3.0
+      },
+      {
+        "floor": 0.0075,
+        "mult": 4.0
+      }
+    ],
+    "eval_interval": 200,
+    "features": "teammate exact 35-channel future features",
+    "loss": "masked Gaussian NLL over non-zero u/v",
+    "lr": 0.001,
+    "seed": 41,
+    "sigma0": 0.02,
+    "updates": 2000,
+    "weight_decay": 1e-05
+  },
+  "scorer_sha256": "a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39",
+  "selected_iteration": 1800,
+  "status": "REVIEW_REQUIRED",
+  "train_trajectories": 50,
+  "train_windows": 2052
+}
