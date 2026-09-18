@@ -1,0 +1,76 @@
+{
+  "automatic_go_no_go": false,
+  "by_horizon_rows": 80,
+  "by_trajectory_horizon_rows": 1280,
+  "interpretation_owner": "ChatGPT/Sol",
+  "physical_metrics": [
+    {
+      "fluctuation_energy": 0.00014774802734899897,
+      "fluctuation_energy_ratio": 0.8738798299299588,
+      "h19_fraction": 0.07871619200878477,
+      "h19_h20_fraction": 0.23774764990156105,
+      "h20_fraction": 0.15903145789277628,
+      "mvpe": 0.07577798515558243,
+      "mvpe_improvement_vs_base": 0.0,
+      "rel_l2": 0.09993461519479752,
+      "rel_l2_improvement_vs_base": 0.0,
+      "target_fluctuation_energy": 0.000169071332566219,
+      "tke": 0.4692927300930023,
+      "tke_improvement_vs_base": 0.0,
+      "variant": "base"
+    },
+    {
+      "fluctuation_energy": 0.00012910083578502967,
+      "fluctuation_energy_ratio": 0.7635879709794423,
+      "h19_fraction": 0.08154761933697936,
+      "h19_h20_fraction": 0.1957155613730656,
+      "h20_fraction": 0.11416794203608624,
+      "mvpe": 0.07112862169742584,
+      "mvpe_improvement_vs_base": 0.061355068343540875,
+      "rel_l2": 0.08499187231063843,
+      "rel_l2_improvement_vs_base": 0.1495251955994622,
+      "target_fluctuation_energy": 0.000169071332566219,
+      "tke": 0.49182429909706116,
+      "tke_improvement_vs_base": -0.048011758033399854,
+      "variant": "corrected"
+    },
+    {
+      "fluctuation_energy": 0.00014774802699386353,
+      "fluctuation_energy_ratio": 0.8738798278294523,
+      "h19_fraction": 0.08212305481427173,
+      "h19_h20_fraction": 0.20016019412969094,
+      "h20_fraction": 0.1180371393154192,
+      "mvpe": 0.07112862169742584,
+      "mvpe_improvement_vs_base": 0.061355068343540875,
+      "rel_l2": 0.08688744902610779,
+      "rel_l2_improvement_vs_base": 0.1305570261441198,
+      "target_fluctuation_energy": 0.000169071332566219,
+      "tke": 0.49914994835853577,
+      "tke_improvement_vs_base": -0.06362173618077671,
+      "variant": "window_energy"
+    },
+    {
+      "fluctuation_energy": 0.00014774802729877824,
+      "fluctuation_energy_ratio": 0.8738798296329201,
+      "h19_fraction": 0.08307819928209742,
+      "h19_h20_fraction": 0.2035001777558401,
+      "h20_fraction": 0.12042197847374266,
+      "mvpe": 0.07112862169742584,
+      "mvpe_improvement_vs_base": 0.061355068343540875,
+      "rel_l2": 0.0889103040099144,
+      "rel_l2_improvement_vs_base": 0.11031524125443404,
+      "target_fluctuation_energy": 0.000169071332566219,
+      "tke": 0.4692927300930023,
+      "tke_improvement_vs_base": 0.0,
+      "variant": "spatial_tke_map"
+    }
+  ],
+  "projection_audit": {
+    "spatial_tke_map_max_relative_delta_vs_base": 6.336191843670042e-06,
+    "spatial_tke_map_mean_max_abs_delta_vs_corrected": 2.980232238769531e-07,
+    "window_energy_max_relative_delta_vs_base": 1.2119859212504493e-07,
+    "window_energy_mean_max_abs_delta_vs_corrected": 1.4901161193847656e-07
+  },
+  "stability_rows": 60,
+  "status": "REVIEW_REQUIRED"
+}

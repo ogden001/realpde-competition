@@ -1,0 +1,47 @@
+{
+  "analysis_only": true,
+  "backbone_sha256": "6926722895611c38dee79cf16ce43b87c7de3d4a1305e9db431dadd4c1a7bf47",
+  "backbone_update": 32500,
+  "corrector_metadata": {
+    "backbone_sha256": "6926722895611c38dee79cf16ce43b87c7de3d4a1305e9db431dadd4c1a7bf47",
+    "updates": 30000
+  },
+  "corrector_sha256": "1f72b329d9a160b206a6e9f4fce5e780022b3bac7a9ce4bdf5b8c9efa30b4506",
+  "corrector_update": 30000,
+  "dev_trajectories": 16,
+  "dev_windows": 659,
+  "experiment": "TMR-03_residual_corrector_merge_calibration",
+  "feature_config": {
+    "dt": null,
+    "dx": 0.0017108320000000007,
+    "dy": -0.0017108319999999955,
+    "include_p0_a": true,
+    "include_p0_b": false,
+    "re_center": 0.0,
+    "re_scale": 1.0
+  },
+  "manifest_sha256": "42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347",
+  "projection_semantics": {
+    "spatial_tke_map": "corrected mean + one per-pixel scalar restoring backbone Future20 TKE magnitude",
+    "window_energy": "corrected mean + one per-window scalar restoring backbone total Future20 u/v fluctuation energy"
+  },
+  "scope": {
+    "alpha_sweep": "NOT_PERFORMED",
+    "architecture_change": "NOT_PERFORMED",
+    "codabench": "NOT_ACCESSED",
+    "full_data": "NOT_ACCESSED",
+    "locked_final_private": "NOT_ACCESSED",
+    "loss_sweep": "NOT_PERFORMED",
+    "package": "NOT_BUILT",
+    "sps": "NOT_ACCESSED",
+    "training": "NOT_PERFORMED",
+    "uncertainty": "NOT_ACCESSED"
+  },
+  "status": "REVIEW_REQUIRED",
+  "variants": [
+    "base",
+    "corrected",
+    "window_energy",
+    "spatial_tke_map"
+  ]
+}

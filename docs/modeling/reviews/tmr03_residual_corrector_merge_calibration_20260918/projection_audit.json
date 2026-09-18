@@ -1,0 +1,6 @@
+{
+  "spatial_tke_map_max_relative_delta_vs_base": 6.336191843670042e-06,
+  "spatial_tke_map_mean_max_abs_delta_vs_corrected": 2.980232238769531e-07,
+  "window_energy_max_relative_delta_vs_base": 1.2119859212504493e-07,
+  "window_energy_mean_max_abs_delta_vs_corrected": 1.4901161193847656e-07
+}
