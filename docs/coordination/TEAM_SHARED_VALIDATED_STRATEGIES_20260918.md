@@ -10,21 +10,21 @@
 
 目前最值得直接复用的主线不是某一个小技巧，而是下面这套组合：
 
-`Dense-All + P0-A + N2 + MF-CNO + Vorticity + Stage-B extra Rel + Adaptive SPS`
+`全合法时间窗训练（Dense-All） + Past20 输入特征增强（P0-A） + 多目标损失（N2） + 均值/脉动分解（MF-CNO） + 涡量辅助监督 + 低学习率二阶段收口（Stage-B） + 自适应 SPS 区间校准`
 
 其中证据强度不同：
 
-| 策略 | 当前结论 | 证据强度 | 是否进入当前线上体系 |
-|---|---|---|---|
-| Dense-All 全合法时间窗训练 | 明确有效，是目前最强的数据利用策略之一 | 50/16 matched + horizon 分析 + SOTA-V2 线上 | 是 |
-| P0-A runtime-safe 特征 + N2 多目标 Loss | 明确有效，且长训仍持续改善 | CLEAN/competition validation + 线上历史 | 是 |
-| 充分训练至平台区 | 10k 远未收敛；约 22k 后进入平台/振荡 | 30.9k 完整 validation curve | 是 |
-| Stage-B 低 LR + extra Rel | 明确有效，尤其显著改善 Rel/MVPE | 50/16 matched continuation | 是 |
-| Adaptive uncertainty / SPS calibration | 明确有效，可在 point prediction 不变时提升 Final | Dev + 多次 Codabench online | 是 |
-| Temporal + Spatial 信息 | 数据层面明确含有增量信息 | train-only ridge residual probe | 尚不能等价为神经 fusion 已验证 |
-| Mean / Fluctuation | 短中程有明显收益，长程 standalone 不稳定 | matched + long convergence | 组合内保留，独立归因未解决 |
-| Vorticity supervision | 有小幅一致信号，但 standalone 长程 gate 未过 | matched long validation | 组合内保留，独立归因未解决 |
-| H1 / Point residual correction + scale | Rel/MVPE 很强，但 TKE 风险明显 | frozen-CNO matched offline | 有条件有效，暂未进入线上 SOTA |
+| 策略 | 具体怎么做 | 当前结论 | 证据强度 | 实验文件 | 是否进入当前线上体系 |
+|---|---|---|---|---|---|
+| **全合法时间窗训练（Dense-All）** | 原来每条轨迹只按固定 stride=20 抽少量 Past20→Future20 窗口；改为枚举每条 Train trajectory 的**所有合法起点**。Train windows 从 2,052 增至 40,488（19.73×），Dev 仍固定 659 windows。 | 明确有效，是目前最强的数据利用策略之一 | 50/16 matched + horizon 分析 + SOTA-V2 线上 | [DW-01 Dense-All 实验](../experiments/dw01_dense_all_20260907/README_FOR_CHATGPT.md) | 是 |
+| **Past20 输入特征增强 + 多目标损失（P0-A + N2）** | 不再只把原始 u/v/p 送入 CNO，而是从 Past20 u/v 中构造 **20 个推理时可计算的特征通道**（时间均值、波动、近期变化、空间结构等）；训练 Loss 同时优化 MSE、TKE、Rel-L2、MVPE。 | 明确有效，且长训仍持续改善 | CLEAN/competition validation + 线上历史 | [P0-A + N2 长训练实验](CHATGPT_HANDOFF_P0A_N2_VALIDATION_30900.md) | 是 |
+| **延长训练至收敛平台区** | 对 P0-A + N2 不在 5k/10k updates 就停止，而是持续训练并定期评估到约 30k；实验显示 10.3k 后 Rel/MVPE/TKE 仍继续改善，约 22k 后才进入平台/振荡。 | 10k 远未收敛；约 22k 后进入平台/振荡 | 30.9k 完整 validation curve | [30.9k Validation 曲线](CHATGPT_HANDOFF_P0A_N2_VALIDATION_30900.md) | 是 |
+| **低学习率二阶段收口（Stage-B + extra Rel）** | 主训练 Stage A 到 30k 后，将 LR 从 1e-5 降到 3e-6，再训练约 5k updates，并额外强化 Rel-L2 objective；用于平台期做精细收口。 | 明确有效，尤其显著改善 Rel/MVPE | 50/16 matched continuation | [SOTA-V2 50/16 集成实验](../sota迭代/reviews/sota_v2_integrated_50_16_20260915/README.md) | 是 |
+| **自适应不确定性区间 / SPS 校准** | point prediction 保持不变，单独训练 uncertainty head 预测每个位置/时刻的区间宽度，再在 Dev 上选择 floor / multiplier，使 lower/upper interval 更匹配真实误差。 | 明确有效，可在 point prediction 不变时提升 Final | Dev + 多次 Codabench online | [SOTA-V2 Adaptive SPS](../sota迭代/reviews/sota_v2_adaptive_20260916/README.md) | 是 |
+| **时间统计 + 空间梯度信息（Temporal + Spatial）** | 从 Past20 构造 mean/std/最近帧差分，以及最后一帧的 du/dx、du/dy、dv/dx、dv/dy；用 train-only ridge residual probe 检查这些信息是否对未来误差具有增量预测能力。 | 数据层面明确含有增量信息 | train-only ridge residual probe | [Feature Incremental Probe](CHATGPT_HANDOFF_FE_INCREMENTAL_PROBE.md) | 尚不能等价为神经 fusion 已验证 |
+| **均值 / 脉动分解（Mean / Fluctuation）** | 将未来流场拆成 temporal mean 与 zero-mean fluctuation 两部分建模，再重构最终 u/v；目标是分别处理平均流状态和动态波动。 | 短中程有明显收益，长程 standalone 不稳定 | matched + long convergence | [Mean/Fluctuation Closeout](CHATGPT_HANDOFF_MF_DIRECTION_CLOSEOUT.md) | 组合内保留，独立归因未解决 |
+| **涡量辅助监督（Vorticity supervision）** | 不把涡量作为正式推理输入，而是在训练时从预测/真值 u/v 计算 vorticity，并增加辅助 loss，约束局部旋转和剪切结构。 | 有小幅一致信号，但 standalone 长程 gate 未过 | matched long validation | [Vorticity 长程验证](CHATGPT_HANDOFF_VORTICITY_LOWMEM_FINAL.md) | 组合内保留，独立归因未解决 |
+| **局部残差修正 + 缩放（H1 / Point residual + scale）** | 冻结 CNO 主干，另训练局部 Point residual head 修正 u/v；随后用 train-only 标量 alpha 缩放修正量，在保留 Rel/MVPE 收益的同时限制 TKE 退化。 | Rel/MVPE 很强，但 TKE 风险明显 | frozen-CNO matched offline | [H1 Residual Scale 实验](CHATGPT_HANDOFF_HYBRID_CNO_POINT_H1_SCALE.md) | 有条件有效，暂未进入线上 SOTA |
 
 截至 2026-09-18，当前线上最佳仍使用同一个 SOTA-V2 point predictor，SPS 使用 full-specific teammate35 uncertainty head：
 
