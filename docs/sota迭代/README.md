@@ -314,54 +314,48 @@ SPS-only 关闭项：loss 选择、seed、1600/1800/2000 steps、h32/h64、50/82
 
 ---
 
-## 13. 2026-09-18 SOTA-V3 完整 Merge
+## 13. 2026-09-18 SOTA-V3 Fast Joint 验证
 
 状态：`READY_FOR_EXECUTION / REVIEW_REQUIRED`。
 
-本轮已完成代码实现，尚未执行 GPU 长训，因此本节**不声明任何新增线上/离线性能结论**。执行入口统一为 `tools/run_sota_v3_pipeline.py`，核心实现版本至少包含 commit：
+原先的 8-stage SOTA-V3 long-run（Dev backbone 35k → Dev residual 30k → full backbone → full residual ...）因单卡训练成本过高，已在用户决策后**停止并被本方案替代**。旧 runner 保留作历史代码，不是当前施工入口。
 
-`95d76862944d23ae6d73d9efb49deb0e745f4fcb`
+当前目标只是在固定 50 Train / 16 Dev 上回答一个问题：
 
-本轮冻结结构：
+> 从已经验证的 SOTA-V2 @32500 + mature residual @30000 出发，加入 AoA 后做短程端到端 joint fine-tune，能否超过历史最强的 residual+TKE-projection 组合？
 
-```text
-50 Train / 16 Dev
-  ↓
-SOTA-V2 backbone + conservative AoA augmentation
-  ↓
-frozen-backbone 42ch residual corrector
-  ↓
-spatial_tke_map projection
-  ↓
-teammate35 uncertainty head
-  ↓
-Dev-selected backbone reference update + SPS update/floor/mult
-  ↓
-all-82 full-data refit
-  ↓
-white-list package + clean-room smoke
-  ↓
-REVIEW_REQUIRED
-```
+冻结初始化：
 
-关键语义：
+- backbone @32500 SHA256 `6926722895611c38dee79cf16ce43b87c7de3d4a1305e9db431dadd4c1a7bf47`
+- residual @30000 SHA256 `1f72b329d9a160b206a6e9f4fce5e780022b3bac7a9ce4bdf5b8c9efa30b4506`
+- comparator：`@32500 + residual@30000 + alpha=1 + spatial_tke_map`
+  - Rel-L2 `0.0889103040`
+  - TKE `0.4692927301`
+  - MVPE `0.0711286217`
 
-- AoA augmentation：训练时每 sample 以 `0.5` 概率采样 `Uniform[-2°, +2°]`，Past20/Future20 同角度旋转 u/v；Dev 和 inference 不增强。该实现是本轮预注册的保守 augmentation，不声称复刻同事未提供的具体 AoA 代码。
-- Backbone 保持 SOTA-V2 的 Dense-All + P0-A + MF-CNO + N2 + vorticity + Stage-B 主链路。
-- Residual 使用已验证的 `42ch/h64/b2/max_delta=0.04` corrector；不再扫 alpha/projection，固定 `alpha=1` + `spatial_tke_map`，用于保留 Rel/MVPE 增益并恢复 backbone TKE map。
-- SPS 对齐 teammate 的结构关系：35-channel head 观察 **base prediction**；区间中心使用 residual + projection 后的 **final prediction**。
-- teammate package 未包含 uncertainty-head 训练源代码，因此 V3 冻结一个明确 reconstruction choice：masked Gaussian NLL 的误差中心使用 final corrected prediction；这一点不得描述为 package-confirmed。
-- Dev16 仅负责冻结 backbone reference update 和 SPS checkpoint/floor/mult；进入 all-82 refit 后禁止依据 full-data loss/labels 重新选 checkpoint 或 recalibrate。
-- 不访问 locked-final/private Future20，不自动提交 Codabench。
+Fast joint：
 
-代码：
+- Train50 Dense-All；Dev16 固定；
+- 5,000 updates；每 1,000 updates 评估；
+- AoA `±2° / p=0.5`，Past/Future 同角度；
+- backbone LR `1e-6`，residual LR `1e-5`；
+- forward 固定 `base -> residual -> spatial_tke_map -> final`；
+- backbone 与 residual 同时反向传播；
+- Loss 使用现有 Stage-B physical loss 直接监督 final；
+- 不增加新的 auxiliary loss，不做 sweep。
 
-- `tools/realpde_sota_v3_backbone.py`
-- `tools/realpde_sota_v3_residual.py`
-- `tools/realpde_sota_v3_sps.py`
-- `tools/run_sota_v3_pipeline.py`
-- `tools/build_sota_v3_package.py`
-- `tools/verify_sota_v3_package.py`
-- `tests/test_sota_v3_pipeline.py`
+GO_FULL Gate：
 
-当前唯一施工单：`docs/sota迭代/NEXT_ACTION.md`。Codex 在本任务中为 execution-only；算法/实验语义如需变化必须停止并回到 Sol review。
+1. normalized 三指标平均 error 相对 historical comparator 至少下降 1%；
+2. 任一单指标恶化不超过 2%；
+3. 至少两项指标改善。
+
+若 point Gate=GO，只允许继续在同一 50/16 上跑 Dev SPS，随后停止等待人工 review。**禁止自动 full train**。
+
+当前代码与任务：
+
+- `tools/realpde_sota_v3_fast_joint.py`
+- `tests/test_sota_v3_fast_joint.py`
+- `docs/sota迭代/NEXT_ACTION.md`
+
+只有用户审阅 50/16 结果并明确确认后，才另开 full-data train + SPS + package 提交任务。
