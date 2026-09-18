@@ -1,49 +1,52 @@
 # NEXT_ACTION
 
 ## Goal
-Run one complete residual-corrector training campaign on the frozen SOTA-V2 `@32500` backbone to determine whether the strong TMR-01 Rel-L2 signal survives after proper multi-epoch training without the observed TKE trade-off.
+Run one final analysis-only merge calibration for the fully trained residual corrector. Determine whether deterministic energy preservation can retain most of the corrector's Rel-L2/MVPE gains while removing the remaining TKE degradation.
 
-## Frozen recipe
+## Frozen assets
 - Backbone: SOTA-V2 `@32500`, frozen.
-- Corrector: existing 42-channel `ResidualCorrector3D`, `hidden=64`, `blocks=2`, `max_delta=0.04`.
-- Features / loss / optimizer family / seed: identical to TMR-01.
-- Batch size: `8`.
-- Corrector updates: `30000`.
-- LR: `1e-4`, AdamW, weight decay `1e-5`.
-- Scheduler: one `CosineAnnealingLR(T_max=30000)` across the full campaign.
-- Milestones: `6000 / 12000 / 20000 / 30000`.
-- Evaluation alpha: `1.0` only.
-- Dense-All Train50: `40488` windows; total exposure is about `5.93` dense epochs.
+- Corrector: TMR-02 `@30000`, frozen.
+- Dev: frozen Dev16 / 659 canonical windows.
+- Alpha: `1.0` only.
+- No training.
+
+## Variants
+Evaluate exactly four variants:
+1. `base`
+2. `corrected`
+3. `window_energy`: keep corrected temporal mean; restore backbone total Future20 u/v fluctuation energy per window with one positive scalar.
+4. `spatial_tke_map`: keep corrected temporal mean; restore backbone Future20 TKE magnitude per spatial point with one positive scalar shared across u/v and Future20.
+
+No parameter sweep or extra projection variant is allowed.
 
 ## Execution
-1. Use `tools/realpde_residual_corrector_longtrain.py` and `tests/test_residual_corrector_longtrain.py`.
-2. Run focused tests and compile checks before GPU execution.
-3. Train through all `30000` updates without Dev evaluation or intermediate decision-making.
-4. After training completes, replay `base + u6000 + u12000 + u20000 + u30000` once on frozen Dev16.
-5. Produce overall physical metrics plus the existing TMR-01A trajectory × horizon diagnostics.
+1. Use `tools/realpde_residual_corrector_projection.py` and `tests/test_residual_corrector_projection.py`.
+2. Run focused tests, compile, and diff-check.
+3. Replay the four frozen variants once on Dev16.
+4. Produce official raw Rel-L2/TKE/MVPE and the existing trajectory × horizon diagnostics.
+5. Verify projection invariants with `projection_audit.json`.
 6. Commit lightweight evidence and push to `main`.
 
 ## Required evidence
-- `training_summary.json`
 - `physical_metrics.csv`
 - `trajectory_metrics_long.csv`
-- `by_horizon.csv` (`20 × 5 = 100` rows)
-- `by_trajectory_horizon.csv` (`16 × 20 × 5 = 1600` rows)
-- `horizon_trajectory_stability.csv` (`20 × 4 = 80` rows)
+- `by_horizon.csv` (80 rows)
+- `by_trajectory_horizon.csv` (1280 rows)
+- `horizon_trajectory_stability.csv` (60 rows)
 - `trajectory_anatomy.json`
-- `replay_summary.json`
+- `projection_audit.json`
 - `run_metadata.json`
 - `summary.json`
 - `status.json`
 - concise `README.md`
 
 ## Constraints
-- No backbone training or joint fine-tuning.
-- No alpha sweep, loss-weight sweep, architecture sweep, or post-processing projection.
-- No Dev access before the complete 30k training finishes.
+- Training: NOT PERFORMED.
+- No alpha, loss, architecture, or projection-parameter sweep.
+- No joint backbone tuning.
 - No SPS, uncertainty, full-data, locked-final/private, package, or Codabench.
-- TKE/MVPE per-horizon quantities remain diagnostics, not official per-frame scores.
-- No automatic follow-on experiment or SOTA merge.
+- Per-horizon TKE/MVPE remain diagnostics, not official per-frame scores.
+- Do not auto-start another Corrector experiment.
 
 ## Stop
-After all evidence is committed and pushed, return `REVIEW_REQUIRED`. ChatGPT/Sol owns the final scientific interpretation and merge decision.
+Return `REVIEW_REQUIRED`. ChatGPT/Sol makes the final binary decision: promote one merge candidate to full-data, or close the Residual Corrector direction.
