@@ -310,3 +310,58 @@ SPS-only 关闭项：loss 选择、seed、1600/1800/2000 steps、h32/h64、50/82
 - Inference：`docs/inference/inference概要.md`
 - Experiment registry：`docs/track1_experiment_registry.md`
 - 当前任务：`docs/sota迭代/NEXT_ACTION.md`
+
+
+---
+
+## 13. 2026-09-18 SOTA-V3 完整 Merge
+
+状态：`READY_FOR_EXECUTION / REVIEW_REQUIRED`。
+
+本轮已完成代码实现，尚未执行 GPU 长训，因此本节**不声明任何新增线上/离线性能结论**。执行入口统一为 `tools/run_sota_v3_pipeline.py`，核心实现版本至少包含 commit：
+
+`95d76862944d23ae6d73d9efb49deb0e745f4fcb`
+
+本轮冻结结构：
+
+```text
+50 Train / 16 Dev
+  ↓
+SOTA-V2 backbone + conservative AoA augmentation
+  ↓
+frozen-backbone 42ch residual corrector
+  ↓
+spatial_tke_map projection
+  ↓
+teammate35 uncertainty head
+  ↓
+Dev-selected backbone reference update + SPS update/floor/mult
+  ↓
+all-82 full-data refit
+  ↓
+white-list package + clean-room smoke
+  ↓
+REVIEW_REQUIRED
+```
+
+关键语义：
+
+- AoA augmentation：训练时每 sample 以 `0.5` 概率采样 `Uniform[-2°, +2°]`，Past20/Future20 同角度旋转 u/v；Dev 和 inference 不增强。该实现是本轮预注册的保守 augmentation，不声称复刻同事未提供的具体 AoA 代码。
+- Backbone 保持 SOTA-V2 的 Dense-All + P0-A + MF-CNO + N2 + vorticity + Stage-B 主链路。
+- Residual 使用已验证的 `42ch/h64/b2/max_delta=0.04` corrector；不再扫 alpha/projection，固定 `alpha=1` + `spatial_tke_map`，用于保留 Rel/MVPE 增益并恢复 backbone TKE map。
+- SPS 对齐 teammate 的结构关系：35-channel head 观察 **base prediction**；区间中心使用 residual + projection 后的 **final prediction**。
+- teammate package 未包含 uncertainty-head 训练源代码，因此 V3 冻结一个明确 reconstruction choice：masked Gaussian NLL 的误差中心使用 final corrected prediction；这一点不得描述为 package-confirmed。
+- Dev16 仅负责冻结 backbone reference update 和 SPS checkpoint/floor/mult；进入 all-82 refit 后禁止依据 full-data loss/labels 重新选 checkpoint 或 recalibrate。
+- 不访问 locked-final/private Future20，不自动提交 Codabench。
+
+代码：
+
+- `tools/realpde_sota_v3_backbone.py`
+- `tools/realpde_sota_v3_residual.py`
+- `tools/realpde_sota_v3_sps.py`
+- `tools/run_sota_v3_pipeline.py`
+- `tools/build_sota_v3_package.py`
+- `tools/verify_sota_v3_package.py`
+- `tests/test_sota_v3_pipeline.py`
+
+当前唯一施工单：`docs/sota迭代/NEXT_ACTION.md`。Codex 在本任务中为 execution-only；算法/实验语义如需变化必须停止并回到 Sol review。
