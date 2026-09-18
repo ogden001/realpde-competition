@@ -205,6 +205,8 @@ def _save_pair(out_dir, update, backbone, corrector, cfg):
 @torch.no_grad()
 def evaluate(backbone, builder, corrector, dev_paths, args, device, out_dir, update):
     out_dir.mkdir(parents=True, exist_ok=True)
+    backbone.eval()
+    corrector.eval()
     ds, loader = base.dev_loader(dev_paths, Namespace(eval_batch_size=args.eval_batch_size, workers=args.workers))
     bchunks, fchunks, targets = [], [], []
     for x, y, _, _ in loader:
