@@ -68,7 +68,7 @@ def validate_teammate_head_provenance(meta: dict, *, full_sha: str) -> str:
             **common,
             "train_windows": EXPECTED_FULL_CANONICAL_WINDOWS,
             "train_trajectories": EXPECTED_FULL_TRAJECTORIES,
-            "recipe": meta.get("recipe", "teammate35"),
+            "recipe": "teammate35",
         }
     elif scope == "full53582_train50_teammate35_exact":
         expected = {
@@ -230,7 +230,7 @@ def build(
             "head_backbone_checkpoint_sha256": meta.get("backbone_checkpoint_sha256"),
             "calibration_gate": calibration_gate,
             "submission_recommended": submission_recommended,
-            "recipe": "teammate35",
+            "recipe": meta.get("recipe", "teammate35"),
         },
         staging / "model.pth",
     )
