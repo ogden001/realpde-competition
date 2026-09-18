@@ -1,69 +1,100 @@
-# NEXT_ACTION — SOTA-V3 MERGE LONG RUN
+# NEXT_ACTION — SOTA-V3 FAST JOINT 50/16
 
 Status: `READY_FOR_EXECUTION / REVIEW_REQUIRED`
 
-`REQUIRED_COMMIT = 95d76862944d23ae6d73d9efb49deb0e745f4fcb`
+`REQUIRED_COMMIT = 790322044097cdb9421c94057c5de8f91666486f`
 
 ## Goal
 
-执行已经由 ChatGPT/Sol 实现并冻结的 SOTA-V3 一体化长程 pipeline：
+停止旧的 SOTA-V3 长程重训方案。只在项目固定 **50 Train / 16 Dev** 上快速验证：
 
-`SOTA-V2 + AoA augmentation -> residual corrector + spatial-TKE projection -> teammate35 SPS -> all-82 refit -> package -> smoke`
+`SOTA-V2 @32500 + mature residual @30000 + AoA -> 5k joint fine-tune -> Dev16`
 
-本任务**不做消融、不做临时扫参、不重新设计算法**。Codex 仅负责 preflight、测试、GPU 执行、日志与 evidence 回收、commit + push。
+本轮 **禁止 full-data train、禁止 package、禁止 Codabench**。只有用户审阅 50/16 结果并明确同意后，才另开 full train 任务。
 
-## Frozen scientific semantics
+## Frozen starting assets
 
-### 1. Backbone / AoA
+必须复用已经验证过的资产，不重新训练它们：
 
-- 基础 recipe 保持 SOTA-V2：Dense-All + P0-A + MF-CNO + N2 + vorticity + Stage-B extra Rel。
-- Dev 协议：固定 50 Train / 16 Dev manifest。
-- AoA augmentation 仅训练启用：
-  - 每个 sample 概率 `0.5`；
-  - `delta_alpha ~ Uniform[-2deg,+2deg]`；
-  - Past20 与 Future20 使用同一个 `delta_alpha`；
-  - 只旋转 `u/v` 向量，pressure 不变；
-  - Dev / inference 不做 augmentation。
-- 这是本轮预注册的保守 augmentation；不是声称复刻了同事未提供的具体 AoA 实现。
-- Dev 只在既有 frozen milestones 评估；只允许 `update >= 30000` 参与 checkpoint selection。
-- selection objective 固定为：
-  `Rel/base_Rel + TKE/base_TKE + MVPE/base_MVPE`，越低越好；同分取更早 update。
-- Full 82 refit 的训练终点由 Dev-selected reference update 按 Dense-All epoch exposure 映射，禁止根据 full-data loss 重新选模。
+- Dev backbone：SOTA-V2 `@32500`
+  - SHA256: `6926722895611c38dee79cf16ce43b87c7de3d4a1305e9db431dadd4c1a7bf47`
+  - 已知历史路径通常位于 SOTA-V2 integrated 50/16 run 下。
+- Mature residual corrector：`@30000`
+  - SHA256: `1f72b329d9a160b206a6e9f4fce5e780022b3bac7a9ce4bdf5b8c9efa30b4506`
+  - backbone SHA 必须是上述 `@32500`。
+- frozen 50/16 manifest SHA256:
+  - `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`
 
-### 2. Residual corrector
+如果 remote 上找不到正确 corrector checkpoint，只允许按 SHA 搜索现有 artifact；**禁止重训 30k corrector**。找不到则 STOP。
 
-- Backbone 完全冻结。
-- `ResidualCorrector3D`：`42ch / h64 / blocks2 / max_delta=0.04`。
-- 复用已验证 teammate residual objective 与固定 loss weights。
-- Dev corrector：`30000` updates，batch `8`，AdamW `lr=1e-4 / wd=1e-5`，CosineAnnealingLR。
-- Full corrector：按 Dense-All exposure 将 30k 映射到 `49461` updates；不做 full-data checkpoint selection。
-- `alpha=1.0` 固定。
-- inference projection 固定为 `spatial_tke_map`；禁止重新扫 alpha / window_energy / projection。
+## Historical comparator
 
-### 3. SPS / uncertainty
+新方案必须超过我们已经得到的历史组合，而不是只超过裸 backbone：
 
-- Head feature/input：同事 35-channel exact recipe，`h32/b2/drop0/include_pressure`。
-- Head **看 base backbone prediction**。
-- Final point prediction：`base -> residual corrector -> spatial_tke_map projection`。
-- Interval **以 final point prediction 为中心**。
-- Head training：masked Gaussian NLL，误差中心使用 final corrected prediction。这是本轮冻结的 reconstruction choice；同事 package 没有包含训练脚本，不得表述为 package-confirmed。
-- Dev：seed `41`，AdamW `lr=1e-3 / wd=1e-5`，最多 `2000` updates，每 `200` eval；固定 28-row floor×mult grid；按真实 Dev SPS 最大选 checkpoint，同 SPS 取更窄 interval。
-- Full：fresh head 在 all-82 canonical windows 上训练，updates 使用 Dev-selected iteration；floor/mult 原样复用 Dev-selected 值；禁止 full-data recalibration。
+`@32500 backbone + @30000 residual + alpha=1 + spatial_tke_map`
 
-### 4. Package
+Dev16 raw error：
 
-- 白名单 staging。
-- package inference 必须严格是：
-  `base -> residual -> spatial_tke_map -> final`；
-  `sigma = head(Past20, base)`；
-  `bounds = final +/- (floor + mult*sigma)`。
-- pressure prediction 与 pressure interval width 均为 0。
-- ZIP `<256 MiB`。
-- 必须对 released Train/Dev fixture 做 clean-room smoke 与 direct-stack prediction parity。
+- Rel-L2: `0.0889103040`
+- TKE: `0.4692927301`
+- MVPE: `0.0711286217`
+
+runner 在 update=0 会先 replay 这组指标；任一指标偏差 > `5e-6` 立即 STOP，避免用错资产。
+
+## Joint fine-tune semantics
+
+代码：`tools/realpde_sota_v3_fast_joint.py`
+
+训练：
+
+- Train：固定 50 trajectories / Dense-All。
+- Dev：固定 16 trajectories，只在 update `0/1000/2000/3000/4000/5000` 做评估。
+- 总预算：`5000 updates`。
+- effective batch：`8`。
+- 默认：micro-batch `2` × accumulation `4`。
+- Backbone LR：`1e-6`。
+- Corrector LR：`1e-5`。
+- optimizer：AdamW。
+- scheduler：CosineAnnealingLR over 5k。
+- AoA：沿用冻结 V3 语义，`±2° / p=0.5`，Past20/Future20 同角度，仅训练启用。
+- forward：
+  `base -> residual(alpha=1) -> spatial_tke_map -> final`
+- **Backbone 与 Residual 同时反向传播更新**。
+- Loss：现有 SOTA Stage-B physical loss 直接作用于最终 `final` prediction：
+  `N2 + vorticity + Stage-B extra Rel`。
+- 不添加新的 auxiliary loss，不扫 LR，不扫 AoA，不扫 projection。
+
+checkpoint selection：
+
+`Rel/hist_Rel + TKE/hist_TKE + MVPE/hist_MVPE` 最小；同分取更早 milestone。
+
+## GO_FULL Gate
+
+本任务只是计算 Gate，**不得自动 full train**。
+
+selected checkpoint 只有同时满足以下条件才输出 `FAST_JOINT_GO_FULL`：
+
+1. 三指标 normalized average error 相对历史 comparator 至少下降 `1%`；
+2. 任一单指标恶化不超过 `2%`；
+3. 三项里至少 `2` 项严格改善。
+
+否则：`FAST_JOINT_NO_GO`。
+
+## Optional Dev SPS after point Gate
+
+如果且仅如果 joint runner 输出 `FAST_JOINT_GO_FULL`，继续在 **同一 50/16** 上运行现有：
+
+`tools/realpde_sota_v3_sps.py --mode dev`
+
+使用 joint runner 输出的 selected backbone/corrector pair。
+
+目的：顺手验证 teammate35 的 `head(base) + interval centered on final` 路径。SPS 完成后仍然 STOP，等待用户审阅；**不得进入 full mode**。
+
+如果 point Gate = NO_GO，不跑 SPS，直接整理 evidence。
 
 ## Preflight
 
-开始前必须：
+开始前：
 
 ```bash
 git status --short
@@ -71,17 +102,17 @@ git fetch origin
 git pull --rebase origin main
 git rev-parse HEAD
 git rev-parse origin/main
-git merge-base --is-ancestor "$REQUIRED_COMMIT" HEAD
+git merge-base --is-ancestor 790322044097cdb9421c94057c5de8f91666486f HEAD
 git push --dry-run origin HEAD:main
 ```
 
-条件：
+要求：
 
-- 工作区无未知未提交改动；
+- 工作区无未知修改；
 - `HEAD == origin/main`；
 - required commit 是 HEAD 祖先；
 - dry-run push 成功；
-- 不满足则 STOP，不启动 GPU。
+- 确认旧的 `sota_v3_merge_20260918` GPU 训练进程已经停止，不允许两套训练抢同一张卡。
 
 ## Tests
 
@@ -89,100 +120,91 @@ git push --dry-run origin HEAD:main
 
 ```bash
 PYTHONPATH=tools pytest -q \
+  tests/test_sota_v3_fast_joint.py \
   tests/test_sota_v3_pipeline.py \
-  tests/test_sota_v2_integrated.py \
-  tests/test_sota_v2_full.py \
   tests/test_teammate_residual_transfer.py \
   tests/test_residual_corrector_projection.py \
-  tests/test_sps_teammate_uncertainty.py \
-  tests/test_sps_teammate_exact_submit.py
+  tests/test_sps_teammate_uncertainty.py
 ```
 
-若成本正常，再跑全仓 `pytest -q`。若出现与本任务无关的已知平台问题，只记录，不改变实验语义。
+若 test 需要改变算法语义才能通过，STOP。
 
 ## Run
 
-资产使用现有已验证路径，启动前逐项核对：
-
-- frozen 50/16 manifest；
-- released PIV data root，必须正好 82 trajectories；
-- official starting kit v9；
-- official `sim_real_ft` warm checkpoint，SHA256 必须匹配代码冻结值；
-- smoke fixture 必须来自 released Train/Dev，禁止 locked-final/private。
-
-推荐单命令：
+建议：
 
 ```bash
-RUN_ROOT=/home/chyfuture/realpde_runs/sota_v3_merge_20260918
-EXECUTION_COMMIT=$(git rev-parse HEAD)
+RUN_ROOT=/home/chyfuture/realpde_runs/sota_v3_fast_joint_20260918
 
-PYTHONPATH=tools python tools/run_sota_v3_pipeline.py \
+PYTHONPATH=tools python tools/realpde_sota_v3_fast_joint.py \
   --manifest "$MANIFEST" \
   --data-root "$DATA_ROOT" \
   --kit-root "$KIT_ROOT" \
-  --warm-checkpoint "$WARM_CKPT" \
-  --fixture "$FIXTURE" \
-  --run-root "$RUN_ROOT" \
-  --execution-commit "$EXECUTION_COMMIT" \
-  --backbone-micro-batch 4 \
-  --backbone-accumulation 2 \
-  --workers 2
+  --backbone-checkpoint "$BACKBONE_32500" \
+  --corrector-checkpoint "$CORRECTOR_30000" \
+  --out-dir "$RUN_ROOT/joint" \
+  --micro-batch 2 \
+  --accumulation-steps 4 \
+  --workers 2 \
+  --require-cuda \
+  --resume
 ```
 
-以 detached 方式启动。总控 runner 与 backbone/residual stage 支持恢复；若会话中断，重新执行同一命令，不另造 launcher。
+如果仅因 CUDA OOM，允许唯一 fallback：
 
-## Codex permissions
+- micro-batch `1`
+- accumulation `8`
+- effective batch 仍为 `8`
 
-**Execution-only. Do not implement or redesign experimental logic.**
+不得改其他科学参数。
 
-允许 bounded runtime fix：
+若 `summary.json.gate.status == FAST_JOINT_GO_FULL`：
 
-- host/container 路径映射；
-- shell quoting；
-- PYTHONPATH；
-- 文件权限；
-- CUDA / Torch / NumPy ABI；
-- worker 数量在不改变数据顺序/科学语义前提下的运行适配；
-- 已冻结的 micro-batch/accumulation 组合保持 effective batch=8。
+```bash
+PYTHONPATH=tools python tools/realpde_sota_v3_sps.py \
+  --mode dev \
+  --manifest "$MANIFEST" \
+  --data-root "$DATA_ROOT" \
+  --kit-root "$KIT_ROOT" \
+  --backbone-checkpoint "$(python -c 'import json; print(json.load(open("'"$RUN_ROOT"'/joint/summary.json"))["selected_backbone"])')" \
+  --corrector-checkpoint "$(python -c 'import json; print(json.load(open("'"$RUN_ROOT"'/joint/summary.json"))["selected_corrector"])')" \
+  --out-dir "$RUN_ROOT/dev_sps" \
+  --workers 2 \
+  --require-cuda
+```
 
-任何需要修改以下内容的情况必须 STOP 并返回 `REVIEW_REQUIRED`：
+若 shell quoting 不方便，可以用等价的两行 Python/JSON 读取路径；不得修改训练语义。
 
-- AoA max angle / probability / rotation semantics；
-- split / data scope；
-- backbone loss / Stage-B / selection objective；
-- residual architecture / loss / 30k budget / alpha / projection；
-- SPS features / architecture / seed / optimizer / loss / 2000 budget / eval cadence / grid；
-- base-vs-final SPS wiring；
-- full-data mapping 与 calibration 规则；
-- package inference semantics。
+## Deliverables
 
-禁止访问 locked-final/private Future20，禁止自动 Codabench 提交，禁止新增 ablation。
+新建：
 
-## Evidence / Deliverables
-
-执行完成后新建：
-
-`docs/sota迭代/reviews/sota_v3_merge_20260918/`
+`docs/sota迭代/reviews/sota_v3_fast_joint_20260918/`
 
 至少提交：
 
 - `README.md`
-- `summary.json`（复制 pipeline summary 的轻量版）
-- Dev backbone `selection.json` / `aggregate_metrics.csv`
-- Dev residual `evaluation_summary.json` / `physical_metrics.csv`
-- Dev SPS `summary.json` / `head_training_summary.json` / `checkpoint_evals.json` / selected grid
-- full backbone / residual / SPS 的 summary 与关键 runtime metadata
-- `package_build.json`
-- `smoke_report.json`
+- joint `summary.json`
+- joint `aggregate_metrics.csv`
+- selected milestone 的 `metrics.json`
+- selected milestone 的 `horizon_error_summary.json`
+- selected milestone 的 `trajectory_metrics.csv`
+- 若 point Gate=GO：Dev SPS `summary.json`、`head_training_summary.json`、`checkpoint_evals.json`、selected calibration grid
+- tests / runtime / GPU peak / bounded fix 说明
+- backbone/corrector 输入 SHA 与 selected 输出 SHA
 
-README 必须记录 execution commit、各 checkpoint/head/ZIP SHA256、Dev 三物理指标、Dev SPS 与 calibration、full mapped updates、运行时间、测试、bounded fixes、远程 artifact 路径，并明确：
+README 必须明确：
 
-`locked-final/private/Codabench NOT accessed`。
+- 本实验只访问 frozen Train50/Dev16；
+- `full-data NOT accessed`；
+- `locked-final/private NOT accessed`；
+- `Codabench NOT accessed`；
+- 本任务不会自动启动 full training。
 
-大 checkpoint、raw log、submission ZIP 留远程，不写 Git。
+大 checkpoint/raw log 留远程，不进 Git。
 
-最后 commit + pull/rebase + push `main`，确认远端包含 evidence commit，再返回：
+完成 evidence 后 commit + pull/rebase + push `main`，最终只返回：
 
 `REVIEW_REQUIRED`
 
-并报告 submission ZIP 绝对路径、bytes、SHA256。等待用户手工决定是否提交。
+等待用户与 ChatGPT/Sol 审阅，再决定是否做 full train。
