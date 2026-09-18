@@ -233,3 +233,21 @@ def gaussian_nll_from_log_std(
     bounded = clamp_log_std(log_std_uv)
     inv_sigma = torch.exp(-bounded)
     return (bounded + 0.5 * ((target_uv - prediction_uv) * inv_sigma).square()).mean()
+
+
+def masked_gaussian_nll_from_log_std(
+    target_uv: Tensor,
+    prediction_uv: Tensor,
+    log_std_uv: Tensor,
+) -> Tensor:
+    """Teammate training loss: Gaussian NLL over measured (non-zero) u/v only."""
+    if target_uv.shape != prediction_uv.shape or log_std_uv.shape != target_uv.shape:
+        raise ValueError("target/prediction/log_std shapes are incompatible")
+    bounded = clamp_log_std(log_std_uv)
+    inv_sigma = torch.exp(-bounded)
+    nll = bounded + 0.5 * ((target_uv - prediction_uv) * inv_sigma).square()
+    mask = (target_uv != 0).to(nll.dtype)
+    count = mask.sum()
+    if int(count.detach().cpu()) == 0:
+        raise ValueError("masked Gaussian NLL has no measured u/v elements")
+    return (nll * mask).sum() / count
