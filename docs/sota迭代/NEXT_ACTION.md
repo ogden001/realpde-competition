@@ -1,165 +1,167 @@
-# NEXT_ACTION
+# NEXT_ACTION — SPS-TEAMMATE-EXACT-SUBMIT-01
+
+Status: `READY_FOR_EXECUTION / REVIEW_REQUIRED`
+
+`REQUIRED_COMMIT = 6c7db859ab6cd083ec1f7fca7399fb8efac89739`
 
 ## Goal
 
-执行 `SPS-FULL50-01`：固定最终 full point predictor `@53582`，只改变 uncertainty head 的训练范围，比较：
+把同事已确认的 SPS uncertainty recipe 复制到**当前 frozen full SOTA-V2 @53582 point predictor** 上，训练 head、按 frozen 16 Dev 直接选择 checkpoint + floor/mult、构建 submission ZIP 并做 clean-room smoke。
 
-- Baseline：已存在的 `full@53582 + teammate35 head trained on all 82`；
-- Candidate：`full@53582 + 同一 teammate35 head trained on frozen 50 Train only`。
+本任务只改 SPS 区间，不训练/修改 point predictor，不自动提交 Codabench。
 
-两者都在同一 frozen 16 Dev 上评估，同为 `1600` updates、同一初始化/optimizer/head/features、同一固定 bounds `floor=0.0025, mult=1.0`。唯一变量是 uncertainty-head training scope。
+## Tasks
 
-状态：`READY_FOR_EXECUTION / REVIEW_REQUIRED`
+1. Preflight：
+   - 检查未知未提交改动；有则 STOP。
+   - `git fetch origin && git pull --rebase origin main`
+   - `HEAD == origin/main`
+   - `git merge-base --is-ancestor 6c7db859ab6cd083ec1f7fca7399fb8efac89739 HEAD`
+   - `git push --dry-run origin HEAD:main` 必须成功。
+2. 运行定向 tests；通过后再启动 GPU。
+3. 用 `tools/realpde_sps_teammate_exact_submit.py`：
+   - point predictor：full SOTA-V2 `@53582`，SHA256 `f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce`；
+   - uncertainty Train/Dev：项目 frozen 50/16 manifest；
+   - exact teammate SPS recipe：35ch、h32/b2/drop0、masked Gaussian NLL、seed41、AdamW lr1e-3 wd1e-5、2000 updates、每200步评估；
+   - 每个 eval checkpoint 在 frozen 16 Dev 上扫描固定 28-row `floor × mult`，按真实 SPS 选择全局 best；
+   - point prediction parity 必须 <=1e-7。
+4. 用 `tools/build_sota_v2_teammate_package.py` 直接构建 ZIP。
+5. 用 `tools/verify_sota_v2_adaptive_package.py` 对 released Train/Dev real fixture 做 clean-room smoke。
+6. 整理轻量 evidence，commit + push `main`，返回 `REVIEW_REQUIRED`。
 
-`REQUIRED_COMMIT = ee62a3e9bf9278581768033bcc56271f3a8b0736`
+## Frozen semantics
 
-Sol implementation:
-- `tools/realpde_sps_full50_head_ab.py`
-- `tests/test_sps_full50_head_ab.py`
+- 主模型：full SOTA-V2 @53582，完全冻结；**不重新训练，不改 forward，不改 checkpoint**。
+- full point model 是 all-released 82-trajectory refit；本任务的 16 Dev 只对 uncertainty head held-out，不是 point-model OOF。
+- uncertainty train split：现有 frozen 50 Train，2052 canonical windows。
+- calibration/eval split：现有 frozen 16 Dev，659 canonical windows。
+- uncertainty features/head：`sps_teammate_uncertainty_runtime.py` 的 teammate exact 35-channel + h32/b2/drop0/include_pressure。
+- loss：`masked_gaussian_nll_from_log_std`，仅 target u/v 非零元素。
+- seed：41。
+- optimizer：AdamW，lr=1e-3，weight_decay=1e-5。
+- batch：8。
+- updates：2000；eval interval：200。
+- calibration grid：
+  - floor = [0, 0.0025, 0.005, 0.0075]
+  - mult = [0.5, 1, 1.5, 2, 2.5, 3, 4]
+- checkpoint selection：200..2000 所有 eval checkpoint 中，按 Dev **真实 SPS 最大**选择；SPS 相同则取更窄 mean width。
+- 最终 package 直接使用 selected head + selected floor/mult。
+- 不设科研增益 Gate：这次目标是“完整复制同事 SPS 策略并提交测试”，不是继续做消融。
+- package/smoke 安全门失败则 STOP，不得上传。
 
-## Interpretation boundary
+## Tests
 
-重要：full `@53582` point predictor 本身使用过全部 released trajectories，因此这 16 Dev **只对 uncertainty head 是未参与训练的**，并不是 point predictor 的 pristine unseen / OOF residual。
-
-本实验只回答：
-
-> 在最终 full predictor 不变时，余量模型用 50 条训练，是否比用全部 82 条训练更好？
-
-不得把结果解释成真正 OOF 泛化证据。
-
-## Execution role
-
-本任务由 Codex / Luna **只执行**。
-
-**Do not implement or redesign experimental logic. All algorithmic/source changes are owned by ChatGPT Sol. Codex is execution-only except for bounded environment/runtime fixes.**
-
-允许的 bounded fix 仅限路径、shell quoting、CUDA / Torch / NumPy ABI、权限等不改变实验语义的运行环境问题。若 runner/test 需要算法、数据、Loss、split、update、bounds、评估逻辑等修改，立即停止并返回 `REVIEW_REQUIRED`。
-
-## Preflight
-
-1. 阅读 `AGENTS.md`、`docs/CHATGPT_CODEX_WORK_PROTOCOL.md`、本文件和 `docs/sota迭代/reviews/sps_teammate_package_audit_20260917/README.md`。
-2. `MEMORY.md` 若不存在，只记录 `NOT_FOUND`，不要创建。
-3. 必须确认：
-   - 工作区无未知未提交改动；
-   - `git fetch origin && git pull --rebase origin main`；
-   - `HEAD == origin/main`；
-   - `git merge-base --is-ancestor ee62a3e9bf9278581768033bcc56271f3a8b0736 HEAD` 成功；
-   - `git push --dry-run origin HEAD:main` 成功。
-4. 复用冻结资产，不重新训练 point predictor：
-   - 50/16 manifest SHA `42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`；
-   - full checkpoint `@53582` SHA `f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce`；
-   - official scorer SHA `a144853b1bc1ff79bb8d40601629f23460ac12af95678577e9a1b59949294d39`；
-   - **已有** Phase-B full82 teammate35 head：来自 `sps_teammate_final_20260917`，应为 `1600` updates，metadata `head_scope=full_specific_teammate35`。
-5. 若已有 full82 head artifact 无法找到或 provenance/SHA/metadata 不匹配，**STOP**。不得重训一个 baseline 代替。
-
-## Tests first
+至少：
 
 ```bash
-pytest -q \
-  tests/test_sps_full50_head_ab.py \
+PYTHONPATH=tools pytest -q \
   tests/test_sps_teammate_uncertainty.py \
-  tests/test_sps_teammate_package.py
+  tests/test_sps_teammate_exact_submit.py \
+  tests/test_sps_teammate_package.py \
+  tests/test_sota_v2_adaptive_package.py
 ```
 
-随后运行全仓 `pytest -q`，若成本正常。
-
-若测试暴露实验语义问题，停止，不自行改算法代码。
-
-## Frozen experiment
-
-- point predictor：full SOTA-V2 `@53582`，完全冻结；
-- uncertainty architecture/features：现有 teammate35，完全冻结；
-- candidate training trajectories：frozen 50 Train；
-- candidate canonical windows：`2052`；
-- baseline head training trajectories：已有 all82；
-- candidate 与 baseline updates：均 `1600`；
-- seed：沿用现有 teammate runner；
-- Loss：现有 Gaussian NLL reconstruction；
-- AdamW：LR `1e-3`，weight decay `1e-5`；
-- batch `8`；
-- bounds：固定 `0.0025 + 1.0 * sigma`，**不重新调参**；
-- evaluation：同一 frozen 16 Dev；
-- point prediction 必须完全相同，parity `<=1e-7`。
-
-Primary comparison：
-
-`Candidate(full53582 + head_train50@1600)` vs `Baseline(full53582 + existing_head_train82@1600)`。
-
-必须输出 aggregate SPS / coverage / mean width，以及 16 条 trajectory 的 paired SPS delta。
+若成本正常，再运行全仓 `pytest -q`。与本任务无关的已知平台测试失败要记录，不能擅自改实验语义。
 
 ## Run
 
-先解析以前已验证的资产路径：
+复用前序 SOTA-V2/SPS evidence 中已经验证的资产，不重新生成模型。必须按 SHA 核对 full checkpoint。
+
+建议：
 
 ```bash
 DATA_ROOT=...
 KIT_ROOT=...
-MANIFEST=...
+MANIFEST=artifacts/loss_optimization_v9_20260901_run1/evidence/manifests/id_seed20260901.json
 FULL_CKPT=...
-FULL82_HEAD=...   # existing phase-B teammate35_full_head.pth, do not retrain
-RUN_ROOT=/home/chyfuture/realpde_runs/sps_full50_head_ab_20260917
-```
+RUN_ROOT=/home/chyfuture/realpde_runs/sps_teammate_exact_submit_20260918
+EXECUTION_COMMIT=$(git rev-parse HEAD)
 
-执行：
-
-```bash
-python tools/realpde_sps_full50_head_ab.py \
+python tools/realpde_sps_teammate_exact_submit.py \
   --data-root "$DATA_ROOT" \
   --kit-root "$KIT_ROOT" \
   --manifest "$MANIFEST" \
   --full-checkpoint "$FULL_CKPT" \
-  --full82-head-checkpoint "$FULL82_HEAD" \
   --out-dir "$RUN_ROOT/run" \
   --batch-size 8 \
   --workers 2 \
   --require-cuda
+
+python tools/build_sota_v2_teammate_package.py \
+  --full-checkpoint "$FULL_CKPT" \
+  --head-checkpoint "$RUN_ROOT/run/teammate_exact_full53582_train50_head.pth" \
+  --calibration-summary "$RUN_ROOT/run/summary.json" \
+  --kit-root "$KIT_ROOT" \
+  --out-root "$RUN_ROOT/package" \
+  --execution-commit "$EXECUTION_COMMIT"
+
+# FIXTURE 必须来自 released Train/Dev；禁止 locked-final/private。
+python tools/verify_sota_v2_adaptive_package.py \
+  --zip "$RUN_ROOT/package/submission.zip" \
+  --full-checkpoint "$FULL_CKPT" \
+  --kit-root "$KIT_ROOT" \
+  --fixture "$FIXTURE" \
+  --out "$RUN_ROOT/smoke_report.json" \
+  --tolerance 1e-6
 ```
 
-## Evidence
+## Deliverables
 
-整理轻量 evidence 到：
+Evidence 目录：
 
-`docs/sota迭代/reviews/sps_full50_head_ab_20260917/`
+`docs/sota迭代/reviews/sps_teammate_exact_submit_20260918/`
 
-至少提交：
+至少 commit：
+
 - `README.md`
 - `summary.json`
 - `head_training_summary.json`
-- `per_trajectory_paired.csv`
-- `per_trajectory_paired.json`
+- `checkpoint_evals.json`
+- `selected_calibration_grid.json`
+- `package_build.json`
+- `smoke_report.json`
 
-README 只记录事实，至少包括：
-- baseline / candidate SPS / delta；
-- coverage 与 mean width；
-- 16 trajectory wins / ties / losses；
-- median / mean / min / max paired SPS delta；
+README 记录：
+
+- execution commit；
+- full checkpoint SHA；
+- selected update / floor / mult；
+- Dev SPS / coverage / mean width；
 - point prediction parity；
-- frozen asset SHA / execution commit；
-- tests；
-- bounded runtime fixes（如有）；
-- 明确写 `locked-final/private/Codabench NOT accessed`；
-- 明确写本实验不是 point-model OOF validation。
+- head SHA；
+- ZIP remote path / bytes / SHA；
+- smoke 与 tests；
+- bounded runtime fixes（若有）；
+- `locked-final/private/Codabench NOT accessed`；
+- 明确说明 Dev16 只对 uncertainty head held-out。
 
-大 checkpoint、raw log、candidate head 留远程 artifact，不写 Git，只记录路径与 SHA。
+大 checkpoint、raw log、submission ZIP 留远程，不写 Git。
 
 ## Constraints
 
-- 不训练/修改 point predictor。
-- 不训练新的 all82 baseline head。
-- 不改 50/16 split。
-- 不改 feature/head/loss/optimizer/1600 updates/bounds。
-- 不做 200..2000 checkpoint search。
-- 不做 calibration grid search。
-- 不做 OOF / cross-fitting。
-- 不生成 submission package。
-- 不访问 locked-final/private Future20。
-- **不提交 Codabench。**
-- 不扩展第二个实验。
+**Do not implement or redesign experimental logic. All algorithmic/source changes are owned by ChatGPT Sol. Codex is execution-only except for bounded environment/runtime fixes.**
+
+允许的 bounded fix 仅限路径、shell quoting、权限、CUDA/Torch/NumPy ABI、worker/runtime plumbing，且不得改变 feature、loss、split、seed、optimizer、updates、checkpoint selection、calibration grid、point predictor 或 package inference 语义。
+
+若必须修改上述任何 source/实验语义：STOP，返回 `REVIEW_REQUIRED`，不要自行修。
+
+禁止：
+
+- 训练/修改 point predictor；
+- 改 50/16 split；
+- 改 teammate 35ch feature/head；
+- 改 masked Gaussian NLL；
+- 改 seed/optimizer/2000 updates/eval200；
+- 增删 calibration grid；
+- 额外跑 ablation / OOF / cross-fitting；
+- 访问 locked-final/private Future20；
+- 自动提交 Codabench；
+- 自动决定下一轮实验。
 
 ## Stop
 
-实验完成后，将轻量 evidence commit + push 到 `main`，确认远端 `main` 已包含结果 commit，然后返回：
+仅当 tests、训练、package、smoke 全部完成并且轻量 evidence 已 commit + push 到远端 `main` 后，返回：
 
 `REVIEW_REQUIRED`
 
-最终科研结论由 ChatGPT Sol 复核。
+同时把最终 submission ZIP 的远程绝对路径与 SHA256 发给用户，等待用户 review/手工提交。
