@@ -57,30 +57,49 @@ def validate_full_checkpoint_metadata(
 def validate_teammate_head_provenance(meta: dict, *, full_sha: str) -> str:
     if not isinstance(meta, dict):
         raise ValueError("head checkpoint lacks metadata")
-    if meta.get("head_scope") != "full_specific_teammate35":
-        raise ValueError("wrong teammate head scope")
-    expected = {
+    scope = meta.get("head_scope")
+    common = {
         "backbone_checkpoint_iteration": EXPECTED_FULL_ITERATION,
         "backbone_checkpoint_sha256": full_sha,
-        "train_windows": EXPECTED_FULL_CANONICAL_WINDOWS,
-        "train_trajectories": EXPECTED_FULL_TRAJECTORIES,
         "window_mode": "fixed",
-        "recipe": "teammate35",
     }
+    if scope == "full_specific_teammate35":
+        expected = {
+            **common,
+            "train_windows": EXPECTED_FULL_CANONICAL_WINDOWS,
+            "train_trajectories": EXPECTED_FULL_TRAJECTORIES,
+            "recipe": meta.get("recipe", "teammate35"),
+        }
+    elif scope == "full53582_train50_teammate35_exact":
+        expected = {
+            **common,
+            "train_windows": 2052,
+            "train_trajectories": 50,
+            "dev_windows": 659,
+            "dev_trajectories": 16,
+            "recipe": "teammate35_exact",
+            "loss": "masked_gaussian_nll_nonzero_uv",
+            "seed": 41,
+            "max_updates": 2000,
+            "eval_interval": 200,
+        }
+    else:
+        raise ValueError("wrong teammate head scope")
+
     for key, value in expected.items():
         if meta.get(key) != value:
             raise ValueError(f"teammate head {key} mismatch")
     updates = meta.get("selected_updates")
     if not isinstance(updates, int) or not 200 <= updates <= 2000 or updates % 200:
         raise ValueError("selected_updates must be a 200-step checkpoint in [200,2000]")
-    return "full_specific_teammate35"
+    return str(scope)
 
 
 def validate_teammate_calibration(calibration: dict) -> tuple[float, float, str]:
     if not isinstance(calibration, dict):
         raise ValueError("teammate calibration must be a dict")
     gate = calibration.get("gate")
-    if gate not in {"SPS_TEAMMATE_GO", "SPS_TEAMMATE_NO_GO"}:
+    if gate not in {"SPS_TEAMMATE_GO", "SPS_TEAMMATE_NO_GO", "SPS_TEAMMATE_EXACT_READY"}:
         raise ValueError("teammate calibration gate is invalid")
     best = calibration.get("best", {})
     floor, mult = float(best["floor"]), float(best["mult"])
@@ -184,7 +203,7 @@ def build(
 
     calibration = json.loads(calibration_summary.read_text(encoding="utf-8"))
     floor, mult, calibration_gate = validate_teammate_calibration(calibration)
-    submission_recommended = calibration_gate == "SPS_TEAMMATE_GO"
+    submission_recommended = calibration_gate in {"SPS_TEAMMATE_GO", "SPS_TEAMMATE_EXACT_READY"}
 
     staging = out_root / "staging"
     staging.mkdir(parents=True)
