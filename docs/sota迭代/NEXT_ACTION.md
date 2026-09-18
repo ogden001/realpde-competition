@@ -1,53 +1,87 @@
-# NEXT_ACTION — SPS-TEAMMATE-EXACT-SUBMIT-01
+# NEXT_ACTION — SOTA-V3 MERGE LONG RUN
 
 Status: `READY_FOR_EXECUTION / REVIEW_REQUIRED`
 
-`REQUIRED_COMMIT = 681e49d9a87a8f355ce6eff5353140af24fe2b8d`
+`REQUIRED_COMMIT = 95d76862944d23ae6d73d9efb49deb0e745f4fcb`
 
 ## Goal
 
-把同事已确认的 SPS uncertainty recipe 复制到**当前 frozen full SOTA-V2 @53582 point predictor** 上，训练 head、按 frozen 16 Dev 直接选择 checkpoint + floor/mult、构建 submission ZIP 并做 clean-room smoke。
+执行已经由 ChatGPT/Sol 实现并冻结的 SOTA-V3 一体化长程 pipeline：
 
-本任务只改 SPS 区间，不训练/修改 point predictor，不自动提交 Codabench。
+`SOTA-V2 + AoA augmentation -> residual corrector + spatial-TKE projection -> teammate35 SPS -> all-82 refit -> package -> smoke`
 
-## Tasks
+本任务**不做消融、不做临时扫参、不重新设计算法**。Codex 仅负责 preflight、测试、GPU 执行、日志与 evidence 回收、commit + push。
 
-1. Preflight：
-   - 检查未知未提交改动；有则 STOP。
-   - `git fetch origin && git pull --rebase origin main`
-   - `HEAD == origin/main`
-   - `git merge-base --is-ancestor 681e49d9a87a8f355ce6eff5353140af24fe2b8d HEAD`
-   - `git push --dry-run origin HEAD:main` 必须成功。
-2. 运行定向 tests；通过后再启动 GPU。
-3. 用 `tools/realpde_sps_teammate_exact_submit.py`：
-   - point predictor：full SOTA-V2 `@53582`，SHA256 `f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce`；
-   - uncertainty Train/Dev：项目 frozen 50/16 manifest；
-   - exact teammate SPS recipe：35ch、h32/b2/drop0、masked Gaussian NLL、seed41、AdamW lr1e-3 wd1e-5、2000 updates、每200步评估；
-   - 每个 eval checkpoint 在 frozen 16 Dev 上扫描固定 28-row `floor × mult`，按真实 SPS 选择全局 best；
-   - point prediction parity 必须 <=1e-7。
-4. 用 `tools/build_sota_v2_teammate_package.py` 直接构建 ZIP。
-5. 用 `tools/verify_sota_v2_adaptive_package.py` 对 released Train/Dev real fixture 做 clean-room smoke。
-6. 整理轻量 evidence，commit + push `main`，返回 `REVIEW_REQUIRED`。
+## Frozen scientific semantics
 
-## Frozen semantics
+### 1. Backbone / AoA
 
-- 主模型：full SOTA-V2 @53582，完全冻结；**不重新训练，不改 forward，不改 checkpoint**。
-- full point model 是 all-released 82-trajectory refit；本任务的 16 Dev 只对 uncertainty head held-out，不是 point-model OOF。
-- uncertainty train split：现有 frozen 50 Train，2052 canonical windows。
-- calibration/eval split：现有 frozen 16 Dev，659 canonical windows。
-- uncertainty features/head：`sps_teammate_uncertainty_runtime.py` 的 teammate exact 35-channel + h32/b2/drop0/include_pressure。
-- loss：`masked_gaussian_nll_from_log_std`，仅 target u/v 非零元素。
-- seed：41。
-- optimizer：AdamW，lr=1e-3，weight_decay=1e-5。
-- batch：8。
-- updates：2000；eval interval：200。
-- calibration grid：
-  - floor = [0, 0.0025, 0.005, 0.0075]
-  - mult = [0.5, 1, 1.5, 2, 2.5, 3, 4]
-- checkpoint selection：200..2000 所有 eval checkpoint 中，按 Dev **真实 SPS 最大**选择；SPS 相同则取更窄 mean width。
-- 最终 package 直接使用 selected head + selected floor/mult。
-- 不设科研增益 Gate：这次目标是“完整复制同事 SPS 策略并提交测试”，不是继续做消融。
-- package/smoke 安全门失败则 STOP，不得上传。
+- 基础 recipe 保持 SOTA-V2：Dense-All + P0-A + MF-CNO + N2 + vorticity + Stage-B extra Rel。
+- Dev 协议：固定 50 Train / 16 Dev manifest。
+- AoA augmentation 仅训练启用：
+  - 每个 sample 概率 `0.5`；
+  - `delta_alpha ~ Uniform[-2deg,+2deg]`；
+  - Past20 与 Future20 使用同一个 `delta_alpha`；
+  - 只旋转 `u/v` 向量，pressure 不变；
+  - Dev / inference 不做 augmentation。
+- 这是本轮预注册的保守 augmentation；不是声称复刻了同事未提供的具体 AoA 实现。
+- Dev 只在既有 frozen milestones 评估；只允许 `update >= 30000` 参与 checkpoint selection。
+- selection objective 固定为：
+  `Rel/base_Rel + TKE/base_TKE + MVPE/base_MVPE`，越低越好；同分取更早 update。
+- Full 82 refit 的训练终点由 Dev-selected reference update 按 Dense-All epoch exposure 映射，禁止根据 full-data loss 重新选模。
+
+### 2. Residual corrector
+
+- Backbone 完全冻结。
+- `ResidualCorrector3D`：`42ch / h64 / blocks2 / max_delta=0.04`。
+- 复用已验证 teammate residual objective 与固定 loss weights。
+- Dev corrector：`30000` updates，batch `8`，AdamW `lr=1e-4 / wd=1e-5`，CosineAnnealingLR。
+- Full corrector：按 Dense-All exposure 将 30k 映射到 `49461` updates；不做 full-data checkpoint selection。
+- `alpha=1.0` 固定。
+- inference projection 固定为 `spatial_tke_map`；禁止重新扫 alpha / window_energy / projection。
+
+### 3. SPS / uncertainty
+
+- Head feature/input：同事 35-channel exact recipe，`h32/b2/drop0/include_pressure`。
+- Head **看 base backbone prediction**。
+- Final point prediction：`base -> residual corrector -> spatial_tke_map projection`。
+- Interval **以 final point prediction 为中心**。
+- Head training：masked Gaussian NLL，误差中心使用 final corrected prediction。这是本轮冻结的 reconstruction choice；同事 package 没有包含训练脚本，不得表述为 package-confirmed。
+- Dev：seed `41`，AdamW `lr=1e-3 / wd=1e-5`，最多 `2000` updates，每 `200` eval；固定 28-row floor×mult grid；按真实 Dev SPS 最大选 checkpoint，同 SPS 取更窄 interval。
+- Full：fresh head 在 all-82 canonical windows 上训练，updates 使用 Dev-selected iteration；floor/mult 原样复用 Dev-selected 值；禁止 full-data recalibration。
+
+### 4. Package
+
+- 白名单 staging。
+- package inference 必须严格是：
+  `base -> residual -> spatial_tke_map -> final`；
+  `sigma = head(Past20, base)`；
+  `bounds = final +/- (floor + mult*sigma)`。
+- pressure prediction 与 pressure interval width 均为 0。
+- ZIP `<256 MiB`。
+- 必须对 released Train/Dev fixture 做 clean-room smoke 与 direct-stack prediction parity。
+
+## Preflight
+
+开始前必须：
+
+```bash
+git status --short
+git fetch origin
+git pull --rebase origin main
+git rev-parse HEAD
+git rev-parse origin/main
+git merge-base --is-ancestor "$REQUIRED_COMMIT" HEAD
+git push --dry-run origin HEAD:main
+```
+
+条件：
+
+- 工作区无未知未提交改动；
+- `HEAD == origin/main`；
+- required commit 是 HEAD 祖先；
+- dry-run push 成功；
+- 不满足则 STOP，不启动 GPU。
 
 ## Tests
 
@@ -55,113 +89,100 @@ Status: `READY_FOR_EXECUTION / REVIEW_REQUIRED`
 
 ```bash
 PYTHONPATH=tools pytest -q \
+  tests/test_sota_v3_pipeline.py \
+  tests/test_sota_v2_integrated.py \
+  tests/test_sota_v2_full.py \
+  tests/test_teammate_residual_transfer.py \
+  tests/test_residual_corrector_projection.py \
   tests/test_sps_teammate_uncertainty.py \
-  tests/test_sps_teammate_exact_submit.py \
-  tests/test_sps_teammate_package.py \
-  tests/test_sota_v2_adaptive_package.py
+  tests/test_sps_teammate_exact_submit.py
 ```
 
-若成本正常，再运行全仓 `pytest -q`。与本任务无关的已知平台测试失败要记录，不能擅自改实验语义。
+若成本正常，再跑全仓 `pytest -q`。若出现与本任务无关的已知平台问题，只记录，不改变实验语义。
 
 ## Run
 
-复用前序 SOTA-V2/SPS evidence 中已经验证的资产，不重新生成模型。必须按 SHA 核对 full checkpoint。
+资产使用现有已验证路径，启动前逐项核对：
 
-建议：
+- frozen 50/16 manifest；
+- released PIV data root，必须正好 82 trajectories；
+- official starting kit v9；
+- official `sim_real_ft` warm checkpoint，SHA256 必须匹配代码冻结值；
+- smoke fixture 必须来自 released Train/Dev，禁止 locked-final/private。
+
+推荐单命令：
 
 ```bash
-DATA_ROOT=...
-KIT_ROOT=...
-MANIFEST=artifacts/loss_optimization_v9_20260901_run1/evidence/manifests/id_seed20260901.json
-FULL_CKPT=...
-RUN_ROOT=/home/chyfuture/realpde_runs/sps_teammate_exact_submit_20260918
+RUN_ROOT=/home/chyfuture/realpde_runs/sota_v3_merge_20260918
 EXECUTION_COMMIT=$(git rev-parse HEAD)
 
-python tools/realpde_sps_teammate_exact_submit.py \
+PYTHONPATH=tools python tools/run_sota_v3_pipeline.py \
+  --manifest "$MANIFEST" \
   --data-root "$DATA_ROOT" \
   --kit-root "$KIT_ROOT" \
-  --manifest "$MANIFEST" \
-  --full-checkpoint "$FULL_CKPT" \
-  --out-dir "$RUN_ROOT/run" \
-  --batch-size 8 \
-  --workers 2 \
-  --require-cuda
-
-python tools/build_sota_v2_teammate_package.py \
-  --full-checkpoint "$FULL_CKPT" \
-  --head-checkpoint "$RUN_ROOT/run/teammate_exact_full53582_train50_head.pth" \
-  --calibration-summary "$RUN_ROOT/run/summary.json" \
-  --kit-root "$KIT_ROOT" \
-  --out-root "$RUN_ROOT/package" \
-  --execution-commit "$EXECUTION_COMMIT"
-
-# FIXTURE 必须来自 released Train/Dev；禁止 locked-final/private。
-python tools/verify_sota_v2_adaptive_package.py \
-  --zip "$RUN_ROOT/package/submission.zip" \
-  --full-checkpoint "$FULL_CKPT" \
-  --kit-root "$KIT_ROOT" \
+  --warm-checkpoint "$WARM_CKPT" \
   --fixture "$FIXTURE" \
-  --out "$RUN_ROOT/smoke_report.json" \
-  --tolerance 1e-6
+  --run-root "$RUN_ROOT" \
+  --execution-commit "$EXECUTION_COMMIT" \
+  --backbone-micro-batch 4 \
+  --backbone-accumulation 2 \
+  --workers 2
 ```
 
-## Deliverables
+以 detached 方式启动。总控 runner 与 backbone/residual stage 支持恢复；若会话中断，重新执行同一命令，不另造 launcher。
 
-Evidence 目录：
+## Codex permissions
 
-`docs/sota迭代/reviews/sps_teammate_exact_submit_20260918/`
+**Execution-only. Do not implement or redesign experimental logic.**
 
-至少 commit：
+允许 bounded runtime fix：
+
+- host/container 路径映射；
+- shell quoting；
+- PYTHONPATH；
+- 文件权限；
+- CUDA / Torch / NumPy ABI；
+- worker 数量在不改变数据顺序/科学语义前提下的运行适配；
+- 已冻结的 micro-batch/accumulation 组合保持 effective batch=8。
+
+任何需要修改以下内容的情况必须 STOP 并返回 `REVIEW_REQUIRED`：
+
+- AoA max angle / probability / rotation semantics；
+- split / data scope；
+- backbone loss / Stage-B / selection objective；
+- residual architecture / loss / 30k budget / alpha / projection；
+- SPS features / architecture / seed / optimizer / loss / 2000 budget / eval cadence / grid；
+- base-vs-final SPS wiring；
+- full-data mapping 与 calibration 规则；
+- package inference semantics。
+
+禁止访问 locked-final/private Future20，禁止自动 Codabench 提交，禁止新增 ablation。
+
+## Evidence / Deliverables
+
+执行完成后新建：
+
+`docs/sota迭代/reviews/sota_v3_merge_20260918/`
+
+至少提交：
 
 - `README.md`
-- `summary.json`
-- `head_training_summary.json`
-- `checkpoint_evals.json`
-- `selected_calibration_grid.json`
+- `summary.json`（复制 pipeline summary 的轻量版）
+- Dev backbone `selection.json` / `aggregate_metrics.csv`
+- Dev residual `evaluation_summary.json` / `physical_metrics.csv`
+- Dev SPS `summary.json` / `head_training_summary.json` / `checkpoint_evals.json` / selected grid
+- full backbone / residual / SPS 的 summary 与关键 runtime metadata
 - `package_build.json`
 - `smoke_report.json`
 
-README 记录：
+README 必须记录 execution commit、各 checkpoint/head/ZIP SHA256、Dev 三物理指标、Dev SPS 与 calibration、full mapped updates、运行时间、测试、bounded fixes、远程 artifact 路径，并明确：
 
-- execution commit；
-- full checkpoint SHA；
-- selected update / floor / mult；
-- Dev SPS / coverage / mean width；
-- point prediction parity；
-- head SHA；
-- ZIP remote path / bytes / SHA；
-- smoke 与 tests；
-- bounded runtime fixes（若有）；
-- `locked-final/private/Codabench NOT accessed`；
-- 明确说明 Dev16 只对 uncertainty head held-out。
+`locked-final/private/Codabench NOT accessed`。
 
 大 checkpoint、raw log、submission ZIP 留远程，不写 Git。
 
-## Constraints
-
-**Do not implement or redesign experimental logic. All algorithmic/source changes are owned by ChatGPT Sol. Codex is execution-only except for bounded environment/runtime fixes.**
-
-允许的 bounded fix 仅限路径、shell quoting、权限、CUDA/Torch/NumPy ABI、worker/runtime plumbing，且不得改变 feature、loss、split、seed、optimizer、updates、checkpoint selection、calibration grid、point predictor 或 package inference 语义。
-
-若必须修改上述任何 source/实验语义：STOP，返回 `REVIEW_REQUIRED`，不要自行修。
-
-禁止：
-
-- 训练/修改 point predictor；
-- 改 50/16 split；
-- 改 teammate 35ch feature/head；
-- 改 masked Gaussian NLL；
-- 改 seed/optimizer/2000 updates/eval200；
-- 增删 calibration grid；
-- 额外跑 ablation / OOF / cross-fitting；
-- 访问 locked-final/private Future20；
-- 自动提交 Codabench；
-- 自动决定下一轮实验。
-
-## Stop
-
-仅当 tests、训练、package、smoke 全部完成并且轻量 evidence 已 commit + push 到远端 `main` 后，返回：
+最后 commit + pull/rebase + push `main`，确认远端包含 evidence commit，再返回：
 
 `REVIEW_REQUIRED`
 
-同时把最终 submission ZIP 的远程绝对路径与 SHA256 发给用户，等待用户 review/手工提交。
+并报告 submission ZIP 绝对路径、bytes、SHA256。等待用户手工决定是否提交。
