@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from sps_teammate_uncertainty_runtime import (
     TeammateUncertaintyHead,
     future_feature_count,
+    masked_gaussian_nll_from_log_std,
     teammate_future_features,
 )
 from realpde_sps_teammate_final import (
@@ -107,3 +108,20 @@ def test_phase_a_gate_rejects_nonfinite_values() -> None:
             candidate_mean_width=CURRENT_DEV_MEAN_WIDTH,
             prediction_parity_max_abs=0.0,
         )
+
+
+def test_masked_gaussian_nll_ignores_unmeasured_zero_targets() -> None:
+    target = torch.tensor([[[[[0.0, 2.0]]]]])
+    prediction = torch.tensor([[[[[100.0, 1.0]]]]])
+    log_std = torch.zeros_like(target)
+    loss = masked_gaussian_nll_from_log_std(target, prediction, log_std)
+    # u is masked because target==0; v contributes 0.5 * (1 / 1)^2.
+    assert loss.item() == pytest.approx(0.5)
+
+
+def test_masked_gaussian_nll_rejects_all_unmeasured_batch() -> None:
+    target = torch.zeros(1, 1, 1, 1, 2)
+    prediction = torch.ones_like(target)
+    log_std = torch.zeros_like(target)
+    with pytest.raises(ValueError, match="no measured"):
+        masked_gaussian_nll_from_log_std(target, prediction, log_std)
