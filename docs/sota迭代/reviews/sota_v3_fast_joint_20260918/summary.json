@@ -1,0 +1,137 @@
+{
+  "codabench_accessed": false,
+  "full_data_accessed": false,
+  "gate": {
+    "avg_normalized_error_improvement": -0.015140930532581143,
+    "checks": {
+      "at_least_two_metrics_improve": false,
+      "avg_normalized_error_improvement_ge_1pct": false,
+      "no_single_metric_degradation_gt_2pct": false
+    },
+    "historical_final": {
+      "mvpe": 0.07112862169742584,
+      "rel_l2": 0.0889103040099144,
+      "tke": 0.4692927300930023
+    },
+    "improved_metric_count": 0,
+    "improvements": {
+      "mvpe": -0.031349189805673694,
+      "rel_l2": -0.011017117673435717,
+      "tke": -0.0030564841186342395
+    },
+    "status": "FAST_JOINT_NO_GO"
+  },
+  "historical_replay": {
+    "base_mvpe": 0.07577798515558243,
+    "base_rel_l2": 0.09993461519479752,
+    "base_tke": 0.4692927300930023,
+    "dev_trajectories": 16,
+    "dev_windows": 659,
+    "mvpe": 0.07112862169742584,
+    "rel_l2": 0.0889103040099144,
+    "selection_objective": 3.0,
+    "tke": 0.4692927300930023,
+    "update": 0
+  },
+  "history": [
+    {
+      "base_mvpe": 0.07577798515558243,
+      "base_rel_l2": 0.09993461519479752,
+      "base_tke": 0.4692927300930023,
+      "dev_trajectories": 16,
+      "dev_windows": 659,
+      "mvpe": 0.07112862169742584,
+      "rel_l2": 0.0889103040099144,
+      "selection_objective": 3.0,
+      "tke": 0.4692927300930023,
+      "update": 0
+    },
+    {
+      "base_mvpe": 0.10195355862379074,
+      "base_rel_l2": 0.11697510629892349,
+      "base_tke": 0.47658583521842957,
+      "dev_trajectories": 16,
+      "dev_windows": 659,
+      "elapsed_seconds": 1088.4999350500293,
+      "mvpe": 0.07765409350395203,
+      "rel_l2": 0.09180498868227005,
+      "selection_objective": 3.13983984631464,
+      "tke": 0.47658583521842957,
+      "update": 1000
+    },
+    {
+      "base_mvpe": 0.10330383479595184,
+      "base_rel_l2": 0.11730330437421799,
+      "base_tke": 0.4805234968662262,
+      "dev_trajectories": 16,
+      "dev_windows": 659,
+      "elapsed_seconds": 2182.4350412390195,
+      "mvpe": 0.07549985498189926,
+      "rel_l2": 0.09099279344081879,
+      "selection_objective": 3.108808959242707,
+      "tke": 0.4805234968662262,
+      "update": 2000
+    },
+    {
+      "base_mvpe": 0.11303558945655823,
+      "base_rel_l2": 0.12090686708688736,
+      "base_tke": 0.48033615946769714,
+      "dev_trajectories": 16,
+      "dev_windows": 659,
+      "elapsed_seconds": 2947.280312128016,
+      "mvpe": 0.07778428494930267,
+      "rel_l2": 0.09184762090444565,
+      "selection_objective": 3.1501411488299125,
+      "tke": 0.48033615946769714,
+      "update": 3000
+    },
+    {
+      "base_mvpe": 0.10062937438488007,
+      "base_rel_l2": 0.11579226702451706,
+      "base_tke": 0.4707271456718445,
+      "dev_trajectories": 16,
+      "dev_windows": 659,
+      "elapsed_seconds": 3709.7224037680426,
+      "mvpe": 0.0733584463596344,
+      "rel_l2": 0.08988983929157257,
+      "selection_objective": 3.0454227915977437,
+      "tke": 0.4707271158695221,
+      "update": 4000
+    },
+    {
+      "base_mvpe": 0.11911234259605408,
+      "base_rel_l2": 0.12928299605846405,
+      "base_tke": 0.4884992837905884,
+      "dev_trajectories": 16,
+      "dev_windows": 659,
+      "elapsed_seconds": 4472.316534641024,
+      "mvpe": 0.0804780051112175,
+      "rel_l2": 0.09350680559873581,
+      "selection_objective": 3.2240681204647457,
+      "tke": 0.4884992837905884,
+      "update": 5000
+    }
+  ],
+  "locked_final_accessed": false,
+  "next_action": "If GO, run Dev SPS only; do not start full training without user review.",
+  "runtime_seconds_last_process": 4472.466134270013,
+  "selected": {
+    "base_mvpe": 0.10062937438488007,
+    "base_rel_l2": 0.11579226702451706,
+    "base_tke": 0.4707271456718445,
+    "dev_trajectories": 16,
+    "dev_windows": 659,
+    "elapsed_seconds": 3709.7224037680426,
+    "mvpe": 0.0733584463596344,
+    "rel_l2": 0.08988983929157257,
+    "selection_objective": 3.0454227915977437,
+    "tke": 0.4707271158695221,
+    "update": 4000
+  },
+  "selected_backbone": "/runs/sota_v3_fast_joint_20260918/joint/checkpoints/backbone_joint_04000.pth",
+  "selected_backbone_sha256": "d776e1c16c91c92b79b3da0bad8c430475ab04682c6f711ae10656106e248cfe",
+  "selected_corrector": "/runs/sota_v3_fast_joint_20260918/joint/checkpoints/corrector_joint_04000.pth",
+  "selected_corrector_sha256": "dba3a6583410d2b678582e022a635dfd213ee12a68cb483f5acb31fa17ba7a3e",
+  "selected_update": 4000,
+  "status": "REVIEW_REQUIRED"
+}

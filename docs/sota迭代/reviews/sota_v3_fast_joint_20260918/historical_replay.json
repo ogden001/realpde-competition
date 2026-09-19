@@ -1,0 +1,21 @@
+{
+  "backbone_sha256": "6926722895611c38dee79cf16ce43b87c7de3d4a1305e9db431dadd4c1a7bf47",
+  "codabench_accessed": false,
+  "corrector_sha256": "1f72b329d9a160b206a6e9f4fce5e780022b3bac7a9ce4bdf5b8c9efa30b4506",
+  "full_data_accessed": false,
+  "locked_final_accessed": false,
+  "manifest_sha256": "42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347",
+  "row": {
+    "base_mvpe": 0.07577798515558243,
+    "base_rel_l2": 0.09993461519479752,
+    "base_tke": 0.4692927300930023,
+    "dev_trajectories": 16,
+    "dev_windows": 659,
+    "mvpe": 0.07112862169742584,
+    "rel_l2": 0.0889103040099144,
+    "selection_objective": 3.0,
+    "tke": 0.4692927300930023,
+    "update": 0
+  },
+  "status": "PASS"
+}

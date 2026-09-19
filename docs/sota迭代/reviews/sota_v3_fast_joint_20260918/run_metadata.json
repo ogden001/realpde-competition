@@ -1,0 +1,30 @@
+{
+  "aoa": {
+    "max_deg": 2.0,
+    "probability": 0.5,
+    "train_only": true
+  },
+  "backbone_lr": 1e-06,
+  "codabench_accessed": false,
+  "corrector_lr": 1e-05,
+  "effective_batch": 8,
+  "experiment": "SOTA-V3_FAST_JOINT_50_16",
+  "full_data_accessed": false,
+  "historical_comparator": {
+    "mvpe": 0.07112862169742584,
+    "rel_l2": 0.0889103040099144,
+    "tke": 0.4692927300930023
+  },
+  "locked_final_accessed": false,
+  "loss": "Stage-B physical loss on projected final",
+  "milestones": [
+    1000,
+    2000,
+    3000,
+    4000,
+    5000
+  ],
+  "projection": "spatial_tke_map",
+  "scope": "Train50/Dev16 only",
+  "updates": 5000
+}
