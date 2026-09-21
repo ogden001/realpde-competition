@@ -1,0 +1,41 @@
+[head] train 13202 val 640
+[head] params 504008 in_channels 35
+[head] reward mean 0.7684 min 0.6290
+[head] EVAL step=0 {"sps": 47.2537, "floor": 0.0025, "mult": 0.25, "coverage": 0.7972, "step": 0}
+[head] step 250 loss 0.90229 56s
+[head] step 500 loss 0.86890 90s
+[head] EVAL step=500 {"sps": 50.9846, "floor": 0.0025, "mult": 1.5, "coverage": 0.8727, "step": 500}
+[head] step 750 loss 0.86449 146s
+[head] step 1000 loss 0.86702 180s
+[head] EVAL step=1000 {"sps": 51.191, "floor": 0.0025, "mult": 1.5, "coverage": 0.8783, "step": 1000}
+[head] step 1250 loss 0.85550 236s
+[head] step 1500 loss 0.85212 270s
+[head] EVAL step=1500 {"sps": 51.2882, "floor": 0.0025, "mult": 1.5, "coverage": 0.8812, "step": 1500}
+[head] step 1750 loss 0.85699 326s
+[head] step 2000 loss 0.84954 360s
+[head] EVAL step=2000 {"sps": 51.4202, "floor": 0.0025, "mult": 1.5, "coverage": 0.8824, "step": 2000}
+[head] step 2250 loss 0.84454 416s
+[head] step 2500 loss 0.84577 450s
+[head] EVAL step=2500 {"sps": 51.4501, "floor": 0.0025, "mult": 1.5, "coverage": 0.8895, "step": 2500}
+[head] step 2750 loss 0.84762 506s
+[head] step 3000 loss 0.84455 540s
+[head] EVAL step=3000 {"sps": 51.4489, "floor": 0.0025, "mult": 1.5, "coverage": 0.8814, "step": 3000}
+[head] step 3250 loss 0.83971 596s
+[head] step 3500 loss 0.84061 630s
+[head] EVAL step=3500 {"sps": 51.5308, "floor": 0.0025, "mult": 1.5, "coverage": 0.8881, "step": 3500}
+[head] step 3750 loss 0.84010 686s
+[head] step 4000 loss 0.84057 720s
+[head] EVAL step=4000 {"sps": 51.5687, "floor": 0.0025, "mult": 1.5, "coverage": 0.8893, "step": 4000}
+[head] step 4250 loss 0.83886 776s
+[head] step 4500 loss 0.83770 810s
+[head] EVAL step=4500 {"sps": 51.569, "floor": 0.0025, "mult": 1.5, "coverage": 0.8902, "step": 4500}
+[head] step 4750 loss 0.84481 866s
+[head] step 5000 loss 0.83535 900s
+[head] EVAL step=5000 {"sps": 51.5955, "floor": 0.0025, "mult": 1.5, "coverage": 0.8906, "step": 5000}
+[head] step 5250 loss 0.84036 956s
+[head] step 5500 loss 0.83422 991s
+[head] EVAL step=5500 {"sps": 51.5906, "floor": 0.0025, "mult": 1.5, "coverage": 0.8909, "step": 5500}
+[head] step 5750 loss 0.84198 1046s
+[head] step 6000 loss 0.83327 1081s
+[head] EVAL step=6000 {"sps": 51.5954, "floor": 0.0025, "mult": 1.5, "coverage": 0.8893, "step": 6000}
+[head] DONE

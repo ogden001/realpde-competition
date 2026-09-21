@@ -1,0 +1,126 @@
+{
+  "head": "/runs/head_h96x8_h64logmae/head_5000.pth",
+  "top": [
+    {
+      "sps": 51.6332,
+      "coverage": 0.8853,
+      "floor": 0.0025,
+      "mult_u": 1.25,
+      "mult_v": 1.5,
+      "rel": 0.005
+    },
+    {
+      "sps": 51.6232,
+      "coverage": 0.8978,
+      "floor": 0.0025,
+      "mult_u": 1.5,
+      "mult_v": 1.5,
+      "rel": 0.0025
+    },
+    {
+      "sps": 51.5985,
+      "coverage": 0.8915,
+      "floor": 0.0025,
+      "mult_u": 1.25,
+      "mult_v": 1.5,
+      "rel": 0.0075
+    },
+    {
+      "sps": 51.5955,
+      "coverage": 0.8906,
+      "floor": 0.0025,
+      "mult_u": 1.5,
+      "mult_v": 1.5,
+      "rel": 0.0
+    },
+    {
+      "sps": 51.588,
+      "coverage": 0.8778,
+      "floor": 0.0025,
+      "mult_u": 1.25,
+      "mult_v": 1.5,
+      "rel": 0.0025
+    },
+    {
+      "sps": 51.568,
+      "coverage": 0.9036,
+      "floor": 0.0025,
+      "mult_u": 1.5,
+      "mult_v": 1.5,
+      "rel": 0.005
+    },
+    {
+      "sps": 51.507,
+      "coverage": 0.8715,
+      "floor": 0.0025,
+      "mult_u": 1.25,
+      "mult_v": 1.25,
+      "rel": 0.005
+    },
+    {
+      "sps": 51.5065,
+      "coverage": 0.8701,
+      "floor": 0.0025,
+      "mult_u": 1.0,
+      "mult_v": 1.5,
+      "rel": 0.0075
+    },
+    {
+      "sps": 51.4872,
+      "coverage": 0.8838,
+      "floor": 0.0025,
+      "mult_u": 1.5,
+      "mult_v": 1.25,
+      "rel": 0.0025
+    },
+    {
+      "sps": 51.4819,
+      "coverage": 0.8779,
+      "floor": 0.0025,
+      "mult_u": 1.25,
+      "mult_v": 1.25,
+      "rel": 0.0075
+    },
+    {
+      "sps": 51.4527,
+      "coverage": 0.9085,
+      "floor": 0.0025,
+      "mult_u": 1.5,
+      "mult_v": 1.5,
+      "rel": 0.0075
+    },
+    {
+      "sps": 51.452,
+      "coverage": 0.8638,
+      "floor": 0.0025,
+      "mult_u": 1.25,
+      "mult_v": 1.25,
+      "rel": 0.0025
+    },
+    {
+      "sps": 51.4498,
+      "coverage": 0.8765,
+      "floor": 0.0025,
+      "mult_u": 1.5,
+      "mult_v": 1.25,
+      "rel": 0.0
+    },
+    {
+      "sps": 51.4417,
+      "coverage": 0.8899,
+      "floor": 0.0025,
+      "mult_u": 1.5,
+      "mult_v": 1.25,
+      "rel": 0.005
+    },
+    {
+      "sps": 51.4354,
+      "coverage": 0.8623,
+      "floor": 0.0025,
+      "mult_u": 1.0,
+      "mult_v": 1.5,
+      "rel": 0.005
+    }
+  ],
+  "n_scanned": 300
+}

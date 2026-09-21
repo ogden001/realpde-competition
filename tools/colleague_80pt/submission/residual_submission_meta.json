@@ -1,0 +1,27 @@
+{
+  "checkpoint": "/runs/residual_all81_20260915/model_best.pth",
+  "checkpoint_meta": {
+    "corrector_config": {
+      "hidden": 64,
+      "blocks": 2,
+      "dropout": 0.0,
+      "include_pressure": true,
+      "max_delta": 0.05,
+      "history_context": false
+    },
+    "best_alpha": 1.0,
+    "best_bound_abs": 0.0075,
+    "best_bound_rel": 0.0075,
+    "best_score": 80.58171812490828,
+    "best_iteration": 3000
+  },
+  "alpha": 1.0,
+  "bound_abs": 0.0075,
+  "bound_rel": 0.0075,
+  "hidden": 64,
+  "blocks": 2,
+  "dropout": 0.0,
+  "include_pressure": true,
+  "max_delta": 0.05,
+  "history_context": false
+}

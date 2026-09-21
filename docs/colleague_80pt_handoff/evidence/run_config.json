@@ -1,0 +1,57 @@
+{
+  "real_root": "/data/p0ab_real_h5_20260830",
+  "checkpoint": "/runs/cno_final_all81.pt",
+  "realpdebench_root": "/third_party",
+  "device": "cuda:0",
+  "train_trajectories": 65,
+  "fit_trajectories": 81,
+  "val_trajectories": 16,
+  "train_windows": 3341,
+  "val_windows": 640,
+  "updates": 38400,
+  "eval_interval": 100,
+  "batch_size": 8,
+  "test_batch_size": 32,
+  "lr": 0.0002,
+  "weight_decay": 1e-05,
+  "corrector_config": {
+    "hidden": 96,
+    "blocks": 2,
+    "dropout": 0.0,
+    "include_pressure": true,
+    "max_delta": 0.04,
+    "history_context": false
+  },
+  "train_alpha": 1.0,
+  "eval_alphas": [
+    0.0,
+    0.025,
+    0.05,
+    0.075,
+    0.1,
+    0.15,
+    0.2,
+    0.3,
+    0.5,
+    0.75,
+    1.0
+  ],
+  "abs_widths": [
+    0.0075
+  ],
+  "rel_widths": [
+    0.0075
+  ],
+  "loss_weights": {
+    "point": 1.0,
+    "mse": 0.05,
+    "tke": 0.06,
+    "temporal": 0.03,
+    "grad": 0.015,
+    "p_zero": 0.01
+  },
+  "residual_mse": 0.25,
+  "delta_penalty": 0.02,
+  "trainable_parameters": 1087849,
+  "total_parameters": 9048316
+}

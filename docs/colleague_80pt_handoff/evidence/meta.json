@@ -1,0 +1,13 @@
+{
+  "champion": "/runs/residual_split_20260916/model_best.pth",
+  "champion_used": "/runs/residual_h96x8_all81_20260920/model_best.pth",
+  "all_data": true,
+  "stride_train": 5,
+  "stride_val": 20,
+  "val_fraction": 0.2,
+  "seed": 41,
+  "n_train": 13202,
+  "n_val": 640,
+  "dtype": "float16",
+  "channels": 2
+}

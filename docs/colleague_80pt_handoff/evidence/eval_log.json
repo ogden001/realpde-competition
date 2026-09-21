@@ -1,0 +1,93 @@
+[
+  {
+    "sps": 47.2537,
+    "floor": 0.0025,
+    "mult": 0.25,
+    "coverage": 0.7972,
+    "step": 0
+  },
+  {
+    "sps": 50.9846,
+    "floor": 0.0025,
+    "mult": 1.5,
+    "coverage": 0.8727,
+    "step": 500
+  },
+  {
+    "sps": 51.191,
+    "floor": 0.0025,
+    "mult": 1.5,
+    "coverage": 0.8783,
+    "step": 1000
+  },
+  {
+    "sps": 51.2882,
+    "floor": 0.0025,
+    "mult": 1.5,
+    "coverage": 0.8812,
+    "step": 1500
+  },
+  {
+    "sps": 51.4202,
+    "floor": 0.0025,
+    "mult": 1.5,
+    "coverage": 0.8824,
+    "step": 2000
+  },
+  {
+    "sps": 51.4501,
+    "floor": 0.0025,
+    "mult": 1.5,
+    "coverage": 0.8895,
+    "step": 2500
+  },
+  {
+    "sps": 51.4489,
+    "floor": 0.0025,
+    "mult": 1.5,
+    "coverage": 0.8814,
+    "step": 3000
+  },
+  {
+    "sps": 51.5308,
+    "floor": 0.0025,
+    "mult": 1.5,
+    "coverage": 0.8881,
+    "step": 3500
+  },
+  {
+    "sps": 51.5687,
+    "floor": 0.0025,
+    "mult": 1.5,
+    "coverage": 0.8893,
+    "step": 4000
+  },
+  {
+    "sps": 51.569,
+    "floor": 0.0025,
+    "mult": 1.5,
+    "coverage": 0.8902,
+    "step": 4500
+  },
+  {
+    "sps": 51.5955,
+    "floor": 0.0025,
+    "mult": 1.5,
+    "coverage": 0.8906,
+    "step": 5000
+  },
+  {
+    "sps": 51.5906,
+    "floor": 0.0025,
+    "mult": 1.5,
+    "coverage": 0.8909,
+    "step": 5500
+  },
+  {
+    "sps": 51.5954,
+    "floor": 0.0025,
+    "mult": 1.5,
+    "coverage": 0.8893,
+    "step": 6000
+  }
+]
