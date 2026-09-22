@@ -58,15 +58,16 @@ Status: `READY_FOR_EXECUTION / REVIEW_REQUIRED_AFTER_RUN`
 2. model input 中不加入 Re 或 AoA；
 3. inference 不需要 Re / AoA；
 4. neighbor 必须相同 Re；
-5. 只允许最近相邻 AoA，最大 gap `5.1°`；
-6. 至少 80% train trajectories 必须有合法相邻 AoA neighbor，否则实验无效并停止；
-7. augmentation probability = `0.5`；
-8. lambda uniform in `[0.2, 0.5]`；
-9. 只用 Past20 mean field 计算空间 shift；
-10. Future20 不参与构造 input shift；
-11. 同一 spatial shift 同时应用到 anchor Past20 和 Future20；
-12. 不做旧的 u/v global angle rotation；
-13. Dev 不做 augmentation。
+5. anchor / neighbor 的 HDF5 `x/y` coordinate grid 必须兼容，避免跨不同空间网格逐像素插值；
+6. 只允许最近相邻 AoA，最大 gap `5.1°`；
+7. 至少 80% train trajectories 必须有合法相邻 AoA neighbor，否则实验无效并停止；
+8. augmentation probability = `0.5`；
+9. lambda uniform in `[0.2, 0.5]`；
+10. 只用 Past20 mean field 计算空间 shift；
+11. Future20 不参与构造 input shift；
+12. 同一 spatial shift 同时应用到 anchor Past20 和 Future20；
+13. 不做旧的 u/v global angle rotation；
+14. Dev 不做 augmentation。
 
 数学定义：
 
@@ -209,6 +210,7 @@ git push --dry-run origin HEAD:main
 - `aoa_augmentation_audit.json`；
 - eligible trajectory fraction；
 - 每条 trajectory 的 Re / AoA / selected-neighbor 列表；
+- coordinate-grid compatibility / coverage；
 - run_config；
 - commands。
 
