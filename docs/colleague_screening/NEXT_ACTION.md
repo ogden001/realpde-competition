@@ -1,15 +1,22 @@
-# NEXT_ACTION — 80PT BASELINE: TWO DIRECTION SCREEN
+# NEXT_ACTION — 80PT BASELINE: ADJACENT-AOA MEAN-FIELD LONG SCREEN
 
 Status: `READY_FOR_EXECUTION / REVIEW_REQUIRED_AFTER_RUN`
 
 ## Goal
 
-从冻结的同事线上 80.0788 分方案出发，一次性执行两个独立增量实验：
+从冻结的同事线上 80.0788 分 residual baseline 出发，验证一种更物理保守的训练期攻角增强：
 
-1. **波动幅度校准**：保持 Future20 时间平均流场不变，只增强动态波动幅度；
-2. **攻角近似数据增强**：训练时对 Past20/Future20 的 u/v 速度方向施加同一个小角度旋转，测试是否提升 80 分 residual 的泛化能力。
+**相邻攻角均值场插值（Adjacent-AoA Mean-Field Interpolation）**
 
-两个实验都必须使用同一冻结 Dev16 和标准诊断协议。Codex 只负责执行、产出结构化证据和提交 Git，不做最终科研判断。
+中文含义：
+
+> 不把两个不同攻角、不同涡脱落相位的瞬时流场直接做 Mixup。  
+> 对 anchor trajectory，只在相同 Reynolds 数下寻找真实的相邻攻角 trajectory；  
+> 只用两者 Past20 的时间平均空间速度场差异，估计攻角改变造成的均值流场变化；  
+> 再把这一空间均值场变化一致地加到 anchor 的 Past20 和 Future20。  
+> anchor 自己的动态波动、涡结构和时间相位保持不被另一条 trajectory 混掉。
+
+本任务只做一次 20k-update 长训，不做参数网格。
 
 ---
 
@@ -21,204 +28,267 @@ Status: `READY_FOR_EXECUTION / REVIEW_REQUIRED_AFTER_RUN`
 - residual checkpoint SHA256:
   `909fdc7f8a6a42335e4ea4ce7471fc9a507135e9a29a4927bc7b7318be9c85b2`
 
-统一离线 decision baseline：
+统一离线 baseline：
 
 - Rel-L2: `0.0804204196`
 - TKE: `0.4491582513`
 - MVPE: `0.0711169168`
 
-不得更换 checkpoint，不寻找 h96x16，不吸收同事新的 checkpoint。
+历史 matched 5k no-augmentation control：
+
+- Rel-L2: `0.0802410692`
+- TKE: `0.4503658414`
+- MVPE: `0.0710276663`
+
+5k 时必须与这组 historical no-augmentation control 做同预算比较。
 
 ---
 
-## Experiment A — 波动幅度校准
+## Experiment semantics
 
-中文含义：
+代码：
 
-> 保留模型预测的时间平均流场和主要时空结构，只对“随时间变化的动态波动部分”做幅度恢复。
+- `tools/colleague_80pt/aoa_meanfield_augmentation.py`
+- `tools/colleague_80pt/residual_multi.py`
+- `tools/colleague_80pt/run_aoa_meanfield_long_screen.py`
 
-实现：
+固定语义：
 
-`tools/colleague_80pt/fluctuation_calibration.py`
+1. 只使用训练期 HDF5 metadata 的 `re / aoa` 寻找邻居；
+2. model input 中不加入 Re 或 AoA；
+3. inference 不需要 Re / AoA；
+4. neighbor 必须相同 Re；
+5. 只允许最近相邻 AoA，最大 gap `5.1°`；
+6. 至少 80% train trajectories 必须有合法相邻 AoA neighbor，否则实验无效并停止；
+7. augmentation probability = `0.5`；
+8. lambda uniform in `[0.2, 0.5]`；
+9. 只用 Past20 mean field 计算空间 shift；
+10. Future20 不参与构造 input shift；
+11. 同一 spatial shift 同时应用到 anchor Past20 和 Future20；
+12. 不做旧的 u/v global angle rotation；
+13. Dev 不做 augmentation。
 
-固定 coarse scan：
+数学定义：
 
-- Future1 scale = 1.0
-- Future20 end scale = `1.0 / 1.2 / 1.4 / 1.6`
-- 中间 horizon 线性增长；
-- 校正后重新去均值，保证 Future20 temporal mean 与原预测一致；
-- 不训练模型。
+```text
+delta_mean_uv = mean_t(Past20_neighbor) - mean_t(Past20_anchor)
 
-不允许 Codex 增加 scale 网格。
+Past20_aug   = Past20_anchor   + lambda * delta_mean_uv
+Future20_aug = Future20_anchor + lambda * delta_mean_uv
+```
+
+这不是声称合成样本是真实 CFD 解，而是一个保守的“攻角相关均值场插值”训练增强。
 
 ---
 
-## Experiment B — 攻角近似数据增强
+## Training budget
 
-中文含义：
+固定：
 
-> 不使用 AoA 标签，不改变正式推理输入。训练时对每个 window 随机采样一个 `[-2°, +2°]` 小角度，把 Past20 和 Future20 的 u/v 速度向量同时旋转相同角度。
-
-注意：
-
-- 空间网格不旋转；
-- p 保持不变；
-- 这是小角度“流向扰动/攻角近似增强”，不是声称生成了真实新 AoA CFD 解；
-- Dev 不做任何 augmentation；
-- 只改变训练数据增强，其他训练配置完全匹配昨晚的无增强 R0 control。
-
-固定训练：
-
-- start checkpoint = 当前 80 分 residual；
-- 5000 updates；
-- TKE loss weight = 0.06；
+- start checkpoint = frozen current 80pt residual；
+- updates = `20,000`；
+- eval every `2,500` updates；
+- batch size = `8`；
+- lr = `2e-4`；
+- weight decay = `1e-5`；
+- hidden = `96`；
+- blocks = `2`；
+- max_delta = `0.04`；
+- TKE loss weight = `0.06`；
 - fixed temporal windows；
-- batch 8；
-- lr 2e-4；
-- hidden 96；
-- blocks 2；
-- max_delta 0.04；
-- seed 41；
-- angle max = ±2°。
+- seed = `41`；
+- optimizer / cosine schedule 与 previous residual screens 一致。
 
-不允许扫角度、不允许自动延长训练。
+不得缩短为 5k，也不得自动超过 20k。
 
 ---
 
-## Execution
+## Why 20k without rerunning a 20k control
 
-先进入仓库并同步：
+本任务不额外消耗 GPU 重跑 long no-augmentation control。
+
+原因：
+
+- 已有同起点、同 optimizer、同 loss、同 seed 的 historical no-augmentation 5k control；
+- candidate 在 5k evaluation point 做严格同预算 comparison；
+- 然后继续到 20k，用于判断 data augmentation 是否只是收敛更慢；
+- 20k 最终 checkpoint 同时与 frozen current80 baseline 比较；
+- 若只有极小增益，不因为“训练更久”自动判 GO。
+
+---
+
+## Environment autonomy
+
+科研语义是硬约束，运行环境是软约束。
+
+Codex 可自行修复并继续：
+
+- Git remote / tracking ref / detached checkout；
+- venv / Python executable / CUDA device；
+- 文件路径、launcher、PID/log；
+- output root 版本号；
+- whitelist archive；
+- HDF5 I/O 兼容；
+- DataLoader `num_workers`，建议 2–8，根据机器吞吐自行选；
+- 其他不影响实验数值语义的工程问题。
+
+Codex 不得自行修改：
+
+- baseline / checkpoint SHA；
+- train/dev split；
+- 20k budget；
+- batch size / lr / seed；
+- augmentation probability；
+- lambda range；
+- same-Re / adjacent-AoA pairing；
+- mean-field augmentation formula；
+- model / feature / loss / loss weight；
+- Gate / scorer；
+- locked-final/private/Codabench 边界。
+
+---
+
+## Preflight
+
+同步最新 main，并记录 actual HEAD：
 
 ```bash
 git fetch origin
 git pull --rebase origin main
 git status --short
 git rev-parse HEAD
-git rev-parse origin/main
 git push --dry-run origin HEAD:main
 ```
 
-要求：
-
-- 记录实际 `HEAD` 作为 execution commit；
-- 在正式启动前 working tree 应 clean；
-- dry-run push 成功，确认最终结果可回写 Git；
-- `origin/main` 本地 tracking ref 与 `HEAD` 不一致只记录 warning，不作为实验阻塞条件。
-
-### Codex 环境适配权限
-
-本任务中，Codex 可以自行修复并继续执行以下**非科研语义**问题，无需再次停下来请求 ChatGPT：
-
-- Git remote / tracking ref / detached checkout / 临时代码副本；
-- Python / venv / CUDA / worker / launcher；
-- 路径发现与替换；
-- PID、log、输出目录；
-- whitelist archive、文件权限、轻量格式兼容；
-- preflight 中仅与运行环境有关的检查。
-
-允许修改相关工程代码、补测试、commit 后继续本任务。
-
-但不得改变以下科研契约：
-
-- 80 分 baseline checkpoint 及 SHA；
-- train/dev split 与样本集合；
-- Experiment A 的 scale 集合与校准公式；
-- Experiment B 的 ±2° 增强语义；
-- 模型结构、feature、loss、loss 权重；
-- 5000 updates、seed、评估协议；
-- Gate / scorer；
-- locked-final/private/Codabench 边界。
-
-判断原则：**科研语义是硬约束，运行环境是软约束。**
-
-然后运行测试：
+运行：
 
 ```bash
 /hy-tmp/realpde_venv_v2/bin/python -m pytest -q \
   tests/test_colleague_next_two_experiments.py \
-  tests/test_post_train_diagnostics.py \
-  tests/test_colleague_incremental_screen.py
+  tests/test_colleague_incremental_screen.py \
+  tests/test_post_train_diagnostics.py
 ```
 
-再执行：
+若测试失败：
+
+- 可以自行修复纯工程/兼容性错误并补测试；
+- 若修复会改变上述科研语义，则停止。
+
+---
+
+## Execute
+
+默认：
 
 ```bash
 /hy-tmp/realpde_venv_v2/bin/python -u -B \
-  tools/colleague_80pt/run_next_two_experiments.py \
+  tools/colleague_80pt/run_aoa_meanfield_long_screen.py \
   --real-root /hy-tmp/realpde_data/train_real \
   --base-checkpoint /hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/cno_final_all81.pt \
   --start-checkpoint /hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/residual_model_best.pth \
   --model-root tools/colleague_80pt/submission \
   --data-manifest /hy-tmp/realpde_data/data_manifest.tsv \
   --split-manifest /hy-tmp/realpde_runs/colleague_incremental_screen_20260921/colleague_dev16_manifest.json \
-  --out-root /hy-tmp/realpde_runs/next_two_20260922_v2
+  --out-root /hy-tmp/realpde_runs/aoa_meanfield_long_20260922_v1 \
+  --workers 4
 ```
 
-使用新的 `v2` out-root。保留失败的 `next_two_20260922_v1` 原样，不删除、不覆盖；若 `v2` 已存在则停止并汇报。
+若默认 out-root 已存在，使用新的 `v2/v3...`，不得删除旧 run。
 
 ---
 
-## Required diagnostics
+## Required evidence
 
-严格执行：
+必须有：
 
-- `docs/POST_TRAIN_DIAGNOSTICS.md`
-- `docs/EXPERIMENT_BY_HORIZON_PROTOCOL.md`
-- `docs/TRAINING_LOG_REVIEW_PROTOCOL.md`
+### Provenance / audit
 
-Experiment A 每个 scale 必须有：
+- campaign manifest；
+- exact execution commit；
+- checkpoint/data/split SHA；
+- `aoa_augmentation_audit.json`；
+- eligible trajectory fraction；
+- 每条 trajectory 的 Re / AoA / selected-neighbor 列表；
+- run_config；
+- commands。
 
-- final primary metrics；
-- Future1..20 by-horizon；
-- by-trajectory；
-- trajectory × horizon；
-- mean / fluctuation / energy；
-- spatial maps；
-- comparison vs current 80pt baseline。
+### Training
 
-Experiment B 必须有：
+- step 0 / 2500 / 5000 / 7500 / 10000 / 12500 / 15000 / 17500 / 20000；
+- Rel-L2 / TKE / MVPE；
+- learning rate；
+- augmentation applied fraction；
+- effective AoA shift magnitude；
+- deterministic training review log。
 
-- final primary metrics；
-- step 0/1000/2000/3000/4000/5000 training progression；
+### Matched 5k comparison
+
+必须生成：
+
+`comparison_at_5k.csv`
+
+同时列：
+
+- frozen current80；
+- historical no-aug 5k；
+- AoA mean-field aug 5k。
+
+### Post-train diagnostics
+
+对以下三个 checkpoint 统一 replay：
+
+1. `current80`
+2. `aoa_best`
+3. `aoa_final`
+
+每个必须包含：
+
+- overall；
 - Future1..20；
 - by-trajectory；
 - trajectory × horizon；
 - mean / fluctuation / energy；
-- spatial maps / spatial summary；
-- deterministic training review log；
-- comparison vs current 80pt baseline；
-- comparison vs historical 5000-step no-augmentation control。
+- spatial maps；
+- residual before/after。
+
+最终 comparison 目录必须有：
+
+- `comparison_summary.csv`
+- `comparison_by_horizon.csv`
+- `manifest.json`
 
 ---
 
-## Archive to Git
+## Archive
 
-运行完成后执行 whitelist archive：
+完成后：
 
 ```bash
 /hy-tmp/realpde_venv_v2/bin/python -u -B \
-  tools/colleague_80pt/archive_next_two_experiments.py \
-  --run-root /hy-tmp/realpde_runs/next_two_20260922_v2 \
-  --dest docs/colleague_screening/results/20260922_next_two
+  tools/colleague_80pt/archive_aoa_meanfield_long_screen.py \
+  --run-root <actual_run_root> \
+  --dest docs/colleague_screening/results/20260922_aoa_meanfield_long
 ```
+
+若 Git destination 已存在，使用带序号的新目录，不覆盖。
 
 然后：
 
 ```bash
 git diff --check
 git status --short
-git add docs/colleague_screening/results/20260922_next_two
-git commit -m "Archive 80pt next two experiment evidence"
+git add docs/colleague_screening/results/20260922_aoa_meanfield_long*
+git commit -m "Archive adjacent AoA mean-field long screen"
 git pull --rebase origin main
 git push origin main
 ```
 
 禁止提交：
 
-- model checkpoint；
+- model checkpoints；
 - H5；
 - raw prediction cache；
-- 原始大训练日志。
+- raw full training log。
 
 ---
 
@@ -229,17 +299,16 @@ git push origin main
 不要：
 
 - 自动 full train；
-- 自动选 winner；
-- 自动继续参数扫描；
+- 自动提交 Codabench；
+- 自动做 submission package；
 - 访问 locked-final/private；
-- 访问 Codabench；
-- 打包 submission；
-- 给出下一轮算法方案。
+- 自动调 augmentation 参数；
+- 自动启动下一轮实验。
 
 最终只返回：
 
 ```text
-REALPDE NEXT TWO EXPERIMENTS
+REALPDE AOA MEAN-FIELD LONG SCREEN
 
 Status:
 REVIEW_REQUIRED / BLOCKED
@@ -251,19 +320,27 @@ Results commit:
 ...
 
 Git evidence:
-docs/colleague_screening/results/20260922_next_two
+...
 
-Experiment A:
+AoA pairing audit:
+PASS / FAIL
+Eligible trajectories:
+...
+
+Training 20k:
 COMPLETE / BLOCKED
 
-Experiment B:
-COMPLETE / BLOCKED
+5k matched comparison:
+PASS / FAIL
 
 Standard diagnostics:
 PASS / FAIL
 
 Training review log:
 PASS / FAIL
+
+Best checkpoint iteration:
+...
 
 New full training started:
 NO
@@ -278,6 +355,4 @@ Missing items:
 NONE / ...
 ```
 
-如果任何 required artifact 缺失，返回 `BLOCKED`，不要写结论。
-
-若只是环境/路径/Git tracking/launcher/归档类问题，先按上述权限自行修复并继续；只有修复会触及科研契约时才停止。
+如果只是环境工程问题，先自行修复并继续。只有会改变科研语义时才停止。
