@@ -1,0 +1,60 @@
+/hy-tmp/realpde-v2-batch-benchmark/tools/colleague_80pt/residual_multi.py:317: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  metadata = torch.load(checkpoint_path, map_location="cpu")
+/hy-tmp/realpde-v2-batch-benchmark/tools/colleague_80pt/residual_multi.py:77: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  checkpoint = torch.load(checkpoint_path, map_location=device)
+[
+  {
+    "label": "current80",
+    "checkpoint": "/hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/residual_model_best.pth",
+    "checkpoint_iteration": 34000,
+    "rel_l2_raw": 0.08042024075984955,
+    "tke_raw": 0.4491623044013977,
+    "mvpe_raw": 0.07111713290214539,
+    "mean_field_rel_l2": 0.04404965828226194,
+    "fluctuation_rel_l2": 0.7444642544134853,
+    "tke_energy_ratio": 0.6694120429702404,
+    "correction_help_fraction": 0.7158953094482422,
+    "delta_rms": 0.006894113670980089,
+    "delta_rel_l2_raw_pct_vs_baseline": 0.0,
+    "delta_tke_raw_pct_vs_baseline": 0.0,
+    "delta_mvpe_raw_pct_vs_baseline": 0.0,
+    "delta_mean_field_rel_l2_pct_vs_baseline": 0.0,
+    "delta_fluctuation_rel_l2_pct_vs_baseline": 0.0
+  },
+  {
+    "label": "aoa_best",
+    "checkpoint": "/hy-tmp/realpde_runs/colleague80_v2_formal_ac_20260922_v1/C_aoa_meanfield/A1_aoa_meanfield/model_best.pth",
+    "checkpoint_iteration": 0,
+    "rel_l2_raw": 0.08042024075984955,
+    "tke_raw": 0.4491623044013977,
+    "mvpe_raw": 0.07111713290214539,
+    "mean_field_rel_l2": 0.04404965828226194,
+    "fluctuation_rel_l2": 0.7444642544134853,
+    "tke_energy_ratio": 0.6694120429702404,
+    "correction_help_fraction": 0.7158953094482422,
+    "delta_rms": 0.006894113670980089,
+    "delta_rel_l2_raw_pct_vs_baseline": 0.0,
+    "delta_tke_raw_pct_vs_baseline": 0.0,
+    "delta_mvpe_raw_pct_vs_baseline": 0.0,
+    "delta_mean_field_rel_l2_pct_vs_baseline": 0.0,
+    "delta_fluctuation_rel_l2_pct_vs_baseline": 0.0
+  },
+  {
+    "label": "aoa_final",
+    "checkpoint": "/hy-tmp/realpde_runs/colleague80_v2_formal_ac_20260922_v1/C_aoa_meanfield/A1_aoa_meanfield/model_final.pth",
+    "checkpoint_iteration": 20000,
+    "rel_l2_raw": 0.08037693053483963,
+    "tke_raw": 0.4527864456176758,
+    "mvpe_raw": 0.0712488666176796,
+    "mean_field_rel_l2": 0.04435702940759713,
+    "fluctuation_rel_l2": 0.7407889966841912,
+    "tke_energy_ratio": 0.6597254617036853,
+    "correction_help_fraction": 0.7147882080078125,
+    "delta_rms": 0.006932223455917442,
+    "delta_rel_l2_raw_pct_vs_baseline": -0.053854881060666,
+    "delta_tke_raw_pct_vs_baseline": 0.8068667340880261,
+    "delta_mvpe_raw_pct_vs_baseline": 0.18523485151668173,
+    "delta_mean_field_rel_l2_pct_vs_baseline": 0.697783223119714,
+    "delta_fluctuation_rel_l2_pct_vs_baseline": -0.493678199793435
+  }
+]

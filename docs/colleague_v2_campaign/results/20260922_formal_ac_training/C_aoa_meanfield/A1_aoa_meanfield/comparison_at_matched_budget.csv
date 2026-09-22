@@ -1,0 +1,4 @@
+model,role,rel_l2_raw,tke_raw,mvpe_raw,delta_rel_l2_raw_pct_vs_current80,delta_tke_raw_pct_vs_current80,delta_mvpe_raw_pct_vs_current80,delta_rel_l2_raw_pct_vs_no_aug_5k,delta_tke_raw_pct_vs_no_aug_5k,delta_mvpe_raw_pct_vs_no_aug_5k
+current_80pt_residual,frozen_decision_baseline,0.0804204195737838,0.449158251285553,0.071116916835308,0.0,0.0,0.0,,,
+historical_no_aug_5000,matched_same_budget_control_from_20260921,0.0802410691976547,0.4503658413887024,0.0710276663303375,-0.2230159666905979,0.2688562660695032,-0.1254982765594219,,,
+aoa_meanfield_aug_step_5000,matched_same_budget,0.08234353512525558,0.47849150747060776,0.07481688475236296,2.3913274286107917,6.530717425561914,5.202655123004439,2.6201868302900606,6.245070895070531,5.334848542541806

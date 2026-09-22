@@ -1,0 +1,15 @@
+{
+  "alpha": 1.0,
+  "base_mvpe_raw": 0.08762361109256744,
+  "base_rel_l2_raw": 0.0979706197977066,
+  "base_tke_raw": 0.7003257870674133,
+  "experiment": "A_pareto_tke",
+  "mvpe_improvement_vs_base": 0.19005805253982544,
+  "mvpe_raw": 0.07097003608942032,
+  "rel_l2_improvement_vs_base": 0.17134660482406616,
+  "rel_l2_raw": 0.08118368685245514,
+  "tke_improvement_vs_base": 0.39096498489379883,
+  "tke_raw": 0.4265229105949402,
+  "trajectories": 16,
+  "windows": 640
+}
