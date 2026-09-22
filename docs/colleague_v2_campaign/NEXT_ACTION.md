@@ -2,7 +2,7 @@
 
 Status: `READY_FOR_EXECUTION / BENCHMARK_ONLY / REVIEW_REQUIRED`
 
-`REQUIRED_COMMIT = 47f8bd4a408e2fafdfb99ea3dd2fd8823ce9592d`
+`REQUIRED_COMMIT = 9211a4b951195a45f0dad89f0f2d26900041aa5b`
 
 ChatGPT/Sol has implemented the b8/b16 profiling path. This task is **only**
 to measure the actual RTX 3090 24G throughput/VRAM for the three frozen training
@@ -48,7 +48,7 @@ git pull --rebase origin main
 git status --short
 git rev-parse HEAD
 git rev-parse origin/main
-git merge-base --is-ancestor 47f8bd4a408e2fafdfb99ea3dd2fd8823ce9592d HEAD
+git merge-base --is-ancestor 9211a4b951195a45f0dad89f0f2d26900041aa5b HEAD
 git push --dry-run origin HEAD:main
 nvidia-smi
 ```
