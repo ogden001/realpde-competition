@@ -17,6 +17,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from batch_profiles import ARM_PROFILES, TrainProfile
 from run_incremental_screen import (
     EXPECTED_BASE_SHA256,
     EXPECTED_START_SHA256,
@@ -44,6 +45,38 @@ ARM_C_UPDATES = 20_000
 EXPECTED_STRONG_BACKBONE_SHA256 = (
     "f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce"
 )
+
+
+def load_training_profiles(path: Path | None) -> dict[str, TrainProfile]:
+    selected_names = {
+        "A_pareto_tke": "b8",
+        "B_strong_backbone": "b8",
+        "C_aoa_meanfield": "b8",
+    }
+    if path is not None:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        raw_arms = payload.get("arms")
+        if not isinstance(raw_arms, dict):
+            raise ValueError("profile JSON missing arms")
+        for arm in selected_names:
+            raw = raw_arms.get(arm)
+            if not isinstance(raw, dict):
+                raise ValueError(f"profile JSON missing {arm}")
+            name = str(raw.get("name", raw.get("selected", "")))
+            if name not in ("b8", "b16"):
+                raise ValueError(f"{arm}: invalid frozen profile {name!r}")
+            expected = ARM_PROFILES[arm][name]
+            for key, expected_value in expected.to_dict().items():
+                if key in raw and raw[key] != expected_value:
+                    raise ValueError(
+                        f"{arm}: profile field {key}={raw[key]!r} "
+                        f"!= frozen {expected_value!r}"
+                    )
+            selected_names[arm] = name
+    return {
+        arm: ARM_PROFILES[arm][name]
+        for arm, name in selected_names.items()
+    }
 
 
 def dump(path: Path, value: object) -> None:
@@ -130,6 +163,8 @@ def residual_common(
     updates: int,
     eval_interval: int,
     base_model: str,
+    batch_size: int,
+    lr: float,
 ) -> list[str]:
     return [
         sys.executable,
@@ -154,13 +189,13 @@ def residual_common(
         "--eval-interval",
         str(eval_interval),
         "--batch-size",
-        "8",
+        str(batch_size),
         "--test-batch-size",
         "32",
         "--workers",
         str(args.workers),
         "--lr",
-        "0.0002",
+        str(lr),
         "--weight-decay",
         "0.00001",
         "--hidden",
@@ -211,6 +246,7 @@ def run_campaign(args: argparse.Namespace) -> dict[str, object]:
 
     execution_commit = require_clean_main_checkout(REPO_ROOT)
     gpu = require_gpu()
+    profiles = load_training_profiles(args.profile_json)
     verified_data = verify_allowed_data(
         args.real_root,
         args.data_manifest,
@@ -237,24 +273,25 @@ def run_campaign(args: argparse.Namespace) -> dict[str, object]:
                 "strong_backbone": str(args.strong_backbone_checkpoint),
                 "strong_backbone_sha256": sha256(args.strong_backbone_checkpoint),
             },
+            "batch_profile_source": (
+                str(args.profile_json) if args.profile_json is not None else "default_b8"
+            ),
             "arms": {
                 "A_pareto_tke": {
-                    "updates": ARM_A_UPDATES,
-                    "eval_interval": ARM_A_EVAL,
+                    **profiles["A_pareto_tke"].to_dict(),
                     "start": "mature colleague 80pt residual",
                     "tke_weight": 0.12,
                     "gradient_mode": "project_tke",
                     "primary_gradient_modified": False,
                 },
                 "B_strong_backbone": {
-                    "updates": ARM_B_UPDATES,
-                    "eval_interval": ARM_B_EVAL,
+                    **profiles["B_strong_backbone"].to_dict(),
                     "start": "fresh zero-init h96/b2 residual",
                     "base": "frozen SOTA-V2 P0-A/MF checkpoint",
                     "loss": "original colleague residual scalar objective",
                 },
                 "C_aoa_meanfield": {
-                    "updates": ARM_C_UPDATES,
+                    **profiles["C_aoa_meanfield"].to_dict(),
                     "runner": "run_aoa_meanfield_long_screen.py",
                     "start": "mature colleague 80pt residual",
                 },
@@ -267,14 +304,17 @@ def run_campaign(args: argparse.Namespace) -> dict[str, object]:
     )
 
     arm_a = args.out_root / "A_pareto_tke"
+    profile_a = profiles["A_pareto_tke"]
     cmd_a = residual_common(
         args,
         base_checkpoint=args.colleague_base_checkpoint,
         model_root=args.colleague_model_root,
         out_dir=arm_a,
-        updates=ARM_A_UPDATES,
-        eval_interval=ARM_A_EVAL,
+        updates=profile_a.updates,
+        eval_interval=profile_a.eval_interval,
         base_model="cno",
+        batch_size=profile_a.batch_size,
+        lr=profile_a.lr,
     )
     cmd_a += [
         "--resume-checkpoint",
@@ -303,14 +343,17 @@ def run_campaign(args: argparse.Namespace) -> dict[str, object]:
     )
 
     arm_b = args.out_root / "B_strong_backbone"
+    profile_b = profiles["B_strong_backbone"]
     cmd_b = residual_common(
         args,
         base_checkpoint=args.strong_backbone_checkpoint,
         model_root=args.strong_kit_root,
         out_dir=arm_b,
-        updates=ARM_B_UPDATES,
-        eval_interval=ARM_B_EVAL,
+        updates=profile_b.updates,
+        eval_interval=profile_b.eval_interval,
         base_model="sota_v2_mf",
+        batch_size=profile_b.batch_size,
+        lr=profile_b.lr,
     )
     cmd_b += ["--tke", "0.06", "--gradient-mode", "scalar"]
     run(cmd_b, args.out_root / "B_strong_backbone.log", command_log)
@@ -330,6 +373,9 @@ def run_campaign(args: argparse.Namespace) -> dict[str, object]:
     )
 
     arm_c = args.out_root / "C_aoa_meanfield"
+    profile_c = profiles["C_aoa_meanfield"]
+    if profile_c.matched_control_step is None:
+        raise ValueError("AoA profile missing matched_control_step")
     run(
         [
             sys.executable,
@@ -352,6 +398,16 @@ def run_campaign(args: argparse.Namespace) -> dict[str, object]:
             str(arm_c),
             "--workers",
             str(args.workers),
+            "--updates",
+            str(profile_c.updates),
+            "--eval-interval",
+            str(profile_c.eval_interval),
+            "--matched-control-step",
+            str(profile_c.matched_control_step),
+            "--batch-size",
+            str(profile_c.batch_size),
+            "--lr",
+            str(profile_c.lr),
         ],
         args.out_root / "C_aoa_meanfield.wrapper.log",
         command_log,
@@ -366,6 +422,9 @@ def run_campaign(args: argparse.Namespace) -> dict[str, object]:
         "status": "REVIEW_REQUIRED",
         "execution_commit": execution_commit,
         "baseline_current80": BASELINE,
+        "training_profiles": {
+            arm: profile.to_dict() for arm, profile in profiles.items()
+        },
         "A_pareto_tke": {
             **compare_to_current80(metrics_a),
             "mechanical_gate": pareto_mechanical_gate(metrics_a),
@@ -415,6 +474,15 @@ def main() -> None:
     )
     parser.add_argument("--strong-kit-root", type=Path, required=True)
     parser.add_argument("--out-root", type=Path, required=True)
+    parser.add_argument(
+        "--profile-json",
+        type=Path,
+        default=None,
+        help=(
+            "selected_profiles.json from benchmark_v2_batch_profiles.py. "
+            "If omitted, the original b8 protocol is used."
+        ),
+    )
     parser.add_argument("--workers", type=int, default=4)
     args = parser.parse_args()
     run_campaign(args)
