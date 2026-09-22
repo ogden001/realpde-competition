@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 from fluctuation_calibration import mean_preserving_ramp_scale, write_csv  # noqa: E402
 from residual_multi import rotate_velocity_uv  # noqa: E402
+from run_next_two_experiments import alpha_one_metrics  # noqa: E402
 
 
 def test_fluctuation_scale_one_is_identity() -> None:
@@ -79,3 +80,19 @@ def test_write_csv_accepts_union_schema(tmp_path) -> None:
     assert "base_frame_rel_l2" in text.splitlines()[0]
     assert "delta_rms" in text.splitlines()[0]
     assert len(text.splitlines()) == 3
+
+
+def test_alpha_one_metrics_accepts_eval_schema(tmp_path) -> None:
+    path = tmp_path / "eval_step.json"
+    path.write_text(
+        '[{"alpha": 1.0, "rel_l2": 0.08, "tke": 0.45, '
+        '"mvpe": 0.07, "best_final_est": 81.5}]',
+        encoding="utf-8",
+    )
+    assert alpha_one_metrics(path) == {
+        "rel_l2_raw": 0.08,
+        "tke_raw": 0.45,
+        "mvpe_raw": 0.07,
+        "final_est": 81.5,
+        "best_alpha": 1.0,
+    }

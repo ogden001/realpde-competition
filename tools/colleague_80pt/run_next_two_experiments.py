@@ -91,14 +91,21 @@ def pct(value: float, baseline: float) -> float:
     return 100.0 * (float(value) - float(baseline)) / max(abs(float(baseline)), 1e-12)
 
 
+def _eval_metric(row: dict[str, object], raw_key: str, eval_key: str) -> float:
+    value = row.get(raw_key)
+    if value is None:
+        value = row[eval_key]
+    return float(value)
+
+
 def alpha_one_metrics(step_path: Path) -> dict[str, float]:
     rows = json.loads(step_path.read_text(encoding="utf-8"))
     for row in rows:
         if abs(float(row["alpha"]) - 1.0) < 1e-12:
             return {
-                "rel_l2_raw": float(row["rel_l2_raw"]),
-                "tke_raw": float(row["tke_raw"]),
-                "mvpe_raw": float(row["mvpe_raw"]),
+                "rel_l2_raw": _eval_metric(row, "rel_l2_raw", "rel_l2"),
+                "tke_raw": _eval_metric(row, "tke_raw", "tke"),
+                "mvpe_raw": _eval_metric(row, "mvpe_raw", "mvpe"),
                 "final_est": float(row["best_final_est"]),
                 "best_alpha": 1.0,
             }
