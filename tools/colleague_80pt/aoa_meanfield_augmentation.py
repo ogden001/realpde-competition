@@ -92,6 +92,7 @@ def build_adjacent_aoa_neighbors(
     paths: Sequence[Path],
     *,
     max_gap_deg: float = 5.1,
+    bridge_pair: tuple[float, float] | None = None,
 ) -> tuple[dict[Path, tuple[Path, ...]], dict[Path, FlowCondition]]:
     """Map each trajectory to nearest same-Re, different-AoA neighbor(s)."""
     if max_gap_deg <= 0:
@@ -101,14 +102,32 @@ def build_adjacent_aoa_neighbors(
     mapping: dict[Path, tuple[Path, ...]] = {}
     for path in paths:
         source = conditions[path]
-        candidates = [
-            other
-            for other in paths
-            if other != path
-            and _same_re(conditions[other].re, source.re)
-            and abs(conditions[other].aoa - source.aoa) > 1e-6
-            and grids_compatible(grids[path], grids[other])
-        ]
+        if bridge_pair is not None:
+            low, high = sorted((float(bridge_pair[0]), float(bridge_pair[1])))
+            if not (
+                np.isclose(source.aoa, low, rtol=0.0, atol=1e-6)
+                or np.isclose(source.aoa, high, rtol=0.0, atol=1e-6)
+            ):
+                mapping[path] = ()
+                continue
+            wanted = high if np.isclose(source.aoa, low, rtol=0.0, atol=1e-6) else low
+            candidates = [
+                other
+                for other in paths
+                if other != path
+                and _same_re(conditions[other].re, source.re)
+                and np.isclose(conditions[other].aoa, wanted, rtol=0.0, atol=1e-6)
+                and grids_compatible(grids[path], grids[other])
+            ]
+        else:
+            candidates = [
+                other
+                for other in paths
+                if other != path
+                and _same_re(conditions[other].re, source.re)
+                and abs(conditions[other].aoa - source.aoa) > 1e-6
+                and grids_compatible(grids[path], grids[other])
+            ]
         if not candidates:
             mapping[path] = ()
             continue
@@ -116,17 +135,20 @@ def build_adjacent_aoa_neighbors(
         if nearest_gap > max_gap_deg + 1e-6:
             mapping[path] = ()
             continue
-        nearest = tuple(
-            sorted(
-                (
-                    p
-                    for p in candidates
-                    if abs(abs(conditions[p].aoa - source.aoa) - nearest_gap) <= 1e-6
-                ),
-                key=lambda p: p.name,
+        if bridge_pair is not None:
+            mapping[path] = tuple(sorted(candidates, key=lambda p: p.name))
+        else:
+            nearest = tuple(
+                sorted(
+                    (
+                        p
+                        for p in candidates
+                        if abs(abs(conditions[p].aoa - source.aoa) - nearest_gap) <= 1e-6
+                    ),
+                    key=lambda p: p.name,
+                )
             )
-        )
-        mapping[path] = nearest
+            mapping[path] = nearest
     return mapping, conditions
 
 
@@ -161,6 +183,7 @@ class AoAMeanFieldShiftDataset(Dataset):
         seed: int,
         max_gap_deg: float = 5.1,
         min_eligible_fraction: float = 0.8,
+        bridge_pair: tuple[float, float] | None = None,
     ) -> None:
         if not 0.0 <= probability <= 1.0:
             raise ValueError("probability must be in [0,1]")
@@ -174,10 +197,16 @@ class AoAMeanFieldShiftDataset(Dataset):
         self.lambda_max = float(lambda_max)
         self.seed = int(seed)
         self.max_gap_deg = float(max_gap_deg)
+        self.bridge_pair = (
+            (float(bridge_pair[0]), float(bridge_pair[1]))
+            if bridge_pair is not None
+            else None
+        )
         self.epoch = 0
         self.neighbors, self.conditions = build_adjacent_aoa_neighbors(
             self.base.paths,
             max_gap_deg=self.max_gap_deg,
+            bridge_pair=self.bridge_pair,
         )
         eligible = sum(bool(self.neighbors[path]) for path in self.base.paths)
         self.eligible_fraction = eligible / max(len(self.base.paths), 1)
@@ -219,6 +248,7 @@ class AoAMeanFieldShiftDataset(Dataset):
             "lambda_min": self.lambda_min,
             "lambda_max": self.lambda_max,
             "same_re_required": True,
+            "bridge_pair": list(self.bridge_pair) if self.bridge_pair is not None else None,
             "metadata_used_at_inference": False,
             "rows": rows,
         }
