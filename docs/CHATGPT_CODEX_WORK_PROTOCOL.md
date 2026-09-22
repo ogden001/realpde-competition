@@ -296,6 +296,42 @@ Codex 不得因为实现方便而自行换一种数学定义。若当前 repo �
 
 环境适配不得改变实验定义、数据 split、核心超参数或评价协议。若环境问题必须修改实验语义，Codex 应停止并报告，由 ChatGPT / Sol 决策。
 
+### GPU 训练实验的强制诊断与 Review Gate
+
+所有正式 GPU 训练实验默认执行 `docs/POST_TRAIN_DIAGNOSTICS.md`。该协议不是可选的 Level-1 深挖，而是正式训练进入科研 review 前的标准证据层。
+
+固定职责：
+
+- **Codex / Luna**：从 Git 拉取已有诊断代码，执行训练与 post-train diagnostics，结构化落盘 CSV / JSON / manifest / 必要轻量图，并 commit + push 到远端 `main`。Codex 只负责证据生产与基础完整性检查，不承担最终科研结论。
+- **ChatGPT / Sol**：训练结束后先从 GitHub 做 Evidence Acceptance。只有确认 required artifacts、行数、horizon / trajectory 覆盖、checkpoint / split / scorer / code provenance 完整后，才开始 scientific review。
+- **缺失证据时**：状态为 `REVIEW_BLOCKED`。Sol 必须停止 review，不依据 Codex 文字摘要做算法判断，不脑补缺失数据；先给出补证据 task，补齐后再 review。
+
+正式 GPU 点预测实验默认至少包含：
+
+1. overall 主指标；
+2. Future1..20 by-horizon；
+3. by-trajectory；
+4. trajectory × horizon；
+5. mean / fluctuation / energy decomposition；
+6. spatial error；
+7. training progress；
+8. 与该实验机制直接相关的专项诊断。
+
+已有实现优先复用：
+
+- `tools/post_train_diagnostics.py`
+- `tools/dw01_by_horizon.py`
+- `tools/colleague_80pt/analyze_checkpoints.py`
+- `tools/build_training_review_log.py`
+
+除非现有实现确实无法覆盖新的实验假设，否则不为每个实验重新实现一套分析代码。
+
+核心规则：
+
+> **Codex 的“任务完成”不等于“可 Review”；Git 中的可复核证据完整，才等于“可 Review”。**
+
+详细字段、目录结构和验收要求统一以 `docs/POST_TRAIN_DIAGNOSTICS.md` 为准。
+
 ### 实验数据分析框架
 
 实验结果不能只停留在 overall Rel-L2 / TKE / MVPE 等汇总指标。默认研究闭环应为：
