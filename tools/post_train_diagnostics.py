@@ -68,9 +68,18 @@ def horizon_rows(prediction, target, *, experiment: str, base_prediction=None):
     pred = _velocity(prediction)
     truth = _velocity(target)
     base = _velocity(base_prediction) if base_prediction is not None else None
+    pred_mean = pred.mean(axis=1, keepdims=True)
+    truth_mean = truth.mean(axis=1, keepdims=True)
+    pred_energy = 0.5 * np.sum((pred - pred_mean) ** 2, axis=-1)
+    truth_energy = 0.5 * np.sum((truth - truth_mean) ** 2, axis=-1)
+    base_energy = None
+    if base is not None:
+        base_mean = base.mean(axis=1, keepdims=True)
+        base_energy = 0.5 * np.sum((base - base_mean) ** 2, axis=-1)
     rows = []
     for h in range(pred.shape[1]):
         p, y = pred[:, h], truth[:, h]
+        ep, ey = pred_energy[:, h], truth_energy[:, h]
         row = {
             "experiment": experiment,
             "horizon": h + 1,
@@ -78,6 +87,8 @@ def horizon_rows(prediction, target, *, experiment: str, base_prediction=None):
             "u_rmse": float(np.sqrt(np.mean((p[..., 0] - y[..., 0]) ** 2))),
             "v_rmse": float(np.sqrt(np.mean((p[..., 1] - y[..., 1]) ** 2))),
             "velocity_rmse": float(np.sqrt(np.mean((p - y) ** 2))),
+            "tke_contrib_rel_l2": float(_rel_l2_per_sample(ep, ey).mean()),
+            "tke_contrib_ratio": float(ep.sum() / max(float(ey.sum()), EPS)),
         }
         if base is not None:
             b = base[:, h]
@@ -87,6 +98,7 @@ def horizon_rows(prediction, target, *, experiment: str, base_prediction=None):
                 "base_frame_rel_l2": float(_rel_l2_per_sample(b, y).mean()),
                 "delta_rms": float(np.sqrt(np.mean((p - b) ** 2))),
                 "correction_help_fraction": float(np.mean(pred_err < base_err)),
+                "base_tke_contrib_rel_l2": float(_rel_l2_per_sample(base_energy[:, h], ey).mean()),
             })
         rows.append(row)
     return rows
@@ -106,6 +118,8 @@ def trajectory_rows(prediction, target, trajectories, *, experiment: str):
             "trajectory": name,
             "windows": int(idx.size),
             "rel_l2": float(_rel_l2_per_sample(pred[idx], truth[idx]).mean()),
+            "u_rmse": float(np.sqrt(np.mean((pred[idx, ..., 0] - truth[idx, ..., 0]) ** 2))),
+            "v_rmse": float(np.sqrt(np.mean((pred[idx, ..., 1] - truth[idx, ..., 1]) ** 2))),
             "tke_rel_l2": float(_rel_l2_per_sample(tke_pred[idx], tke_truth[idx]).mean()),
             **_mean_fluctuation_metrics(prediction[idx], target[idx]),
         })
@@ -115,6 +129,10 @@ def trajectory_rows(prediction, target, trajectories, *, experiment: str):
 def trajectory_horizon_rows(prediction, target, trajectories, starts, *, experiment: str):
     pred = _velocity(prediction)
     truth = _velocity(target)
+    pred_mean = pred.mean(axis=1, keepdims=True)
+    truth_mean = truth.mean(axis=1, keepdims=True)
+    pred_energy = 0.5 * np.sum((pred - pred_mean) ** 2, axis=-1)
+    truth_energy = 0.5 * np.sum((truth - truth_mean) ** 2, axis=-1)
     rows = []
     for i, (trajectory, start) in enumerate(zip(trajectories, starts, strict=True)):
         for h in range(pred.shape[1]):
@@ -127,6 +145,10 @@ def trajectory_horizon_rows(prediction, target, trajectories, starts, *, experim
                 "horizon": h + 1,
                 "frame_rel_l2": float(_rel_l2_per_sample(p, y)[0]),
                 "velocity_rmse": float(np.sqrt(np.mean((p - y) ** 2))),
+                "tke_contrib_rel_l2": float(_rel_l2_per_sample(
+                    pred_energy[i:i + 1, h], truth_energy[i:i + 1, h])[0]),
+                "tke_contrib_ratio": float(
+                    pred_energy[i, h].sum() / max(float(truth_energy[i, h].sum()), EPS)),
             })
     return rows
 
