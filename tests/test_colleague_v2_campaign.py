@@ -14,6 +14,7 @@ from pareto_tke import (  # noqa: E402
     project_tke_backward,
     split_residual_objective,
 )
+from benchmark_v2_batch_profiles import parse_arms  # noqa: E402
 from realpde_h5_feature_adapter_train import physics_loss  # noqa: E402
 from archive_v2_campaign import archive  # noqa: E402
 from batch_profiles import ARM_PROFILES, select_profile  # noqa: E402
@@ -27,6 +28,13 @@ from run_v2_campaign import (  # noqa: E402
     load_training_profiles,
     pareto_mechanical_gate,
 )
+
+
+def test_parse_arms_allows_independent_a_c_execution() -> None:
+    assert parse_arms("A_pareto_tke,C_aoa_meanfield") == (
+        "A_pareto_tke",
+        "C_aoa_meanfield",
+    )
 
 
 def test_pareto_objective_sum_matches_historical_scalar_objective() -> None:

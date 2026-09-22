@@ -27,6 +27,26 @@ from run_v2_campaign import EXPECTED_STRONG_BACKBONE_SHA256
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
 BENCHMARK_UPDATES = 200
+ARM_NAMES = (
+    "A_pareto_tke",
+    "B_strong_backbone",
+    "C_aoa_meanfield",
+)
+
+
+def parse_arms(value: str | None) -> tuple[str, ...]:
+    """Parse a bounded comma-separated arm selection for independent runs."""
+    if value is None or not value.strip():
+        return ARM_NAMES
+    arms = tuple(item.strip() for item in value.split(",") if item.strip())
+    unknown = sorted(set(arms) - set(ARM_NAMES))
+    if unknown:
+        raise ValueError(f"unknown arm(s): {', '.join(unknown)}")
+    if not arms:
+        raise ValueError("at least one arm is required")
+    if len(set(arms)) != len(arms):
+        raise ValueError("duplicate arm selection")
+    return arms
 
 
 def dump(path: Path, value: object) -> None:
@@ -187,24 +207,34 @@ def run_one(
     return record
 
 
-def preflight(args: argparse.Namespace) -> dict[str, object]:
-    for path in (
+def preflight(
+    args: argparse.Namespace,
+    arms: tuple[str, ...],
+) -> dict[str, object]:
+    required_paths = [
         args.real_root,
         args.split_manifest,
         args.data_manifest,
         args.colleague_base_checkpoint,
         args.colleague_residual_checkpoint,
         args.colleague_model_root,
-        args.strong_backbone_checkpoint,
-        args.strong_kit_root,
-    ):
+    ]
+    if "B_strong_backbone" in arms:
+        required_paths.extend(
+            [args.strong_backbone_checkpoint, args.strong_kit_root]
+        )
+    for path in required_paths:
+        if path is None:
+            raise FileNotFoundError("missing required path for selected arms")
         if not path.exists():
             raise FileNotFoundError(path)
     if sha256(args.colleague_base_checkpoint) != EXPECTED_BASE_SHA256:
         raise RuntimeError("colleague base checkpoint SHA mismatch")
     if sha256(args.colleague_residual_checkpoint) != EXPECTED_START_SHA256:
         raise RuntimeError("colleague residual checkpoint SHA mismatch")
-    if sha256(args.strong_backbone_checkpoint) != EXPECTED_STRONG_BACKBONE_SHA256:
+    if "B_strong_backbone" in arms and sha256(
+        args.strong_backbone_checkpoint
+    ) != EXPECTED_STRONG_BACKBONE_SHA256:
         raise RuntimeError("strong SOTA-V2 checkpoint SHA mismatch")
 
     return {
@@ -229,22 +259,29 @@ def main() -> None:
     )
     parser.add_argument("--colleague-model-root", type=Path, required=True)
     parser.add_argument(
-        "--strong-backbone-checkpoint", type=Path, required=True
+        "--strong-backbone-checkpoint", type=Path, default=None
     )
-    parser.add_argument("--strong-kit-root", type=Path, required=True)
+    parser.add_argument("--strong-kit-root", type=Path, default=None)
     parser.add_argument("--out-root", type=Path, required=True)
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument(
+        "--arms",
+        default=None,
+        help="comma-separated subset of A_pareto_tke,B_strong_backbone,C_aoa_meanfield",
+    )
     args = parser.parse_args()
 
     if args.out_root.exists():
         raise FileExistsError(args.out_root)
-    meta = preflight(args)
+    arms = parse_arms(args.arms)
+    meta = preflight(args, arms)
     args.out_root.mkdir(parents=True)
 
     results: dict[str, object] = {
         "benchmark": "colleague80_v2_batch_profile",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "benchmark_updates": BENCHMARK_UPDATES,
+        "arms_requested": list(arms),
         "selection_uses_validation_metrics": False,
         **meta,
         "arms": {},
@@ -260,7 +297,7 @@ def main() -> None:
         "arms": {},
     }
 
-    for arm in ("A_pareto_tke", "B_strong_backbone", "C_aoa_meanfield"):
+    for arm in arms:
         arm_dir = args.out_root / arm
         b8 = run_one(
             args,
