@@ -876,6 +876,23 @@ def main() -> None:
         optimizer=optimizer,
         scheduler=scheduler,
     )
+    # Preserve the zero-residual initialization explicitly.  This represents the
+    # arm-specific CNO backbone before residual learning and is useful for clean
+    # stage attribution in held-out generalization benchmarks.
+    save_checkpoint(
+        args.out_dir / "model_init.pth",
+        model,
+        iteration=0,
+        best_score=best_score,
+        best_alpha=best_alpha,
+        best_bound_abs=best_bound_abs,
+        best_bound_rel=best_bound_rel,
+        train_log=train_log,
+        eval_log=eval_log,
+        run_config=run_config,
+        optimizer=optimizer,
+        scheduler=scheduler,
+    )
 
     train_iter = iter(train_loader)
     sampler_epoch = 0
