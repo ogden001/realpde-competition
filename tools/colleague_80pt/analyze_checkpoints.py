@@ -156,6 +156,8 @@ def main() -> None:
             base_row = baseline_h[h]
             rel = float(row["frame_rel_l2"])
             base_rel = float(base_row["frame_rel_l2"])
+            tke_contrib = float(row["tke_contrib_rel_l2"])
+            base_tke_contrib = float(base_row["tke_contrib_rel_l2"])
             horizon_compare.append({
                 "label": label,
                 "horizon": h,
@@ -163,6 +165,10 @@ def main() -> None:
                 "delta_frame_rel_l2_pct_vs_baseline": (
                     100.0 * (rel - base_rel) / max(abs(base_rel), 1e-12)),
                 "velocity_rmse": float(row["velocity_rmse"]),
+                "tke_contrib_rel_l2": tke_contrib,
+                "delta_tke_contrib_rel_l2_pct_vs_baseline": (
+                    100.0 * (tke_contrib - base_tke_contrib) / max(abs(base_tke_contrib), 1e-12)),
+                "tke_contrib_ratio": float(row["tke_contrib_ratio"]),
                 "correction_help_fraction": float(row.get("correction_help_fraction", "nan")),
             })
     write_csv(args.out_root / "comparison_by_horizon.csv", horizon_compare)
