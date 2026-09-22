@@ -1,0 +1,40 @@
+{
+  "experiment": "tke_weight_0p09",
+  "horizons": 20,
+  "mean_fluctuation": {
+    "fluctuation_rel_l2": 0.7540634517168632,
+    "mean_field_rel_l2": 0.04416706496897117,
+    "pred_tke_mean": 0.0001525047500131532,
+    "target_tke_mean": 0.00021619014996167473,
+    "tke_energy_ratio": 0.7054195116668757,
+    "tke_field_rel_l2": 0.4351767199857365
+  },
+  "residual_before_after": {
+    "base_fluctuation_rel_l2": 0.8907595447414378,
+    "base_mean_field_rel_l2": 0.056795597666109233,
+    "base_rel_l2": 0.09797065007131371,
+    "base_tke_energy_ratio": 0.45312200604206104,
+    "base_tke_field_rel_l2": 0.7003141078708097,
+    "corrected_fluctuation_rel_l2": 0.7540634517168632,
+    "corrected_mean_field_rel_l2": 0.04416706496897117,
+    "corrected_rel_l2": 0.08117895648406197,
+    "corrected_tke_energy_ratio": 0.7054195116668757,
+    "corrected_tke_field_rel_l2": 0.4351767199857365,
+    "correction_help_fraction": 0.7097520065307618,
+    "correction_hurt_fraction": 0.2902479934692383,
+    "delta_fluctuation_rms": 0.006208159902437686,
+    "delta_mean_rms": 0.0035553599408508934,
+    "delta_rms": 0.007154148005405141
+  },
+  "spatial_map_keys": [
+    "fluctuation_rmse",
+    "mean_field_rmse",
+    "target_tke_mean",
+    "tke_abs_error",
+    "u_rmse",
+    "v_rmse",
+    "velocity_rmse"
+  ],
+  "trajectories": 16,
+  "windows": 640
+}
