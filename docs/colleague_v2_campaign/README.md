@@ -92,3 +92,39 @@ This campaign does **not**:
 - sweep weights, augmentation ranges, architecture width/depth, or SPS knobs.
 
 Any merge decision happens only after Sol reviews the Git evidence.
+
+
+## Batch-size optimization gate (3090 24G)
+
+Before the long three-arm campaign, run an environment-only batch benchmark.
+This is not a scientific experiment and must not inspect validation quality.
+
+Only two frozen profiles are allowed:
+
+| Arm | b8 profile | b16 profile |
+| --- | --- | --- |
+| A Pareto-TKE | b8, lr 2e-4, 12k, eval 2k | b16, lr 2.8e-4, 6k, eval 1k |
+| B Strong Backbone | b8, lr 2e-4, 38.4k, eval 4.8k | b16, lr 2.8e-4, 19.2k, eval 2.4k |
+| C AoA Mean-Field | b8, lr 2e-4, 20k, eval 2.5k | b16, lr 2.8e-4, 10k, eval 1.25k |
+
+The b8/b16 profiles have exactly equal sample exposure per arm. For Arm C,
+historical b8 step 5000 maps to b16 step 2500.
+
+Each arm benchmarks 200 synchronized training steps at b8 and b16. b16 is
+selected only if all conditions pass:
+
+- b16 run succeeds without OOM;
+- samples/sec >= 1.20 × b8;
+- peak allocated VRAM <= 92% of device memory;
+- peak reserved VRAM <= 96% of device memory.
+
+Otherwise that arm falls back to b8. The selection code is frozen in
+`tools/colleague_80pt/batch_profiles.py`.
+
+Benchmark outputs:
+- `benchmark_results.json`
+- `selected_profiles.json`
+
+The formal campaign accepts the latter with `--profile-json` and verifies
+that batch, LR, updates and evaluation intervals exactly match a frozen
+profile. Codex must not manually edit the profile JSON.
