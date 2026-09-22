@@ -61,6 +61,7 @@ from realpde_h5_feature_adapter_train import (  # noqa: E402
 from dw01_by_horizon import aggregate_by_horizon, compute_window_horizon_metrics, write_csv  # noqa: E402
 from post_train_diagnostics import write_post_train_diagnostics  # noqa: E402
 from aoa_meanfield_augmentation import AoAMeanFieldShiftDataset  # noqa: E402
+from pareto_tke import project_tke_backward, split_residual_objective  # noqa: E402
 
 
 def parse_float_list(value: str) -> list[float]:
@@ -334,6 +335,9 @@ def load_full_residual_model(
 def load_frozen_base(model_name: str, checkpoint: Path, realpdebench_root: Path, device: torch.device) -> nn.Module:
     if model_name == "cno":
         return load_frozen_cno(checkpoint, realpdebench_root, device)
+    if model_name == "sota_v2_mf":
+        from strong_backbone_adapter import load_sota_v2_mf_backbone
+        return load_sota_v2_mf_backbone(checkpoint, realpdebench_root, device)
     from realpde_loss_official_v9 import load_base
     model = load_base(model_name, Path("/runs/strict/kit_full"), checkpoint, device)
     model.eval()
@@ -460,6 +464,9 @@ def write_final_evidence(
     if len(names) != pred.shape[0]:
         raise RuntimeError("validation window metadata is misaligned with predictions")
 
+    base_rel = rel_l2_per_sample(base_pred, target, channels)
+    base_tke = tke_rel_l2_per_sample(base_pred, target, channels)
+    base_mvpe = mvpe_rel_l2_per_sample(base_pred, target)
     aggregate = {
         "experiment": experiment,
         "alpha": float(alpha),
@@ -468,6 +475,12 @@ def write_final_evidence(
         "rel_l2_raw": float(np.mean(rel)),
         "tke_raw": float(np.mean(tke)),
         "mvpe_raw": float(np.mean(mvpe)),
+        "base_rel_l2_raw": float(np.mean(base_rel)),
+        "base_tke_raw": float(np.mean(base_tke)),
+        "base_mvpe_raw": float(np.mean(base_mvpe)),
+        "rel_l2_improvement_vs_base": float(1.0 - np.mean(rel) / np.mean(base_rel)),
+        "tke_improvement_vs_base": float(1.0 - np.mean(tke) / np.mean(base_tke)),
+        "mvpe_improvement_vs_base": float(1.0 - np.mean(mvpe) / np.mean(base_mvpe)),
     }
     (out_dir / "final_primary_metrics.json").write_text(
         json.dumps(aggregate, indent=2, sort_keys=True) + "\n", encoding="utf-8"
@@ -558,7 +571,11 @@ def main() -> None:
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--resume-checkpoint", type=Path, default=None)
     parser.add_argument("--realpdebench-root", type=Path, required=True)
-    parser.add_argument("--base-model", choices=("cno", "fno", "unet"), default="cno")
+    parser.add_argument(
+        "--base-model",
+        choices=("cno", "fno", "unet", "sota_v2_mf"),
+        default="cno",
+    )
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--updates", type=int, default=600)
     parser.add_argument("--eval-interval", type=int, default=100)
@@ -619,6 +636,16 @@ def main() -> None:
     parser.add_argument("--p-zero", type=float, default=0.01)
     parser.add_argument("--residual-mse", type=float, default=0.25)
     parser.add_argument("--delta-penalty", type=float, default=0.02)
+    parser.add_argument(
+        "--gradient-mode",
+        choices=("scalar", "project_tke"),
+        default="scalar",
+        help=(
+            "scalar preserves the historical objective exactly. project_tke "
+            "keeps the primary residual gradient unchanged and projects only "
+            "a conflicting weighted TKE gradient."
+        ),
+    )
     parser.add_argument("--clip-grad", type=float, default=1.0)
     parser.add_argument("--fixed-time-seconds", type=float, default=None)
     args = parser.parse_args()
@@ -783,6 +810,13 @@ def main() -> None:
         "abs_widths": abs_widths,
         "rel_widths": rel_widths,
         "loss_weights": weights,
+        "gradient_mode": args.gradient_mode,
+        "gradient_projection": (
+            "project weighted TKE gradient orthogonal to primary residual gradient "
+            "only when their dot product is negative"
+            if args.gradient_mode == "project_tke"
+            else "none"
+        ),
         "residual_mse": args.residual_mse,
         "delta_penalty": args.delta_penalty,
         "fixed_time_seconds": args.fixed_time_seconds,
@@ -880,13 +914,42 @@ def main() -> None:
             base = model.base_predict(x)
         delta = model.predict_delta(x, base)
         pred = model.combine(base, delta, args.train_alpha)
-        loss, parts = physics_loss(pred, y, weights)
-        residual_target = y[..., :2] - base[..., :2]
-        residual_mse = torch.mean((delta[..., :2] - residual_target) ** 2)
-        delta_penalty = torch.mean(delta[..., :2] ** 2)
-        loss = loss + args.residual_mse * residual_mse + args.delta_penalty * delta_penalty
-        parts["residual_mse"] = float(residual_mse.detach().cpu())
-        parts["delta_penalty"] = float(delta_penalty.detach().cpu())
+        if args.gradient_mode == "project_tke":
+            primary_loss, energy_loss, tensor_parts = split_residual_objective(
+                pred,
+                y,
+                base,
+                delta,
+                weights=weights,
+                residual_mse_weight=args.residual_mse,
+                delta_penalty_weight=args.delta_penalty,
+            )
+            loss = primary_loss + energy_loss
+            parts = {
+                key: float(value.detach().cpu())
+                for key, value in tensor_parts.items()
+            }
+            parts["primary_loss"] = float(primary_loss.detach().cpu())
+            parts["energy_loss"] = float(energy_loss.detach().cpu())
+            parts.update(
+                project_tke_backward(
+                    primary_loss,
+                    energy_loss,
+                    model.corrector.parameters(),
+                )
+            )
+        else:
+            loss, parts = physics_loss(pred, y, weights)
+            residual_target = y[..., :2] - base[..., :2]
+            residual_mse = torch.mean((delta[..., :2] - residual_target) ** 2)
+            delta_penalty = torch.mean(delta[..., :2] ** 2)
+            loss = (
+                loss
+                + args.residual_mse * residual_mse
+                + args.delta_penalty * delta_penalty
+            )
+            parts["residual_mse"] = float(residual_mse.detach().cpu())
+            parts["delta_penalty"] = float(delta_penalty.detach().cpu())
         parts["angle_aug_abs_deg"] = angle_abs_mean
         if aoa_meta is not None:
             applied = aoa_meta["applied"].float()
@@ -900,7 +963,8 @@ def main() -> None:
             parts["aoa_meanfield_lambda_mean"] = 0.0
             parts["aoa_effective_shift_abs_deg_mean"] = 0.0
         parts["loss"] = float(loss.detach().cpu())
-        loss.backward()
+        if args.gradient_mode == "scalar":
+            loss.backward()
         if args.clip_grad and args.clip_grad > 0:
             torch.nn.utils.clip_grad_norm_(model.corrector.parameters(), args.clip_grad)
         optimizer.step()
