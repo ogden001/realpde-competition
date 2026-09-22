@@ -181,6 +181,34 @@ def test_aoa_meanfield_shift_uses_past_mean_and_preserves_fluctuation_phase(tmp_
     assert torch.count_nonzero(y_aug[..., 2]) == 0
 
 
+def test_aoa_meanfield_protocol_lambda_range_accepts_point_six_five(tmp_path: Path) -> None:
+    a = tmp_path / "1000_5.h5"
+    b = tmp_path / "1000_15.h5"
+    _write_condition_h5(a, re_value=1000, aoa=5, past_u=1, future_u=2)
+    _write_condition_h5(b, re_value=1000, aoa=15, past_u=3, future_u=4)
+    base = H5WindowDataset(
+        [a, b],
+        in_steps=20,
+        out_steps=20,
+        stride=20,
+        sub_sample=1,
+        include_pressure=False,
+        window_mode="fixed",
+    )
+    wrapped = AoAMeanFieldShiftDataset(
+        base,
+        probability=0.5,
+        lambda_min=0.35,
+        lambda_max=0.65,
+        seed=41,
+        max_gap_deg=10.1,
+        min_eligible_fraction=1.0,
+        bridge_pair=(5.0, 15.0),
+    )
+    assert wrapped.lambda_min == 0.35
+    assert wrapped.lambda_max == 0.65
+
+
 def test_aoa_meanfield_coverage_guard_rejects_sparse_pairing(tmp_path: Path) -> None:
     a = tmp_path / "1000_0.h5"
     b = tmp_path / "2000_5.h5"

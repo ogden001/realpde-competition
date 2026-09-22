@@ -187,8 +187,8 @@ class AoAMeanFieldShiftDataset(Dataset):
     ) -> None:
         if not 0.0 <= probability <= 1.0:
             raise ValueError("probability must be in [0,1]")
-        if not 0.0 <= lambda_min <= lambda_max <= 0.5:
-            raise ValueError("require 0 <= lambda_min <= lambda_max <= 0.5")
+        if not 0.0 <= lambda_min <= lambda_max <= 1.0:
+            raise ValueError("require 0 <= lambda_min <= lambda_max <= 1.0")
         if not 0.0 <= min_eligible_fraction <= 1.0:
             raise ValueError("min_eligible_fraction must be in [0,1]")
         self.base = base
