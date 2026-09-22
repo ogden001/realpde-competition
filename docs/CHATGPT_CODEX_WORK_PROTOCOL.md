@@ -517,10 +517,37 @@ Codex 启动长时任务后，只需记录命令、日志、PID、artifact 路�
 Codex 可以自主处理：
 - 明确的工程错误；
 - 路径、依赖、环境适配；
+- Git remote / tracking ref / detached checkout / launcher / venv / CUDA_VISIBLE_DEVICES 等运行环境问题；
+- 日志、PID、输出目录、归档、白名单复制、权限与 provenance 记录；
 - 实验契约内的 bounded 代码实现；
 - 不改变实验语义的代码修复；
 - unit test / TDD / invariant / equivalence smoke；
 - runtime snapshot 和 artifact manifest 的事实盘点。
+
+### 环境适配自治原则
+
+**科研语义是硬约束，运行环境是软约束。**
+
+当实验语义已经冻结后，Codex / Luna-medium 可以在不等待 ChatGPT / Sol 再确认的情况下，自主修改和提交仅用于环境兼容的代码，并继续执行任务。典型包括：
+
+- 修复本机路径、venv、Python executable、CUDA device、worker 数等运行参数的适配；
+- 修复 Git remote、stale tracking ref、detached checkout、临时 code copy 与 provenance 记录；
+- 修改 launcher、preflight、PID/log 管理、结果目录、归档脚本；
+- 处理权限、软链接、已有目录冲突、文件复制、轻量格式兼容；
+- 对上述修复补充测试或 smoke test，并记录实际 execution commit。
+
+这类工程修复**不需要**因为本地环境与任务文档不完全一致而停止回报，只要同时满足：
+
+1. 不改变 baseline checkpoint / SHA；
+2. 不改变 train/dev split、样本集合和评估口径；
+3. 不改变模型结构、feature、loss、loss 权重、augmentation 语义；
+4. 不改变训练预算、seed、Gate、参数扫描范围；
+5. 不访问 locked-final/private/Codabench；
+6. 修复后能记录实际执行 commit、命令、环境和产物 provenance。
+
+远端 tracking ref 是否与 HEAD 完全一致、绝对路径是否与文档示例一致、launcher 形式是否一致，**不属于科研有效性的硬门禁**。只要实际执行代码版本、资产 SHA 和实验语义可审计即可。
+
+如果某个“环境修复”会触及上述 1-5 任一项，则它已经不是环境适配，应停止并交回 ChatGPT / Sol 决策。
 
 Codex 可以**实现** ChatGPT 已明确授权的模型结构、Loss、Feature 或 prediction target 改动，但不得自主**决定或改变**这些研究变量。
 
