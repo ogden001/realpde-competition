@@ -11,7 +11,7 @@ COLLEAGUE_TOOLS = ROOT / "tools" / "colleague_80pt"
 sys.path.insert(0, str(COLLEAGUE_TOOLS))
 sys.path.insert(0, str(ROOT / "tools"))
 
-from fluctuation_calibration import mean_preserving_ramp_scale  # noqa: E402
+from fluctuation_calibration import mean_preserving_ramp_scale, write_csv  # noqa: E402
 from residual_multi import rotate_velocity_uv  # noqa: E402
 
 
@@ -59,3 +59,23 @@ def test_velocity_rotation_requires_one_angle_per_sample() -> None:
         pass
     else:
         raise AssertionError("expected ValueError for mismatched batch angles")
+
+
+
+def test_write_csv_accepts_union_schema(tmp_path) -> None:
+    path = tmp_path / "mixed.csv"
+    rows = [
+        {"experiment": "baseline", "horizon": 1, "frame_rel_l2": 0.1},
+        {
+            "experiment": "candidate",
+            "horizon": 1,
+            "frame_rel_l2": 0.09,
+            "base_frame_rel_l2": 0.1,
+            "delta_rms": 0.01,
+        },
+    ]
+    write_csv(path, rows)
+    text = path.read_text(encoding="utf-8")
+    assert "base_frame_rel_l2" in text.splitlines()[0]
+    assert "delta_rms" in text.splitlines()[0]
+    assert len(text.splitlines()) == 3
