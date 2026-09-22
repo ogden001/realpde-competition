@@ -1,0 +1,9 @@
+{
+  "alpha": 1.0,
+  "experiment": "R0",
+  "mvpe_raw": 0.07102766633033752,
+  "rel_l2_raw": 0.08024106919765472,
+  "tke_raw": 0.4503658413887024,
+  "trajectories": 16,
+  "windows": 640
+}

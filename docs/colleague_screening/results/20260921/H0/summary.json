@@ -1,0 +1,21 @@
+{
+  "best": {
+    "sps": 51.6022,
+    "floor": 0.0025,
+    "mult": 1.5,
+    "coverage": 0.8896,
+    "step": 6000
+  },
+  "head_config": {
+    "hidden": 64,
+    "blocks": 2,
+    "dropout": 0.0,
+    "include_pressure": true,
+    "history_context": false,
+    "sigma0": 0.02,
+    "min_sigma": 0.0001,
+    "max_sigma": 1.0,
+    "include_delta": false
+  },
+  "updates": 6000
+}
