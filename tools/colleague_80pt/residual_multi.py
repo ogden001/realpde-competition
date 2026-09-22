@@ -650,6 +650,15 @@ def main() -> None:
     )
     parser.add_argument("--clip-grad", type=float, default=1.0)
     parser.add_argument("--fixed-time-seconds", type=float, default=None)
+    parser.add_argument(
+        "--benchmark-mode",
+        action="store_true",
+        help=(
+            "Measure synchronized training-step throughput/VRAM and skip the "
+            "expensive full final diagnostics. Intended only for environment "
+            "profiling before a frozen experiment."
+        ),
+    )
     args = parser.parse_args()
 
     if args.out_dir.exists():
@@ -663,6 +672,8 @@ def main() -> None:
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    if args.benchmark_mode and device.type != "cuda":
+        raise RuntimeError("--benchmark-mode requires CUDA")
 
     if args.split_manifest is not None:
         train_paths, val_paths = paths_from_split_manifest(
@@ -834,6 +845,7 @@ def main() -> None:
         "residual_mse": args.residual_mse,
         "delta_penalty": args.delta_penalty,
         "fixed_time_seconds": args.fixed_time_seconds,
+        "benchmark_mode": bool(args.benchmark_mode),
         "trainable_parameters": sum(p.numel() for p in model.corrector.parameters() if p.requires_grad),
         "total_parameters": sum(p.numel() for p in model.parameters()),
     }
@@ -896,6 +908,9 @@ def main() -> None:
 
     train_iter = iter(train_loader)
     sampler_epoch = 0
+    benchmark_step_seconds = 0.0
+    if args.benchmark_mode and device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(device)
     audit_path = args.out_dir / "window_audit.jsonl"
     with audit_path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps({"epoch": sampler_epoch, "phases": train_sampler.phases}) + "\n")
@@ -904,6 +919,9 @@ def main() -> None:
     for step in range(1, args.updates + 1):
         model.corrector.train()
         model.base_model.eval()
+        if args.benchmark_mode and device.type == "cuda":
+            torch.cuda.synchronize(device)
+        benchmark_step_started = time.perf_counter()
         try:
             batch = next(train_iter)
         except StopIteration:
@@ -1000,6 +1018,9 @@ def main() -> None:
             torch.nn.utils.clip_grad_norm_(model.corrector.parameters(), args.clip_grad)
         optimizer.step()
         scheduler.step()
+        if args.benchmark_mode and device.type == "cuda":
+            torch.cuda.synchronize(device)
+            benchmark_step_seconds += time.perf_counter() - benchmark_step_started
 
         for key, value in parts.items():
             accum.setdefault(key, []).append(float(value))
@@ -1101,14 +1122,44 @@ def main() -> None:
         optimizer=optimizer,
         scheduler=scheduler,
     )
-    final_evidence = write_final_evidence(
-        model,
-        val_loader,
-        device,
-        out_dir=args.out_dir,
-        experiment=args.out_dir.name,
-        alpha=1.0,
-    )
+    if args.benchmark_mode:
+        total_memory = int(torch.cuda.get_device_properties(device).total_memory)
+        runtime = {
+            "benchmark_mode": True,
+            "updates": int(args.updates),
+            "batch_size": int(args.batch_size),
+            "samples_seen": int(args.updates * args.batch_size),
+            "training_step_seconds": float(benchmark_step_seconds),
+            "samples_per_second": float(
+                args.updates * args.batch_size / max(benchmark_step_seconds, 1e-12)
+            ),
+            "peak_gpu_memory_allocated": int(torch.cuda.max_memory_allocated(device)),
+            "peak_gpu_memory_reserved": int(torch.cuda.max_memory_reserved(device)),
+            "gpu_total_memory": total_memory,
+            "peak_allocated_fraction": float(
+                torch.cuda.max_memory_allocated(device) / total_memory
+            ),
+            "peak_reserved_fraction": float(
+                torch.cuda.max_memory_reserved(device) / total_memory
+            ),
+        }
+        (args.out_dir / "runtime.json").write_text(
+            json.dumps(runtime, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        final_evidence = {
+            "benchmark_mode": True,
+            "runtime": runtime,
+        }
+    else:
+        final_evidence = write_final_evidence(
+            model,
+            val_loader,
+            device,
+            out_dir=args.out_dir,
+            experiment=args.out_dir.name,
+            alpha=1.0,
+        )
     (args.out_dir / "DONE").touch()
     print(
         f"DONE out_dir={args.out_dir} best_iter={best_iter} "
