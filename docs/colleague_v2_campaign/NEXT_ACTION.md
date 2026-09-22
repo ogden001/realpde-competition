@@ -63,7 +63,7 @@ Requirements:
 - released-data audit passes;
 - colleague base/residual checkpoint SHA checks pass;
 - strong SOTA-V2 full@53582 checkpoint SHA256 is exactly:
-  `f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce`.
+  `f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce8`.
 
 Locate the strong checkpoint on the machine by SHA. Do not substitute another
 checkpoint. If unavailable, stop as `BLOCKED`.
