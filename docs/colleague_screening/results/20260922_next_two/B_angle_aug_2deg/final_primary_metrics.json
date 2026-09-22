@@ -1,0 +1,9 @@
+{
+  "alpha": 1.0,
+  "experiment": "B_angle_aug_2deg",
+  "mvpe_raw": 0.0712389126420021,
+  "rel_l2_raw": 0.08036656677722931,
+  "tke_raw": 0.4509638845920563,
+  "trajectories": 16,
+  "windows": 640
+}

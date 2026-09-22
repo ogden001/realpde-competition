@@ -1,0 +1,21 @@
+{
+  "checkpoint": "/hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/residual_model_best.pth",
+  "checkpoint_sha256": "909fdc7f8a6a42335e4ea4ce7471fc9a507135e9a29a4927bc7b7318be9c85b2",
+  "codabench_accessed": false,
+  "dev_trajectories": 16,
+  "dev_windows": 640,
+  "end_scales": [
+    1.0,
+    1.2,
+    1.4,
+    1.6
+  ],
+  "execution_commit": "b9a5055279db120e35b5520f18b8088dea1efaeb",
+  "experiment": "mean_preserving_fluctuation_amplitude_calibration",
+  "future1_scale": 1.0,
+  "locked_final_accessed": false,
+  "split_manifest": "/hy-tmp/realpde_runs/colleague_incremental_screen_20260921/colleague_dev16_manifest.json",
+  "split_manifest_sha256": "d127e851f3f5eefb011313b1b0b1d79e65db6d99c0754d264119ff12046a83a2",
+  "temporal_mean_preserved": true,
+  "training_started": false
+}

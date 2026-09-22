@@ -1,0 +1,18 @@
+{
+  "angle_aug_max_deg": 2.0,
+  "augmentation_semantics": "one per-window angle sampled uniformly in [-2,+2] degrees; same u/v vector rotation applied to Past20 and Future20; spatial grid unchanged; training only; approximate flow-direction augmentation, not an exact CFD AoA transform",
+  "automatic_full_train_started": false,
+  "base_checkpoint": "/hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/cno_final_all81.pt",
+  "base_checkpoint_sha256": "ff28aaf0114d57e320e5ea9cf9945d874a7482f22e3f0aeaed5ebbe286573f8a",
+  "codabench_accessed": false,
+  "dev_augmentation": false,
+  "execution_commit": "b9a5055279db120e35b5520f18b8088dea1efaeb",
+  "experiment": "small_angle_velocity_direction_augmentation",
+  "locked_final_accessed": false,
+  "postprocess_recovery_commit": "7868b15999909c9b79f71d5222d9898605ebaa1f",
+  "split_manifest": "/hy-tmp/realpde_runs/colleague_incremental_screen_20260921/colleague_dev16_manifest.json",
+  "split_manifest_sha256": "d127e851f3f5eefb011313b1b0b1d79e65db6d99c0754d264119ff12046a83a2",
+  "start_checkpoint": "/hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/residual_model_best.pth",
+  "start_checkpoint_sha256": "909fdc7f8a6a42335e4ea4ce7471fc9a507135e9a29a4927bc7b7318be9c85b2",
+  "updates": 5000
+}

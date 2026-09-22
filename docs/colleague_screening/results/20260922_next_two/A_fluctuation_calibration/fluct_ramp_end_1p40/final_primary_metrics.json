@@ -1,0 +1,9 @@
+{
+  "end_scale": 1.4,
+  "experiment": "fluct_ramp_end_1p40",
+  "mean_preserved": true,
+  "mvpe_raw": 0.07111691683530807,
+  "rel_l2_raw": 0.08428948372602463,
+  "start_scale": 1.0,
+  "tke_raw": 0.5152548551559448
+}

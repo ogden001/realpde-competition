@@ -1,0 +1,21 @@
+{
+  "angle_aug_eval_steps": [
+    1000,
+    2000,
+    3000,
+    4000,
+    5000
+  ],
+  "checkpoints_copied": false,
+  "destination": "docs/colleague_screening/results/20260922_next_two",
+  "fluctuation_candidates": [
+    "fluct_ramp_end_1p00",
+    "fluct_ramp_end_1p20",
+    "fluct_ramp_end_1p40",
+    "fluct_ramp_end_1p60"
+  ],
+  "h5_copied": false,
+  "raw_prediction_cache_copied": false,
+  "raw_training_log_copied": false,
+  "source_run_root": "/hy-tmp/realpde_runs/next_two_20260922_v2"
+}
