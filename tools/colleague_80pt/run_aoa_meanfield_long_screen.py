@@ -141,6 +141,12 @@ def main() -> None:
     parser.add_argument("--data-manifest", type=Path, required=True)
     parser.add_argument("--split-manifest", type=Path, required=True)
     parser.add_argument("--out-root", type=Path, required=True)
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=4,
+        help="DataLoader worker count; environment-only tuning, does not change experiment semantics.",
+    )
     args = parser.parse_args()
 
     if args.out_root.exists():
@@ -235,7 +241,7 @@ def main() -> None:
             "--eval-interval", str(EVAL_INTERVAL),
             "--batch-size", "8",
             "--test-batch-size", "32",
-            "--workers", "2",
+            "--workers", str(args.workers),
             "--lr", "0.0002",
             "--weight-decay", "0.00001",
             "--hidden", "96",
@@ -284,7 +290,7 @@ def main() -> None:
             "--model", f"aoa_final={candidate_dir / 'model_final.pth'}",
             "--baseline-label", "current80",
             "--batch-size", "32",
-            "--workers", "2",
+            "--workers", str(args.workers),
         ], args.out_root / "checkpoint_comparison.log", command_log)
 
         recovery = {
