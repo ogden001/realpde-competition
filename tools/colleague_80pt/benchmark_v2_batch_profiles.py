@@ -176,9 +176,10 @@ def run_one(
             check=False,
         )
     record["returncode"] = completed.returncode
-    record["success"] = completed.returncode == 0
     runtime_path = out_dir / "runtime.json"
-    if completed.returncode == 0 and runtime_path.is_file():
+    runtime_ok = completed.returncode == 0 and runtime_path.is_file()
+    record["success"] = runtime_ok
+    if runtime_ok:
         runtime = json.loads(runtime_path.read_text(encoding="utf-8"))
         record.update(runtime)
     else:
