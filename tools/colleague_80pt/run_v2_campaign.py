@@ -41,6 +41,9 @@ ARM_A_EVAL = 2_000
 ARM_B_UPDATES = 38_400
 ARM_B_EVAL = 4_800
 ARM_C_UPDATES = 20_000
+EXPECTED_STRONG_BACKBONE_SHA256 = (
+    "f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce"
+)
 
 
 def dump(path: Path, value: object) -> None:
@@ -203,6 +206,8 @@ def run_campaign(args: argparse.Namespace) -> dict[str, object]:
         raise RuntimeError("colleague Stage-1 CNO checkpoint SHA-256 mismatch")
     if sha256(args.colleague_residual_checkpoint) != EXPECTED_START_SHA256:
         raise RuntimeError("colleague 80-point residual checkpoint SHA-256 mismatch")
+    if sha256(args.strong_backbone_checkpoint) != EXPECTED_STRONG_BACKBONE_SHA256:
+        raise RuntimeError("SOTA-V2 full@53582 checkpoint SHA-256 mismatch")
 
     execution_commit = require_clean_main_checkout(REPO_ROOT)
     gpu = require_gpu()
