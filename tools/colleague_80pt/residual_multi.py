@@ -60,6 +60,7 @@ from realpde_h5_feature_adapter_train import (  # noqa: E402
 )
 from dw01_by_horizon import aggregate_by_horizon, compute_window_horizon_metrics, write_csv  # noqa: E402
 from post_train_diagnostics import write_post_train_diagnostics  # noqa: E402
+from aoa_meanfield_augmentation import AoAMeanFieldShiftDataset  # noqa: E402
 
 
 def parse_float_list(value: str) -> list[float]:
@@ -587,6 +588,19 @@ def main() -> None:
             "and Future20 velocity components by the same angle. Validation is never augmented."
         ),
     )
+    parser.add_argument(
+        "--aoa-meanfield-aug-prob",
+        type=float,
+        default=0.0,
+        help=(
+            "Training-only adjacent-AoA mean-field interpolation probability. "
+            "Uses same-Re neighboring real trajectories and never exposes AoA/Re to the model."
+        ),
+    )
+    parser.add_argument("--aoa-meanfield-lambda-min", type=float, default=0.2)
+    parser.add_argument("--aoa-meanfield-lambda-max", type=float, default=0.5)
+    parser.add_argument("--aoa-neighbor-max-gap-deg", type=float, default=5.1)
+    parser.add_argument("--aoa-min-eligible-fraction", type=float, default=0.8)
     parser.add_argument("--sub-sample", type=int, default=2)
     parser.add_argument("--val-fraction", type=float, default=0.2)
     parser.add_argument("--train-on-all", action="store_true")
@@ -611,6 +625,8 @@ def main() -> None:
 
     if args.out_dir.exists():
         raise FileExistsError(f"out_dir already exists, refusing to overwrite: {args.out_dir}")
+    if args.angle_aug_max_deg > 0 and args.aoa_meanfield_aug_prob > 0:
+        raise ValueError("global velocity rotation and AoA mean-field augmentation are mutually exclusive")
     args.out_dir.mkdir(parents=True)
 
     torch.manual_seed(args.seed)
@@ -628,7 +644,7 @@ def main() -> None:
         paths = list_h5(args.real_root, BAD_TRAIN_FILES)
         train_paths, val_paths = split_paths(paths, args.val_fraction, args.seed)
     fit_paths = paths if args.train_on_all else train_paths
-    train_dataset = H5WindowDataset(
+    base_train_dataset = H5WindowDataset(
         fit_paths,
         in_steps=args.in_steps,
         out_steps=args.out_steps,
@@ -638,6 +654,23 @@ def main() -> None:
         include_pressure=args.include_pressure_data,
         window_mode="random_phase",
     )
+    aoa_aug_dataset = None
+    train_dataset = base_train_dataset
+    if args.aoa_meanfield_aug_prob > 0:
+        aoa_aug_dataset = AoAMeanFieldShiftDataset(
+            base_train_dataset,
+            probability=args.aoa_meanfield_aug_prob,
+            lambda_min=args.aoa_meanfield_lambda_min,
+            lambda_max=args.aoa_meanfield_lambda_max,
+            seed=args.seed,
+            max_gap_deg=args.aoa_neighbor_max_gap_deg,
+            min_eligible_fraction=args.aoa_min_eligible_fraction,
+        )
+        train_dataset = aoa_aug_dataset
+        (args.out_dir / "aoa_augmentation_audit.json").write_text(
+            json.dumps(aoa_aug_dataset.audit(), indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
     val_dataset = H5WindowDataset(
         val_paths,
         in_steps=args.in_steps,
@@ -648,7 +681,7 @@ def main() -> None:
         include_pressure=args.include_pressure_data,
     )
     train_sampler = RandomPhaseWindowSampler(
-        train_dataset,
+        base_train_dataset,
         seed=args.seed,
         equalize_phase_counts=True,
     )
@@ -725,6 +758,18 @@ def main() -> None:
             "spatial_grid_rotated": False,
             "physical_exact_aoa_claimed": False,
         },
+        "aoa_meanfield_augmentation": {
+            "kind": "same_re_adjacent_aoa_past20_mean_field_shift",
+            "probability": float(args.aoa_meanfield_aug_prob),
+            "lambda_min": float(args.aoa_meanfield_lambda_min),
+            "lambda_max": float(args.aoa_meanfield_lambda_max),
+            "max_neighbor_gap_deg": float(args.aoa_neighbor_max_gap_deg),
+            "min_eligible_fraction": float(args.aoa_min_eligible_fraction),
+            "training_only": True,
+            "aoa_re_model_inputs": False,
+            "future_used_to_construct_input_shift": False,
+            "audit": aoa_aug_dataset.audit() if aoa_aug_dataset is not None else None,
+        },
         "phase_counts_equalized": True,
         "updates": args.updates,
         "eval_interval": args.eval_interval,
@@ -795,17 +840,24 @@ def main() -> None:
         model.corrector.train()
         model.base_model.eval()
         try:
-            x, y = next(train_iter)
+            batch = next(train_iter)
         except StopIteration:
             sampler_epoch += 1
             train_sampler.set_epoch(
                 sampler_epoch,
                 phases=fixed_phases if args.train_window_mode == "fixed" else None,
             )
+            if aoa_aug_dataset is not None:
+                aoa_aug_dataset.set_epoch(sampler_epoch)
             with audit_path.open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps({"epoch": sampler_epoch, "phases": train_sampler.phases}) + "\n")
             train_iter = iter(train_loader)
-            x, y = next(train_iter)
+            batch = next(train_iter)
+        if len(batch) == 3:
+            x, y, aoa_meta = batch
+        else:
+            x, y = batch
+            aoa_meta = None
         x = x.to(device, non_blocking=True)
         y = y.to(device, non_blocking=True)
 
@@ -836,6 +888,17 @@ def main() -> None:
         parts["residual_mse"] = float(residual_mse.detach().cpu())
         parts["delta_penalty"] = float(delta_penalty.detach().cpu())
         parts["angle_aug_abs_deg"] = angle_abs_mean
+        if aoa_meta is not None:
+            applied = aoa_meta["applied"].float()
+            parts["aoa_meanfield_aug_fraction"] = float(applied.mean().item())
+            parts["aoa_meanfield_lambda_mean"] = float(aoa_meta["lambda"].float().mean().item())
+            parts["aoa_effective_shift_abs_deg_mean"] = float(
+                aoa_meta["effective_shift_deg"].float().abs().mean().item()
+            )
+        else:
+            parts["aoa_meanfield_aug_fraction"] = 0.0
+            parts["aoa_meanfield_lambda_mean"] = 0.0
+            parts["aoa_effective_shift_abs_deg_mean"] = 0.0
         parts["loss"] = float(loss.detach().cpu())
         loss.backward()
         if args.clip_grad and args.clip_grad > 0:
