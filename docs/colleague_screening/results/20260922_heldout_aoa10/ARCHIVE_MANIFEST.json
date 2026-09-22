@@ -1,0 +1,17 @@
+{
+  "arms": [
+    "control",
+    "aug"
+  ],
+  "checkpoints_copied": false,
+  "comparison_sets": [
+    "inner_dev",
+    "heldout10"
+  ],
+  "destination": "docs/colleague_screening/results/20260922_heldout_aoa10",
+  "h5_copied": false,
+  "heldout_aoa": 10.0,
+  "locked_final_copied": false,
+  "raw_training_logs_copied": false,
+  "source_run_root": "/hy-tmp/realpde_runs/heldout_aoa10_20260922_v2"
+}

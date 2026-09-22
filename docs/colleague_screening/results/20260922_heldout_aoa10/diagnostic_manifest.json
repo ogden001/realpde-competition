@@ -1,0 +1,28 @@
+{
+  "aug_best_residual_sha256": "497dca442e2172bea61aa9b6ba31f32c404b883b3a3c887b972bec455933ce23",
+  "aug_cno_sha256": "81f94e296311990466e9c9fbca80a98c471a8d5600eb5de0089ba90e855c448c",
+  "automatic_full_train_started": false,
+  "bridge_coverage": {
+    "eligible_fraction": 0.25,
+    "eligible_trajectories": 10,
+    "re_values": [
+      5028.0,
+      10142.0,
+      12698.0,
+      17812.0,
+      21647.0
+    ],
+    "unique_re_groups": 5
+  },
+  "codabench_accessed": false,
+  "control_best_residual_sha256": "6a928796e4ae5aec171aaea8af18a6f9af232637f86cb022dbde6d8ed4f3d2c4",
+  "control_cno_sha256": "aacb9b73f71215b2be66801049c3b93afa9ce319054d416a7cb11b0a1c6a94f6",
+  "execution_commit": "69a08ab6f46da08562e1c85e1c2bf89a805bc49a",
+  "heldout_evaluated_after_all_training": true,
+  "locked_final_accessed": false,
+  "split_counts": {
+    "heldout": 14,
+    "inner_dev": 12,
+    "train": 40
+  }
+}

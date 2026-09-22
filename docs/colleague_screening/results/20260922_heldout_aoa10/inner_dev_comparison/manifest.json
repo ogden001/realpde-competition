@@ -1,0 +1,32 @@
+{
+  "baseline_label": "control_cno",
+  "dev_trajectories": 12,
+  "dev_windows": 491,
+  "diagnostics_version": 1,
+  "models": [
+    {
+      "checkpoint": "/hy-tmp/realpde_runs/heldout_aoa10_20260922_v2/control/residual/model_init.pth",
+      "label": "control_cno"
+    },
+    {
+      "checkpoint": "/hy-tmp/realpde_runs/heldout_aoa10_20260922_v2/control/residual/model_best.pth",
+      "label": "control_best"
+    },
+    {
+      "checkpoint": "/hy-tmp/realpde_runs/heldout_aoa10_20260922_v2/control/residual/model_final.pth",
+      "label": "control_final"
+    },
+    {
+      "checkpoint": "/hy-tmp/realpde_runs/heldout_aoa10_20260922_v2/aug/residual/model_init.pth",
+      "label": "aug_cno"
+    },
+    {
+      "checkpoint": "/hy-tmp/realpde_runs/heldout_aoa10_20260922_v2/aug/residual/model_best.pth",
+      "label": "aug_best"
+    },
+    {
+      "checkpoint": "/hy-tmp/realpde_runs/heldout_aoa10_20260922_v2/aug/residual/model_final.pth",
+      "label": "aug_final"
+    }
+  ]
+}

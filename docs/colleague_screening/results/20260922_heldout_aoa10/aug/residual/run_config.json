@@ -1,0 +1,509 @@
+{
+  "real_root": "/hy-tmp/realpde_data/train_real",
+  "split_manifest": "/hy-tmp/realpde_runs/heldout_aoa10_20260922_v2/train_innerdev_manifest.json",
+  "allow_train_dev_overlap": false,
+  "checkpoint": "/hy-tmp/realpde_runs/heldout_aoa10_20260922_v2/aug/cno_stage1.pth",
+  "resume_checkpoint": null,
+  "resume_iteration": 0,
+  "optimizer_policy": "reset_identically_for_each_screen_arm",
+  "realpdebench_root": "tools/colleague_80pt/submission",
+  "device": "cuda:0",
+  "train_trajectories": 40,
+  "fit_trajectories": 40,
+  "val_trajectories": 12,
+  "train_windows": 1592,
+  "val_windows": 491,
+  "train_window_mode": "fixed",
+  "angle_augmentation": {
+    "kind": "global_uv_component_rotation",
+    "max_abs_degrees": 0.0,
+    "training_only": true,
+    "same_angle_for_past_and_future": true,
+    "spatial_grid_rotated": false,
+    "physical_exact_aoa_claimed": false
+  },
+  "aoa_meanfield_augmentation": {
+    "kind": "same_re_adjacent_aoa_past20_mean_field_shift",
+    "probability": 0.5,
+    "lambda_min": 0.35,
+    "lambda_max": 0.65,
+    "max_neighbor_gap_deg": 10.1,
+    "min_eligible_fraction": 0.0,
+    "bridge_pair": [
+      5.0,
+      15.0
+    ],
+    "training_only": true,
+    "aoa_re_model_inputs": false,
+    "future_used_to_construct_input_shift": false,
+    "audit": {
+      "kind": "adjacent_aoa_mean_field_shift",
+      "trajectories": 40,
+      "eligible_trajectories": 10,
+      "eligible_fraction": 0.25,
+      "max_neighbor_gap_deg": 10.1,
+      "probability": 0.5,
+      "lambda_min": 0.35,
+      "lambda_max": 0.65,
+      "same_re_required": true,
+      "bridge_pair": [
+        5.0,
+        15.0
+      ],
+      "metadata_used_at_inference": false,
+      "rows": [
+        {
+          "trajectory": "16500_0.h5",
+          "re": 16534.0,
+          "aoa": 0.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "20325_0.h5",
+          "re": 20369.0,
+          "aoa": 0.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "11400_0.h5",
+          "re": 11420.0,
+          "aoa": 0.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "13950_0.h5",
+          "re": 13977.0,
+          "aoa": 0.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "6300_0.h5",
+          "re": 6306.0,
+          "aoa": 0.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "24150_0.h5",
+          "re": 24204.0,
+          "aoa": 0.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "19050_0.h5",
+          "re": 19090.0,
+          "aoa": 0.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "5025_0.h5",
+          "re": 5028.0,
+          "aoa": 0.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "21600_0.h5",
+          "re": 21647.0,
+          "aoa": 0.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "22875_0.h5",
+          "re": 22926.0,
+          "aoa": 0.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "25425_0.h5",
+          "re": 25482.0,
+          "aoa": 0.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "5025_5.h5",
+          "re": 5028.0,
+          "aoa": 5.0,
+          "neighbor_trajectories": [
+            "5025_15.h5"
+          ],
+          "neighbor_aoa": [
+            15.0
+          ],
+          "eligible": true,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "10125_5.h5",
+          "re": 10142.0,
+          "aoa": 5.0,
+          "neighbor_trajectories": [
+            "10125_15.h5"
+          ],
+          "neighbor_aoa": [
+            15.0
+          ],
+          "eligible": true,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "17775_5.h5",
+          "re": 17812.0,
+          "aoa": 5.0,
+          "neighbor_trajectories": [
+            "17775_15.h5"
+          ],
+          "neighbor_aoa": [
+            15.0
+          ],
+          "eligible": true,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "12675_5.h5",
+          "re": 12698.0,
+          "aoa": 5.0,
+          "neighbor_trajectories": [
+            "12675_15.h5"
+          ],
+          "neighbor_aoa": [
+            15.0
+          ],
+          "eligible": true,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "21600_5.h5",
+          "re": 21647.0,
+          "aoa": 5.0,
+          "neighbor_trajectories": [
+            "21600_15.h5"
+          ],
+          "neighbor_aoa": [
+            15.0
+          ],
+          "eligible": true,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "16500_5.h5",
+          "re": 16534.0,
+          "aoa": 5.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "3750_5.h5",
+          "re": 3750.0,
+          "aoa": 5.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "11400_5.h5",
+          "re": 11420.0,
+          "aoa": 5.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "5025_15.h5",
+          "re": 5028.0,
+          "aoa": 15.0,
+          "neighbor_trajectories": [
+            "5025_5.h5"
+          ],
+          "neighbor_aoa": [
+            5.0
+          ],
+          "eligible": true,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "19050_15.h5",
+          "re": 19090.0,
+          "aoa": 15.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "24150_15.h5",
+          "re": 24204.0,
+          "aoa": 15.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "12675_15.h5",
+          "re": 12698.0,
+          "aoa": 15.0,
+          "neighbor_trajectories": [
+            "12675_5.h5"
+          ],
+          "neighbor_aoa": [
+            5.0
+          ],
+          "eligible": true,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "20325_15.h5",
+          "re": 20369.0,
+          "aoa": 15.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "7575_15.h5",
+          "re": 7585.0,
+          "aoa": 15.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "21600_15.h5",
+          "re": 21647.0,
+          "aoa": 15.0,
+          "neighbor_trajectories": [
+            "21600_5.h5"
+          ],
+          "neighbor_aoa": [
+            5.0
+          ],
+          "eligible": true,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "10125_15.h5",
+          "re": 10142.0,
+          "aoa": 15.0,
+          "neighbor_trajectories": [
+            "10125_5.h5"
+          ],
+          "neighbor_aoa": [
+            5.0
+          ],
+          "eligible": true,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "6300_15.h5",
+          "re": 6306.0,
+          "aoa": 15.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "17775_15.h5",
+          "re": 17812.0,
+          "aoa": 15.0,
+          "neighbor_trajectories": [
+            "17775_5.h5"
+          ],
+          "neighbor_aoa": [
+            5.0
+          ],
+          "eligible": true,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "8850_15.h5",
+          "re": 8863.0,
+          "aoa": 15.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "13950_20.h5",
+          "re": 13977.0,
+          "aoa": 20.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "25425_20.h5",
+          "re": 25482.0,
+          "aoa": 20.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "10125_20.h5",
+          "re": 10142.0,
+          "aoa": 20.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "24150_20.h5",
+          "re": 24204.0,
+          "aoa": 20.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "6300_20.h5",
+          "re": 6306.0,
+          "aoa": 20.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "11400_20.h5",
+          "re": 11420.0,
+          "aoa": 20.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "12675_20.h5",
+          "re": 12698.0,
+          "aoa": 20.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "7575_20.h5",
+          "re": 7585.0,
+          "aoa": 20.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "21600_20.h5",
+          "re": 21647.0,
+          "aoa": 20.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        },
+        {
+          "trajectory": "19050_20.h5",
+          "re": 19090.0,
+          "aoa": 20.0,
+          "neighbor_trajectories": [],
+          "neighbor_aoa": [],
+          "eligible": false,
+          "coordinate_grid_checked": true
+        }
+      ]
+    }
+  },
+  "phase_counts_equalized": true,
+  "updates": 20000,
+  "eval_interval": 2500,
+  "batch_size": 8,
+  "test_batch_size": 32,
+  "lr": 0.0002,
+  "weight_decay": 1e-05,
+  "corrector_config": {
+    "hidden": 96,
+    "blocks": 2,
+    "dropout": 0.0,
+    "include_pressure": true,
+    "max_delta": 0.04,
+    "history_context": false
+  },
+  "train_alpha": 1.0,
+  "eval_alphas": [
+    0.0,
+    0.025,
+    0.05,
+    0.075,
+    0.1,
+    0.15,
+    0.2,
+    0.3,
+    0.5,
+    0.75,
+    1.0
+  ],
+  "abs_widths": [
+    0.0075
+  ],
+  "rel_widths": [
+    0.0075
+  ],
+  "loss_weights": {
+    "point": 1.0,
+    "mse": 0.05,
+    "tke": 0.06,
+    "temporal": 0.03,
+    "grad": 0.015,
+    "p_zero": 0.01
+  },
+  "gradient_mode": "scalar",
+  "gradient_projection": "none",
+  "residual_mse": 0.25,
+  "delta_penalty": 0.02,
+  "fixed_time_seconds": null,
+  "benchmark_mode": false,
+  "trainable_parameters": 1087849,
+  "total_parameters": 9048316
+}

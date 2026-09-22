@@ -1,0 +1,64 @@
+{
+  "automatic_full_train_started": false,
+  "bridge_coverage": {
+    "eligible_fraction": 0.25,
+    "eligible_trajectories": 10,
+    "re_values": [
+      5028.0,
+      10142.0,
+      12698.0,
+      17812.0,
+      21647.0
+    ],
+    "unique_re_groups": 5
+  },
+  "budgets": {
+    "cno_updates_per_arm": 8723,
+    "residual_eval_interval": 2500,
+    "residual_updates_per_arm": 20000
+  },
+  "campaign": "piv_heldout_aoa10_control_vs_aug",
+  "codabench_accessed": false,
+  "created_at": "2026-09-22T13:11:42.536249+00:00",
+  "data_manifest": "/hy-tmp/realpde_data/data_manifest.tsv",
+  "data_manifest_sha256": "3612185c939f6c4cd4890afd3968d160a44e88d3e6f7733b8cb9ce71501d532c",
+  "environment": {},
+  "execution_commit": "69a08ab6f46da08562e1c85e1c2bf89a805bc49a",
+  "frozen_50_16_manifest": "/hy-tmp/realpde_data/frozen_manifests/id_seed20260901.json",
+  "frozen_50_16_manifest_sha256": "42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347",
+  "gpu": {
+    "cuda_runtime": "12.8",
+    "gpu": "NVIDIA GeForce RTX 5070",
+    "gpu_memory_bytes": 12344164352,
+    "torch": "2.9.1+cu128"
+  },
+  "locked_final_accessed": false,
+  "scientific_semantics": {
+    "augmentation_arm_bridge_pair": [
+      5.0,
+      15.0
+    ],
+    "augmentation_probability": 0.5,
+    "future_used_to_construct_shift": false,
+    "heldout_aoa": 10.0,
+    "lambda_range": [
+      0.35,
+      0.65
+    ],
+    "official_sim_pretrain_shared_by_both_arms": true,
+    "real_piv_10deg_used_for_checkpoint_selection": false,
+    "real_piv_10deg_used_in_training": false,
+    "same_re_required": true
+  },
+  "sim_pretrain_checkpoint": "/hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/sim_real_cno.pth",
+  "sim_pretrain_sha256": "82e842928a25dbf5a74c4e336bdd28e89bcf40e68bb8cdd213547f1246af4f61",
+  "split_counts": {
+    "heldout": 14,
+    "inner_dev": 12,
+    "train": 40
+  },
+  "verified": {
+    "locked_final_accessed": false,
+    "verified_files": 66
+  }
+}
