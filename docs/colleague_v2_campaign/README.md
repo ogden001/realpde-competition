@@ -46,7 +46,7 @@ The gate is evidence, not an automatic scientific decision.
 ## Arm B — Strong backbone transplant
 
 Use the frozen existing SOTA-V2 P0-A/MF full@53582 checkpoint
-(SHA256 `f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce`)
+(SHA256 `f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce8`)
 as the base predictor and
 train a **fresh zero-init colleague h96/b2/max-delta=0.04 residual** with the
 original colleague scalar residual objective.
