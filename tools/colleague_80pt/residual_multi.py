@@ -618,6 +618,8 @@ def main() -> None:
     parser.add_argument("--aoa-meanfield-lambda-max", type=float, default=0.5)
     parser.add_argument("--aoa-neighbor-max-gap-deg", type=float, default=5.1)
     parser.add_argument("--aoa-min-eligible-fraction", type=float, default=0.8)
+    parser.add_argument("--aoa-bridge-low", type=float, default=None)
+    parser.add_argument("--aoa-bridge-high", type=float, default=None)
     parser.add_argument("--sub-sample", type=int, default=2)
     parser.add_argument("--val-fraction", type=float, default=0.2)
     parser.add_argument("--train-on-all", action="store_true")
@@ -654,6 +656,8 @@ def main() -> None:
         raise FileExistsError(f"out_dir already exists, refusing to overwrite: {args.out_dir}")
     if args.angle_aug_max_deg > 0 and args.aoa_meanfield_aug_prob > 0:
         raise ValueError("global velocity rotation and AoA mean-field augmentation are mutually exclusive")
+    if (args.aoa_bridge_low is None) != (args.aoa_bridge_high is None):
+        raise ValueError("--aoa-bridge-low and --aoa-bridge-high must be set together")
     args.out_dir.mkdir(parents=True)
 
     torch.manual_seed(args.seed)
@@ -692,6 +696,11 @@ def main() -> None:
             seed=args.seed,
             max_gap_deg=args.aoa_neighbor_max_gap_deg,
             min_eligible_fraction=args.aoa_min_eligible_fraction,
+            bridge_pair=(
+                (args.aoa_bridge_low, args.aoa_bridge_high)
+                if args.aoa_bridge_low is not None
+                else None
+            ),
         )
         train_dataset = aoa_aug_dataset
         (args.out_dir / "aoa_augmentation_audit.json").write_text(
@@ -792,6 +801,11 @@ def main() -> None:
             "lambda_max": float(args.aoa_meanfield_lambda_max),
             "max_neighbor_gap_deg": float(args.aoa_neighbor_max_gap_deg),
             "min_eligible_fraction": float(args.aoa_min_eligible_fraction),
+            "bridge_pair": (
+                [float(args.aoa_bridge_low), float(args.aoa_bridge_high)]
+                if args.aoa_bridge_low is not None
+                else None
+            ),
             "training_only": True,
             "aoa_re_model_inputs": False,
             "future_used_to_construct_input_shift": False,
