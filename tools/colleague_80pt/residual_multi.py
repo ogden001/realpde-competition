@@ -103,6 +103,30 @@ def zero_pressure(x: Tensor) -> Tensor:
     return y
 
 
+def rotate_velocity_uv(x: Tensor, angle_degrees: Tensor | float) -> Tensor:
+    """Rotate u/v vector components by a per-sample angle; keep grid and p unchanged.
+
+    This is a conservative flow-direction perturbation for training augmentation.
+    It is not claimed to be an exact CFD solution at a new physical AoA.
+    """
+    if x.ndim != 5 or x.shape[-1] < 2:
+        raise ValueError(f"expected [B,T,H,W,C>=2], got {tuple(x.shape)}")
+    angle = torch.as_tensor(angle_degrees, dtype=x.dtype, device=x.device)
+    if angle.ndim == 0:
+        angle = angle.expand(x.shape[0])
+    if angle.ndim != 1 or angle.numel() != x.shape[0]:
+        raise ValueError("angle_degrees must be scalar or one value per batch sample")
+    radians = torch.deg2rad(angle).view(-1, 1, 1, 1)
+    cosine = torch.cos(radians)
+    sine = torch.sin(radians)
+    y = x.clone()
+    u = x[..., 0]
+    v = x[..., 1]
+    y[..., 0] = cosine * u - sine * v
+    y[..., 1] = sine * u + cosine * v
+    return y
+
+
 def future_linear_extrapolation(x: Tensor, out_steps: int) -> Tensor:
     raw = ensure_three_channels(x)
     last = raw[:, -1:]
@@ -553,6 +577,16 @@ def main() -> None:
     parser.add_argument("--out-steps", type=int, default=20)
     parser.add_argument("--stride", type=int, default=20)
     parser.add_argument("--train-window-mode", choices=("fixed", "random_phase"), default="fixed")
+    parser.add_argument(
+        "--angle-aug-max-deg",
+        type=float,
+        default=0.0,
+        help=(
+            "Training-only global u/v direction perturbation. For each training window, "
+            "sample one angle uniformly from [-max,+max] degrees and rotate both Past20 "
+            "and Future20 velocity components by the same angle. Validation is never augmented."
+        ),
+    )
     parser.add_argument("--sub-sample", type=int, default=2)
     parser.add_argument("--val-fraction", type=float, default=0.2)
     parser.add_argument("--train-on-all", action="store_true")
@@ -683,6 +717,14 @@ def main() -> None:
         "train_windows": len(train_sampler),
         "val_windows": len(val_dataset),
         "train_window_mode": args.train_window_mode,
+        "angle_augmentation": {
+            "kind": "global_uv_component_rotation",
+            "max_abs_degrees": float(args.angle_aug_max_deg),
+            "training_only": True,
+            "same_angle_for_past_and_future": True,
+            "spatial_grid_rotated": False,
+            "physical_exact_aoa_claimed": False,
+        },
         "phase_counts_equalized": True,
         "updates": args.updates,
         "eval_interval": args.eval_interval,
@@ -748,6 +790,7 @@ def main() -> None:
     with audit_path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps({"epoch": sampler_epoch, "phases": train_sampler.phases}) + "\n")
     accum: dict[str, list[float]] = {}
+    angle_rng = np.random.default_rng(np.random.SeedSequence([args.seed, 20260922]))
     for step in range(1, args.updates + 1):
         model.corrector.train()
         model.base_model.eval()
@@ -766,6 +809,20 @@ def main() -> None:
         x = x.to(device, non_blocking=True)
         y = y.to(device, non_blocking=True)
 
+        angle_abs_mean = 0.0
+        if args.angle_aug_max_deg < 0:
+            raise ValueError("--angle-aug-max-deg must be non-negative")
+        if args.angle_aug_max_deg > 0:
+            sampled_degrees = angle_rng.uniform(
+                -float(args.angle_aug_max_deg),
+                float(args.angle_aug_max_deg),
+                size=int(x.shape[0]),
+            ).astype(np.float32)
+            angle_abs_mean = float(np.mean(np.abs(sampled_degrees)))
+            sampled_degrees_t = torch.from_numpy(sampled_degrees).to(device=device, dtype=x.dtype)
+            x = rotate_velocity_uv(x, sampled_degrees_t)
+            y = rotate_velocity_uv(y, sampled_degrees_t)
+
         optimizer.zero_grad(set_to_none=True)
         with torch.no_grad():
             base = model.base_predict(x)
@@ -778,6 +835,7 @@ def main() -> None:
         loss = loss + args.residual_mse * residual_mse + args.delta_penalty * delta_penalty
         parts["residual_mse"] = float(residual_mse.detach().cpu())
         parts["delta_penalty"] = float(delta_penalty.detach().cpu())
+        parts["angle_aug_abs_deg"] = angle_abs_mean
         parts["loss"] = float(loss.detach().cpu())
         loss.backward()
         if args.clip_grad and args.clip_grad > 0:
