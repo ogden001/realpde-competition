@@ -124,10 +124,10 @@ git push --dry-run origin HEAD:main
   --model-root tools/colleague_80pt/submission \
   --data-manifest /hy-tmp/realpde_data/data_manifest.tsv \
   --split-manifest /hy-tmp/realpde_runs/colleague_incremental_screen_20260921/colleague_dev16_manifest.json \
-  --out-root /hy-tmp/realpde_runs/next_two_20260922_v1
+  --out-root /hy-tmp/realpde_runs/next_two_20260922_v2
 ```
 
-若该 out-root 已存在，不删除、不覆盖，停止并汇报。
+使用新的 `v2` out-root。保留失败的 `next_two_20260922_v1` 原样，不删除、不覆盖；若 `v2` 已存在则停止并汇报。
 
 ---
 
@@ -171,7 +171,7 @@ Experiment B 必须有：
 ```bash
 /hy-tmp/realpde_venv_v2/bin/python -u -B \
   tools/colleague_80pt/archive_next_two_experiments.py \
-  --run-root /hy-tmp/realpde_runs/next_two_20260922_v1 \
+  --run-root /hy-tmp/realpde_runs/next_two_20260922_v2 \
   --dest docs/colleague_screening/results/20260922_next_two
 ```
 
