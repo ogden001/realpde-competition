@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import json
 import h5py
 import numpy as np
 import torch
@@ -17,6 +18,7 @@ from aoa_meanfield_augmentation import (  # noqa: E402
     AoAMeanFieldShiftDataset,
     build_adjacent_aoa_neighbors,
 )
+from build_heldout_aoa_split import build_split  # noqa: E402
 from realpde_h5_feature_adapter_train import H5WindowDataset  # noqa: E402
 from residual_multi import rotate_velocity_uv  # noqa: E402
 from run_next_two_experiments import alpha_one_metrics  # noqa: E402
@@ -220,3 +222,80 @@ def test_adjacent_aoa_neighbors_reject_mismatched_coordinate_grid(tmp_path: Path
     mapping, _ = build_adjacent_aoa_neighbors([a, b], max_gap_deg=5.1)
     assert mapping[a] == ()
     assert mapping[b] == ()
+
+
+
+def test_bridge_pair_uses_only_requested_endpoint_angles(tmp_path: Path) -> None:
+    paths = []
+    for aoa in (0, 5, 10, 15, 20):
+        p = tmp_path / f"1000_{aoa}.h5"
+        _write_condition_h5(
+            p,
+            re_value=1000,
+            aoa=float(aoa),
+            past_u=float(aoa),
+            future_u=float(aoa + 1),
+        )
+        paths.append(p)
+    mapping, conditions = build_adjacent_aoa_neighbors(
+        paths,
+        max_gap_deg=10.1,
+        bridge_pair=(5.0, 15.0),
+    )
+    by_aoa = {conditions[p].aoa: mapping[p] for p in paths}
+    assert by_aoa[0.0] == ()
+    assert by_aoa[10.0] == ()
+    assert by_aoa[20.0] == ()
+    assert [conditions[p].aoa for p in by_aoa[5.0]] == [15.0]
+    assert [conditions[p].aoa for p in by_aoa[15.0]] == [5.0]
+
+
+def test_heldout_split_removes_all_target_aoa_from_train_and_dev(tmp_path: Path) -> None:
+    real_root = tmp_path / "real"
+    real_root.mkdir()
+    train_names = []
+    dev_names = []
+
+    # Match the frozen 50/16 cardinalities.  Train has ten 10-degree cases and
+    # Dev has four, matching the project profile.
+    train_aoas = [10] * 10 + [0] * 10 + [5] * 10 + [15] * 10 + [20] * 10
+    dev_aoas = [10] * 4 + [0] * 3 + [5] * 3 + [15] * 3 + [20] * 3
+
+    for i, aoa in enumerate(train_aoas):
+        name = f"train_{i:02d}_{aoa}.h5"
+        train_names.append(name)
+        _write_condition_h5(
+            real_root / name,
+            re_value=1000 + i,
+            aoa=float(aoa),
+            past_u=1,
+            future_u=2,
+        )
+    for i, aoa in enumerate(dev_aoas):
+        name = f"dev_{i:02d}_{aoa}.h5"
+        dev_names.append(name)
+        _write_condition_h5(
+            real_root / name,
+            re_value=2000 + i,
+            aoa=float(aoa),
+            past_u=1,
+            future_u=2,
+        )
+
+    manifest = tmp_path / "frozen.json"
+    manifest.write_text(
+        json.dumps({"train": train_names, "dev": dev_names}),
+        encoding="utf-8",
+    )
+    split = build_split(real_root, manifest, heldout_aoa=10.0)
+    assert split["counts"]["train"] == 40
+    assert split["counts"]["inner_dev"] == 12
+    assert split["counts"]["heldout"] == 14
+    assert all(float(row["aoa"]) != 10.0 for row in split["train"])
+    assert all(float(row["aoa"]) != 10.0 for row in split["dev"])
+    assert all(float(row["aoa"]) == 10.0 for row in split["heldout"])
+    train_names_out = {row["file"] for row in split["train"]}
+    dev_names_out = {row["file"] for row in split["dev"]}
+    heldout_names = {row["file"] for row in split["heldout"]}
+    assert not (heldout_names & train_names_out)
+    assert not (heldout_names & dev_names_out)
