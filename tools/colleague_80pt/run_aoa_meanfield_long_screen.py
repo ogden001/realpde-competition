@@ -34,9 +34,11 @@ from run_next_two_experiments import alpha_one_metrics
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
-UPDATES = 20_000
-EVAL_INTERVAL = 2_500
-MATCHED_CONTROL_STEP = 5_000
+DEFAULT_UPDATES = 20_000
+DEFAULT_EVAL_INTERVAL = 2_500
+DEFAULT_MATCHED_CONTROL_STEP = 5_000
+DEFAULT_BATCH_SIZE = 8
+DEFAULT_LR = 2e-4
 BASELINE_METRICS = {
     "rel_l2_raw": 0.0804204195737838,
     "tke_raw": 0.4491582512855530,
@@ -85,21 +87,33 @@ def write_csv(path: Path, rows: list[dict[str, object]]) -> None:
         writer.writerows(rows)
 
 
-def build_training_progress(run_dir: Path) -> list[dict[str, object]]:
+def build_training_progress(
+    run_dir: Path,
+    *,
+    updates: int,
+    eval_interval: int,
+) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = [{
         "step": 0,
         **BASELINE_METRICS,
         "final_est": "",
         "best_alpha": "",
     }]
-    for step in range(EVAL_INTERVAL, UPDATES + 1, EVAL_INTERVAL):
+    for step in range(eval_interval, updates + 1, eval_interval):
         rows.append({"step": step, **alpha_one_metrics(run_dir / f"eval_step_{step:05d}.json")})
     write_csv(run_dir / "training_progress.csv", rows)
     return rows
 
 
-def build_5k_comparison(run_dir: Path) -> None:
-    candidate = alpha_one_metrics(run_dir / f"eval_step_{MATCHED_CONTROL_STEP:05d}.json")
+def build_matched_budget_comparison(
+    run_dir: Path,
+    *,
+    matched_control_step: int,
+    batch_size: int,
+) -> None:
+    candidate = alpha_one_metrics(
+        run_dir / f"eval_step_{matched_control_step:05d}.json"
+    )
     rows = [
         {
             "model": "current_80pt_residual",
@@ -112,8 +126,12 @@ def build_5k_comparison(run_dir: Path) -> None:
             **HISTORICAL_NO_AUG_5K,
         },
         {
-            "model": "aoa_meanfield_aug_5000",
-            "role": "candidate_same_budget",
+            "model": f"aoa_meanfield_aug_step_{matched_control_step}",
+            "role": (
+                "sample_exposure_matched_to_historical_b8_step5000"
+                if batch_size != 8
+                else "matched_same_budget"
+            ),
             "rel_l2_raw": candidate["rel_l2_raw"],
             "tke_raw": candidate["tke_raw"],
             "mvpe_raw": candidate["mvpe_raw"],
@@ -129,7 +147,7 @@ def build_5k_comparison(run_dir: Path) -> None:
         candidate_row[f"delta_{key}_pct_vs_no_aug_5k"] = pct(
             float(candidate_row[key]), HISTORICAL_NO_AUG_5K[key]
         )
-    write_csv(run_dir / "comparison_at_5k.csv", rows)
+    write_csv(run_dir / "comparison_at_matched_budget.csv", rows)
 
 
 def main() -> None:
@@ -141,6 +159,15 @@ def main() -> None:
     parser.add_argument("--data-manifest", type=Path, required=True)
     parser.add_argument("--split-manifest", type=Path, required=True)
     parser.add_argument("--out-root", type=Path, required=True)
+    parser.add_argument("--updates", type=int, default=DEFAULT_UPDATES)
+    parser.add_argument("--eval-interval", type=int, default=DEFAULT_EVAL_INTERVAL)
+    parser.add_argument(
+        "--matched-control-step",
+        type=int,
+        default=DEFAULT_MATCHED_CONTROL_STEP,
+    )
+    parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
+    parser.add_argument("--lr", type=float, default=DEFAULT_LR)
     parser.add_argument(
         "--workers",
         type=int,
@@ -151,6 +178,16 @@ def main() -> None:
 
     if args.out_root.exists():
         raise FileExistsError(f"refusing to overwrite {args.out_root}")
+    if args.updates < 1 or args.eval_interval < 1:
+        raise ValueError("updates/eval_interval must be positive")
+    if args.updates % args.eval_interval:
+        raise ValueError("updates must be divisible by eval_interval")
+    if args.matched_control_step < 1 or args.matched_control_step > args.updates:
+        raise ValueError("matched_control_step must be inside training budget")
+    if args.matched_control_step % args.eval_interval:
+        raise ValueError("matched_control_step must be an evaluation milestone")
+    if args.batch_size not in (8, 16):
+        raise ValueError("only frozen batch sizes 8/16 are allowed")
     for path in (
         args.real_root,
         args.base_checkpoint,
@@ -193,8 +230,10 @@ def main() -> None:
         "gpu": gpu,
         "experiment": {
             "name": "adjacent_aoa_mean_field_interpolation",
-            "updates": UPDATES,
-            "eval_interval": EVAL_INTERVAL,
+            "updates": args.updates,
+            "eval_interval": args.eval_interval,
+            "batch_size": args.batch_size,
+            "lr": args.lr,
             "augmentation_probability": 0.5,
             "lambda_range": [0.2, 0.5],
             "same_re_required": True,
@@ -205,7 +244,9 @@ def main() -> None:
             "aoa_re_used_at_inference": False,
         },
         "historical_matched_control": {
-            "step": MATCHED_CONTROL_STEP,
+            "step": args.matched_control_step,
+            "historical_reference_batch_size": 8,
+            "candidate_batch_size": args.batch_size,
             **HISTORICAL_NO_AUG_5K,
         },
         "automatic_full_train_started": False,
@@ -237,12 +278,12 @@ def main() -> None:
             "--realpdebench-root", str(args.model_root),
             "--base-model", "cno",
             "--out-dir", str(candidate_dir),
-            "--updates", str(UPDATES),
-            "--eval-interval", str(EVAL_INTERVAL),
-            "--batch-size", "8",
+            "--updates", str(args.updates),
+            "--eval-interval", str(args.eval_interval),
+            "--batch-size", str(args.batch_size),
             "--test-batch-size", "32",
             "--workers", str(args.workers),
-            "--lr", "0.0002",
+            "--lr", str(args.lr),
             "--weight-decay", "0.00001",
             "--hidden", "96",
             "--blocks", "2",
@@ -272,8 +313,16 @@ def main() -> None:
             "--output", str(args.out_root / "A1_aoa_meanfield.train.review.log"),
         ], args.out_root / "review_log_builder.log", command_log)
 
-        build_training_progress(candidate_dir)
-        build_5k_comparison(candidate_dir)
+        build_training_progress(
+            candidate_dir,
+            updates=args.updates,
+            eval_interval=args.eval_interval,
+        )
+        build_matched_budget_comparison(
+            candidate_dir,
+            matched_control_step=args.matched_control_step,
+            batch_size=args.batch_size,
+        )
 
         comparison_dir = args.out_root / "checkpoint_comparison"
         run([
