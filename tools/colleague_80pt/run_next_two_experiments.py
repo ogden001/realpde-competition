@@ -350,6 +350,17 @@ def main() -> None:
             "41",
         ], args.out_root / "B_angle_aug_2deg.log", command_log)
 
+        run([
+            sys.executable,
+            "-u",
+            "-B",
+            str(REPO_ROOT / "tools" / "build_training_review_log.py"),
+            "--input",
+            str(args.out_root / "B_angle_aug_2deg.log"),
+            "--output",
+            str(args.out_root / "B_angle_aug_2deg.train.review.log"),
+        ], args.out_root / "B_review_log_builder.log", command_log)
+
         build_training_progress(experiment_b)
         diagnostics_b = experiment_b / "diagnostics"
         summarize_spatial_npz(
