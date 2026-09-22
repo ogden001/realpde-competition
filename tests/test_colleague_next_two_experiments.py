@@ -119,6 +119,8 @@ def _write_condition_h5(
     with h5py.File(path, "w") as handle:
         handle.create_dataset("u", data=u)
         handle.create_dataset("v", data=v)
+        handle.create_dataset("x", data=np.arange(6, dtype=np.float32)[None, :].repeat(4, axis=0))
+        handle.create_dataset("y", data=np.arange(4, dtype=np.float32)[:, None].repeat(6, axis=1))
         handle.create_dataset("re", data=np.asarray(re_value, dtype=np.float32))
         handle.create_dataset("aoa", data=np.asarray(aoa, dtype=np.float32))
 
@@ -205,3 +207,16 @@ def test_aoa_meanfield_coverage_guard_rejects_sparse_pairing(tmp_path: Path) -> 
         assert "coverage too low" in str(error)
     else:
         raise AssertionError("expected sparse same-Re/AoA coverage to be rejected")
+
+
+
+def test_adjacent_aoa_neighbors_reject_mismatched_coordinate_grid(tmp_path: Path) -> None:
+    a = tmp_path / "1000_0.h5"
+    b = tmp_path / "1000_5.h5"
+    _write_condition_h5(a, re_value=1000, aoa=0, past_u=1, future_u=2)
+    _write_condition_h5(b, re_value=1000, aoa=5, past_u=3, future_u=4)
+    with h5py.File(b, "r+") as handle:
+        handle["x"][...] = handle["x"][...] + 0.25
+    mapping, _ = build_adjacent_aoa_neighbors([a, b], max_gap_deg=5.1)
+    assert mapping[a] == ()
+    assert mapping[b] == ()
