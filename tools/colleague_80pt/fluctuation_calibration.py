@@ -130,9 +130,20 @@ def delta_pct(value: float, baseline: float) -> float:
 def write_csv(path: Path, rows: Sequence[dict[str, object]]) -> None:
     if not rows:
         raise ValueError(f"cannot write empty CSV: {path}")
+    # Some diagnostic rows intentionally have candidate-only columns, e.g.
+    # residual-before/after fields are absent for the scale=1.0 baseline but
+    # present for calibrated candidates. Build a stable union schema instead
+    # of assuming every row has exactly the first row's keys.
+    fieldnames: list[str] = []
+    seen: set[str] = set()
+    for row in rows:
+        for key in row:
+            if key not in seen:
+                seen.add(key)
+                fieldnames.append(key)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0]), extrasaction="raise")
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="raise")
         writer.writeheader()
         writer.writerows(rows)
 
