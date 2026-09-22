@@ -1,21 +1,46 @@
-# NEXT_ACTION — Execute colleague80 V2 three-arm campaign
+# NEXT_ACTION — 3090 batch-size benchmark only
 
-Status: `READY_FOR_EXECUTION / MODE_A / REVIEW_REQUIRED_AFTER_RUN`
+Status: `READY_FOR_EXECUTION / BENCHMARK_ONLY / REVIEW_REQUIRED`
 
-`REQUIRED_COMMIT = cddeb3ede56723a8a1aa2103438dd43012237905`
+`REQUIRED_COMMIT = 47f8bd4a408e2fafdfb99ea3dd2fd8823ce9592d`
 
-ChatGPT/Sol has completed the core implementation and frozen the experiment
-semantics. Codex is responsible only for environment adaptation, tests,
-execution, evidence production, archive, commit and push.
+ChatGPT/Sol has implemented the b8/b16 profiling path. This task is **only**
+to measure the actual RTX 3090 24G throughput/VRAM for the three frozen training
+paths and return the selected profiles.
+
+**Do not start the long A/B/C campaign in this task.**
 
 ## Goal
 
-Run the frozen three independent arms from
-`docs/colleague_v2_campaign/README.md` and return complete Git evidence.
+For each arm, benchmark exactly 200 synchronized training steps at:
+
+- b8, lr 2e-4
+- b16, lr 2.8e-4
+
+The benchmark runner automatically selects b16 only if:
+
+- b16 succeeds without OOM;
+- b16 samples/sec >= 1.20 × b8;
+- b16 peak allocated VRAM <= 92%;
+- b16 peak reserved VRAM <= 96%.
+
+Otherwise that arm selects b8.
+
+Selection must use **no validation metric**.
+
+## Frozen full-training mappings
+
+These are encoded in `batch_profiles.py`; do not edit them.
+
+| Arm | b8 | b16 |
+| --- | --- | --- |
+| A Pareto-TKE | b8 / lr2e-4 / 12k / eval2k | b16 / lr2.8e-4 / 6k / eval1k |
+| B Strong Backbone | b8 / lr2e-4 / 38.4k / eval4.8k | b16 / lr2.8e-4 / 19.2k / eval2.4k |
+| C AoA Mean-Field | b8 / lr2e-4 / 20k / eval2.5k | b16 / lr2.8e-4 / 10k / eval1.25k |
+
+Sample exposure is exactly matched between b8 and b16.
 
 ## Preflight
-
-Before any GPU training:
 
 ```bash
 git fetch origin
@@ -23,8 +48,9 @@ git pull --rebase origin main
 git status --short
 git rev-parse HEAD
 git rev-parse origin/main
-git merge-base --is-ancestor cddeb3ede56723a8a1aa2103438dd43012237905 HEAD
+git merge-base --is-ancestor 47f8bd4a408e2fafdfb99ea3dd2fd8823ce9592d HEAD
 git push --dry-run origin HEAD:main
+nvidia-smi
 ```
 
 Requirements:
@@ -32,26 +58,17 @@ Requirements:
 - worktree clean;
 - `HEAD == origin/main`;
 - required commit is an ancestor of HEAD;
-- push dry-run succeeds;
 - CUDA available;
-- released-data manifest and colleague Dev16 manifest pass existing audit;
-- colleague checkpoints must match their frozen SHAs;
-- strong backbone must match SHA256
+- target device is RTX 3090 24G;
+- released-data audit passes;
+- colleague base/residual checkpoint SHA checks pass;
+- strong SOTA-V2 full@53582 checkpoint SHA256 is exactly:
   `f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce`.
 
-The strong backbone path is an environment detail. Locate the existing
-full@53582 checkpoint by the frozen SHA. Do not substitute another checkpoint,
-retrain it, or change the scientific recipe. If it is genuinely unavailable,
-stop as `BLOCKED`.
+Locate the strong checkpoint on the machine by SHA. Do not substitute another
+checkpoint. If unavailable, stop as `BLOCKED`.
 
-The SOTA-V2 MF loader only needs a kit root containing
-`rpde_baselines/model/cno.py`; the checked-in
-`tools/colleague_80pt/submission` source may be used if its import smoke
-passes. This is an environment choice, not a research variable.
-
-## Tests
-
-Run before training:
+## Tests before benchmark
 
 ```bash
 pytest -q \
@@ -61,121 +78,150 @@ pytest -q \
   tests/test_post_train_diagnostics.py
 ```
 
-If a test fails:
+Only after PASS may benchmark start.
 
-- fix only a bounded engineering/integration defect that preserves the frozen
-  semantics;
-- rerun the focused suite;
-- if the fix would change model, loss, gradient projection, augmentation,
-  data/split, checkpoint, budget, gate or evaluation semantics, stop.
+## Execute benchmark
 
-## Execute
-
-Use the existing Hengyuan paths where present. A typical command is:
+Use the actual existing paths on the GPU host. Typical command:
 
 ```bash
-python -u -B tools/colleague_80pt/run_v2_campaign.py \
+python -u -B tools/colleague_80pt/benchmark_v2_batch_profiles.py \
   --real-root /hy-tmp/realpde_data/train_real \
   --split-manifest /hy-tmp/realpde_runs/colleague_incremental_screen_20260921/colleague_dev16_manifest.json \
   --data-manifest /hy-tmp/realpde_data/data_manifest.tsv \
   --colleague-base-checkpoint /hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/cno_final_all81.pt \
   --colleague-residual-checkpoint /hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/residual_model_best.pth \
   --colleague-model-root tools/colleague_80pt/submission \
-  --strong-backbone-checkpoint <PATH_WITH_FROZEN_SHA_f808fbd3...> \
+  --strong-backbone-checkpoint <PATH_WITH_SHA_f808fbd3...> \
   --strong-kit-root tools/colleague_80pt/submission \
-  --out-root /hy-tmp/realpde_runs/colleague80_v2_campaign_20260922_v1 \
+  --out-root /hy-tmp/realpde_runs/colleague80_v2_batch_benchmark_20260922_v1 \
   --workers 4
 ```
 
-If the output root already exists, use `v2/v3...`; never delete or overwrite
-an old run.
+If output root exists, use v2/v3. Never delete a prior run.
 
-The runner must execute exactly these independent arms:
+The script runs:
 
-1. **A Pareto-TKE**: mature colleague residual, 12k updates, eval every 2k,
-   `lambda_TKE=0.12`, conflict projection only on the weighted TKE gradient.
-2. **B Strong Backbone**: frozen SOTA-V2 full@53582 P0-A/MF backbone, fresh
-   zero-init colleague h96/b2/max-delta=0.04 residual, 38.4k updates, eval
-   every 4.8k, original scalar colleague residual objective.
-3. **C AoA Mean-Field**: frozen existing 20k adjacent-AoA mean-field runner,
-   unchanged.
+- Arm A b8 200 steps
+- Arm A b16 200 steps
+- Arm B b8 200 steps
+- Arm B b16 200 steps
+- Arm C b8 200 steps
+- Arm C b16 200 steps
 
-The arms must not inherit each other's trained weights.
+These runs are disposable profiling runs only. Their checkpoints must never be
+used as scientific starting points.
 
-## Evidence and archive
+## Required evidence
 
-Do not omit the standard post-train evidence generated by the runners:
-overall, Future1..20, by-trajectory, trajectory×horizon,
-mean/fluctuation/energy, spatial evidence, training progress and
-mechanism-specific diagnostics.
+Return:
 
-After all arms finish, archive only lightweight evidence:
+- `benchmark_results.json`
+- `selected_profiles.json`
+- for each arm/profile:
+  - success / failure
+  - samples/sec
+  - training-step seconds
+  - peak allocated VRAM GiB and fraction
+  - peak reserved VRAM GiB and fraction
+  - b16/b8 throughput gain
+  - automatic selection
+- GPU model and total memory
+- execution commit
 
-```bash
-python -u -B tools/colleague_80pt/archive_v2_campaign.py \
-  --run-root /hy-tmp/realpde_runs/colleague80_v2_campaign_20260922_v1 \
-  --dest docs/colleague_v2_campaign/results/20260922_<run-id>
-```
+Copy only the two JSON summaries into:
 
-The archive script excludes checkpoints and raw full logs and enforces a
-32 MiB evidence cap.
+`docs/colleague_v2_campaign/results/20260922_batch_benchmark_<run-id>/`
+
+Do not commit benchmark checkpoints or raw full logs.
 
 Then:
 
 ```bash
 git diff --check
 git status --short
-git add docs/colleague_v2_campaign/results/20260922_<run-id>
-git commit -m "Archive colleague80 V2 three-arm campaign"
+git add docs/colleague_v2_campaign/results/20260922_batch_benchmark_<run-id>
+git commit -m "Archive colleague80 batch profile benchmark"
 git pull --rebase origin main
 git push origin main
 ```
 
 Do not use `git add .`.
 
-## Constraints
+## Hard constraints
 
-- Do not change model/loss/data semantics, budgets, gates, split, seed or
-  checkpoint identities.
-- Environment-only fixes are allowed.
-- No locked-final/private data.
-- No Codabench.
-- No automatic Combo/full merge/package.
-- No SPS retraining in this campaign.
-- No parameter sweep.
-- Do not delete or overwrite prior runs.
+- Long A/B/C training: **NO**
+- Automatic campaign after benchmark: **NO**
+- Locked-final/private: **NO**
+- Codabench: **NO**
+- Scientific metric selection: **NO**
+- Manual editing of `selected_profiles.json`: **NO**
+- Testing batch24/batch32: **NO**
+- Changing LR scaling/profile thresholds: **NO**
 
-## Deliverables
+Environment-only fixes are allowed. If a fix changes scientific or profile
+semantics, stop.
 
-- execution commit and result commit;
-- campaign manifest and exact commands;
-- training review logs for A/B/C;
-- all required diagnostic CSV/JSON/manifest evidence;
-- `summary.json`;
-- checkpoint SHAs and remote paths;
-- archive manifest.
+## Final handoff
 
-## Stop
+Return:
 
-Return exactly a concise execution handoff headed:
+```text
+REALPDE 3090 BATCH BENCHMARK
 
-`REALPDE COLLEAGUE80 V2 CAMPAIGN`
+Status:
+REVIEW_REQUIRED / BLOCKED
 
-and include:
+Execution commit:
+...
 
-- `Status: REVIEW_REQUIRED / BLOCKED`
-- execution commit
-- results commit
-- tests PASS/FAIL
-- Arm A completion and final/best metrics
-- Arm B completion and final/best metrics
-- Arm C completion and final/best metrics
-- standard diagnostics PASS/FAIL
-- training review logs PASS/FAIL
-- automatic Combo started: NO
-- full merge started: NO
-- Codabench accessed: NO
-- locked-final accessed: NO
-- missing items: NONE / ...
+Results commit:
+...
 
-Then stop. Do not start another experiment.
+Tests:
+PASS / FAIL
+
+GPU:
+...
+
+Arm A Pareto-TKE:
+b8 samples/s:
+b8 peak VRAM:
+b16 success:
+b16 samples/s:
+b16 peak VRAM:
+throughput gain:
+selected profile:
+
+Arm B Strong Backbone:
+b8 samples/s:
+b8 peak VRAM:
+b16 success:
+b16 samples/s:
+b16 peak VRAM:
+throughput gain:
+selected profile:
+
+Arm C AoA Mean-Field:
+b8 samples/s:
+b8 peak VRAM:
+b16 success:
+b16 samples/s:
+b16 peak VRAM:
+throughput gain:
+selected profile:
+
+Long campaign started:
+NO
+
+Codabench accessed:
+NO
+
+Locked-final accessed:
+NO
+
+Missing items:
+NONE / ...
+```
+
+Then stop and wait for Sol review.
