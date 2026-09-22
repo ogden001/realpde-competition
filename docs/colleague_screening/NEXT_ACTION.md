@@ -100,9 +100,36 @@ git push --dry-run origin HEAD:main
 
 要求：
 
-- working tree clean；
-- `HEAD == origin/main`；
-- dry-run push 成功。
+- 记录实际 `HEAD` 作为 execution commit；
+- 在正式启动前 working tree 应 clean；
+- dry-run push 成功，确认最终结果可回写 Git；
+- `origin/main` 本地 tracking ref 与 `HEAD` 不一致只记录 warning，不作为实验阻塞条件。
+
+### Codex 环境适配权限
+
+本任务中，Codex 可以自行修复并继续执行以下**非科研语义**问题，无需再次停下来请求 ChatGPT：
+
+- Git remote / tracking ref / detached checkout / 临时代码副本；
+- Python / venv / CUDA / worker / launcher；
+- 路径发现与替换；
+- PID、log、输出目录；
+- whitelist archive、文件权限、轻量格式兼容；
+- preflight 中仅与运行环境有关的检查。
+
+允许修改相关工程代码、补测试、commit 后继续本任务。
+
+但不得改变以下科研契约：
+
+- 80 分 baseline checkpoint 及 SHA；
+- train/dev split 与样本集合；
+- Experiment A 的 scale 集合与校准公式；
+- Experiment B 的 ±2° 增强语义；
+- 模型结构、feature、loss、loss 权重；
+- 5000 updates、seed、评估协议；
+- Gate / scorer；
+- locked-final/private/Codabench 边界。
+
+判断原则：**科研语义是硬约束，运行环境是软约束。**
 
 然后运行测试：
 
@@ -252,3 +279,5 @@ NONE / ...
 ```
 
 如果任何 required artifact 缺失，返回 `BLOCKED`，不要写结论。
+
+若只是环境/路径/Git tracking/launcher/归档类问题，先按上述权限自行修复并继续；只有修复会触及科研契约时才停止。
