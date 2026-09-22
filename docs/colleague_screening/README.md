@@ -33,3 +33,13 @@ four arms share one control:
 Only released train-real trajectories are in scope. Private external data,
 Codabench, OSS upload, simulator data, checkpoint deletion, and automatic long
 training are outside this screening task.
+
+
+## Default post-train diagnostics
+
+Every residual training arm now writes the standard diagnostic bundle under
+diagnostics/ after its final dev evaluation. This includes Future1-Future20,
+per-trajectory, trajectory-by-horizon, spatial maps, mean/fluctuation
+decomposition, and residual before/after evidence. See
+docs/POST_TRAIN_DIAGNOSTICS.md. This is the default for future point-prediction
+training experiments, not an optional follow-up.

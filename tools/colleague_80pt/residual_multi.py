@@ -59,6 +59,7 @@ from realpde_h5_feature_adapter_train import (  # noqa: E402
     update_sps_candidates,
 )
 from dw01_by_horizon import aggregate_by_horizon, compute_window_horizon_metrics, write_csv  # noqa: E402
+from post_train_diagnostics import write_post_train_diagnostics  # noqa: E402
 
 
 def parse_float_list(value: str) -> list[float]:
@@ -411,14 +412,17 @@ def write_final_evidence(
 ) -> dict[str, object]:
     """Write the primary final-step aggregate, trajectory and horizon evidence."""
     model.eval()
+    base_predictions: list[np.ndarray] = []
     predictions: list[np.ndarray] = []
     targets: list[np.ndarray] = []
     for x, y in loader:
         x = x.to(device, non_blocking=True)
         base = model.base_predict(x)
         delta = model.predict_delta(x, base)
+        base_predictions.append(base.cpu().numpy().astype(np.float32))
         predictions.append(model.combine(base, delta, alpha).cpu().numpy().astype(np.float32))
         targets.append(y.numpy().astype(np.float32))
+    base_pred = np.concatenate(base_predictions, axis=0)
     pred = np.concatenate(predictions, axis=0)
     target = np.concatenate(targets, axis=0)
     channels = measured_channels(target)
@@ -473,6 +477,15 @@ def write_final_evidence(
         out_dir / "by_trajectory_horizon.csv",
         [{"experiment": experiment, **row} for row in window_horizon_rows],
         window_fields,
+    )
+    write_post_train_diagnostics(
+        out_dir=out_dir / "diagnostics",
+        experiment=experiment,
+        prediction=pred,
+        target=target,
+        trajectories=names,
+        starts=starts,
+        base_prediction=base_pred,
     )
     return aggregate
 
