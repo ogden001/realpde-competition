@@ -15,6 +15,7 @@ from pareto_tke import (  # noqa: E402
     split_residual_objective,
 )
 from realpde_h5_feature_adapter_train import physics_loss  # noqa: E402
+from archive_v2_campaign import archive  # noqa: E402
 from run_v2_campaign import (  # noqa: E402
     ARM_A_EVAL,
     ARM_A_UPDATES,
@@ -124,3 +125,25 @@ def test_backbone_gate_allows_only_bounded_point_tradeoff() -> None:
     assert backbone_mechanical_gate(candidate)["pass"] is True
     candidate["mvpe_raw"] = 0.073
     assert backbone_mechanical_gate(candidate)["pass"] is False
+
+
+def test_campaign_archiver_whitelists_lightweight_evidence(tmp_path: Path) -> None:
+    source = tmp_path / "run"
+    destination = tmp_path / "archive"
+    (source / "A" / "checkpoints").mkdir(parents=True)
+    (source / "A" / "metrics.json").write_text('{"x": 1}\n', encoding="utf-8")
+    (source / "A" / "table.csv").write_text("a,b\n1,2\n", encoding="utf-8")
+    (source / "A.train.review.log").write_text("review\n", encoding="utf-8")
+    (source / "A.raw.log").write_text("raw log must stay remote\n", encoding="utf-8")
+    (source / "A" / "checkpoints" / "model.pth").write_bytes(b"checkpoint")
+
+    result = archive(source, destination)
+
+    assert result["excluded_checkpoints"] is True
+    assert result["excluded_raw_logs"] is True
+    assert (destination / "A" / "metrics.json").is_file()
+    assert (destination / "A" / "table.csv").is_file()
+    assert (destination / "A.train.review.log").is_file()
+    assert not (destination / "A.raw.log").exists()
+    assert not (destination / "A" / "checkpoints" / "model.pth").exists()
+    assert (destination / "ARCHIVE_MANIFEST.json").is_file()
