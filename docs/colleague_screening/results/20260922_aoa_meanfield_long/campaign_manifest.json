@@ -1,0 +1,51 @@
+{
+  "automatic_full_train_started": false,
+  "base_checkpoint": "/hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/cno_final_all81.pt",
+  "base_checkpoint_sha256": "ff28aaf0114d57e320e5ea9cf9945d874a7482f22e3f0aeaed5ebbe286573f8a",
+  "campaign": "colleague80_aoa_meanfield_long_screen_20260922",
+  "codabench_accessed": false,
+  "created_at": "2026-09-22T08:27:29.496419+00:00",
+  "data_manifest": "/hy-tmp/realpde_data/data_manifest.tsv",
+  "data_manifest_sha256": "3612185c939f6c4cd4890afd3968d160a44e88d3e6f7733b8cb9ce71501d532c",
+  "environment": {},
+  "execution_commit": "f4500ddf66043d2a839a36e7d3c46eb8f9aa109e",
+  "experiment": {
+    "aoa_re_used_at_inference": false,
+    "augmentation_probability": 0.5,
+    "eval_interval": 2500,
+    "future_used_to_construct_input_shift": false,
+    "input_shift_source": "Past20 mean spatial velocity field only",
+    "lambda_range": [
+      0.2,
+      0.5
+    ],
+    "max_neighbor_gap_deg": 5.1,
+    "min_eligible_fraction": 0.8,
+    "name": "adjacent_aoa_mean_field_interpolation",
+    "same_re_required": true,
+    "updates": 20000
+  },
+  "gpu": {
+    "cuda_runtime": "12.8",
+    "gpu": "NVIDIA GeForce RTX 5070",
+    "gpu_memory_bytes": 12344164352,
+    "torch": "2.9.1+cu128"
+  },
+  "historical_matched_control": {
+    "mvpe_raw": 0.0710276663303375,
+    "rel_l2_raw": 0.0802410691976547,
+    "step": 5000,
+    "tke_raw": 0.4503658413887024
+  },
+  "locked_final_accessed": false,
+  "split_manifest": "/hy-tmp/realpde_runs/colleague_incremental_screen_20260921/colleague_dev16_manifest.json",
+  "split_manifest_sha256": "d127e851f3f5eefb011313b1b0b1d79e65db6d99c0754d264119ff12046a83a2",
+  "start_checkpoint": "/hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/residual_model_best.pth",
+  "start_checkpoint_sha256": "909fdc7f8a6a42335e4ea4ce7471fc9a507135e9a29a4927bc7b7318be9c85b2",
+  "verified_data": {
+    "dev": 16,
+    "train": 81,
+    "train_dev_overlap": true,
+    "verified_files": 81
+  }
+}

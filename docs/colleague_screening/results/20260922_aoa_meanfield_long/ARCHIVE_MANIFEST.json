@@ -1,0 +1,24 @@
+{
+  "candidate_eval_steps": [
+    2500,
+    5000,
+    7500,
+    10000,
+    12500,
+    15000,
+    17500,
+    20000
+  ],
+  "checkpoints_copied": false,
+  "comparison_models": [
+    "current80",
+    "aoa_best",
+    "aoa_final"
+  ],
+  "destination": "docs/colleague_screening/results/20260922_aoa_meanfield_long",
+  "h5_copied": false,
+  "locked_final_copied": false,
+  "raw_prediction_cache_copied": false,
+  "raw_training_log_copied": false,
+  "source_run_root": "/hy-tmp/realpde_runs/aoa_meanfield_long_20260922_v1"
+}

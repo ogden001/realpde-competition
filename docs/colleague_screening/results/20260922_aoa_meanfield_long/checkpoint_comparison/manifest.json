@@ -1,0 +1,20 @@
+{
+  "baseline_label": "current80",
+  "dev_trajectories": 16,
+  "dev_windows": 640,
+  "diagnostics_version": 1,
+  "models": [
+    {
+      "checkpoint": "/hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/residual_model_best.pth",
+      "label": "current80"
+    },
+    {
+      "checkpoint": "/hy-tmp/realpde_runs/aoa_meanfield_long_20260922_v1/A1_aoa_meanfield/model_best.pth",
+      "label": "aoa_best"
+    },
+    {
+      "checkpoint": "/hy-tmp/realpde_runs/aoa_meanfield_long_20260922_v1/A1_aoa_meanfield/model_final.pth",
+      "label": "aoa_final"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "automatic_full_train_started": false,
+  "candidate_best_checkpoint_sha256": "35e3e3b0b19e6b6f790f70f14a392a167b05215be09759740a47ff3efe45997b",
+  "candidate_final_checkpoint_sha256": "c63e642a5b438ea58f1a084ef02c0ce26c5e89254f275df44ac0fe42ed01a2e7",
+  "codabench_accessed": false,
+  "execution_commit": "f4500ddf66043d2a839a36e7d3c46eb8f9aa109e",
+  "locked_final_accessed": false
+}
