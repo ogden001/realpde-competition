@@ -19,6 +19,7 @@ from realpde_h5_feature_adapter_train import (  # noqa: E402
 )
 from residual_multi import load_residual_checkpoint  # noqa: E402
 from train_head_fast import Head3D, HeadConfig, build_head_features, initialize_coupled  # noqa: E402
+import run_incremental_screen as campaign_runner  # noqa: E402
 from incremental_screen import (  # noqa: E402
     REGISTERED_ARMS,
     random_phase_gate,
@@ -202,3 +203,22 @@ def test_delta_head_is_identical_to_plain_head_when_delta_is_zero() -> None:
     x = torch.randn(2, 20, 2, 3, 3)
     base = torch.randn(2, 20, 2, 3, 3)
     torch.testing.assert_close(plain(x, base, base), aware(x, base, base))
+
+
+
+def test_execution_gate_allows_stale_origin_tracking(monkeypatch, tmp_path: Path) -> None:
+    head = "a" * 40
+    stale_origin = "b" * 40
+    monkeypatch.delenv("REALPDE_EXECUTION_COMMIT", raising=False)
+
+    def fake_check_output(command, cwd=None, text=None, stderr=None):
+        if command == ["git", "status", "--porcelain"]:
+            return ""
+        if command == ["git", "rev-parse", "HEAD"]:
+            return head + "\n"
+        if command == ["git", "rev-parse", "origin/main"]:
+            return stale_origin + "\n"
+        raise AssertionError(f"unexpected command: {command}")
+
+    monkeypatch.setattr(campaign_runner.subprocess, "check_output", fake_check_output)
+    assert campaign_runner.require_clean_main_checkout(tmp_path) == head
