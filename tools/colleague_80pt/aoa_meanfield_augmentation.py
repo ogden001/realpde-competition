@@ -58,6 +58,32 @@ def read_condition(path: Path) -> FlowCondition:
         return FlowCondition(re=_scalar_field(handle, "re"), aoa=_scalar_field(handle, "aoa"))
 
 
+def read_grid(path: Path) -> tuple[np.ndarray, np.ndarray] | None:
+    with h5py.File(path, "r") as handle:
+        try:
+            x = np.asarray(h5_field(handle, "x"), dtype=np.float64)
+            y = np.asarray(h5_field(handle, "y"), dtype=np.float64)
+        except KeyError:
+            return None
+    return x, y
+
+
+def grids_compatible(
+    first: tuple[np.ndarray, np.ndarray] | None,
+    second: tuple[np.ndarray, np.ndarray] | None,
+) -> bool:
+    if first is None or second is None:
+        return True
+    ax, ay = first
+    bx, by = second
+    return (
+        ax.shape == bx.shape
+        and ay.shape == by.shape
+        and np.allclose(ax, bx, rtol=0.0, atol=1e-7)
+        and np.allclose(ay, by, rtol=0.0, atol=1e-7)
+    )
+
+
 def _same_re(a: float, b: float) -> bool:
     return bool(np.isclose(a, b, rtol=0.0, atol=1e-5))
 
@@ -71,6 +97,7 @@ def build_adjacent_aoa_neighbors(
     if max_gap_deg <= 0:
         raise ValueError("max_gap_deg must be positive")
     conditions = {path: read_condition(path) for path in paths}
+    grids = {path: read_grid(path) for path in paths}
     mapping: dict[Path, tuple[Path, ...]] = {}
     for path in paths:
         source = conditions[path]
@@ -80,6 +107,7 @@ def build_adjacent_aoa_neighbors(
             if other != path
             and _same_re(conditions[other].re, source.re)
             and abs(conditions[other].aoa - source.aoa) > 1e-6
+            and grids_compatible(grids[path], grids[other])
         ]
         if not candidates:
             mapping[path] = ()
@@ -179,6 +207,7 @@ class AoAMeanFieldShiftDataset(Dataset):
                 "neighbor_trajectories": [p.name for p in self.neighbors[path]],
                 "neighbor_aoa": [self.conditions[p].aoa for p in self.neighbors[path]],
                 "eligible": bool(self.neighbors[path]),
+                "coordinate_grid_checked": read_grid(path) is not None,
             })
         return {
             "kind": "adjacent_aoa_mean_field_shift",
