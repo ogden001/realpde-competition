@@ -152,7 +152,9 @@ def test_matched_runner_freezes_all_non_sampling_semantics(tmp_path: Path) -> No
     assert candidate[candidate.index("--stride") + 1] == "20"
     assert control[control.index("--eval-stride") + 1] == "20"
     assert candidate[candidate.index("--eval-stride") + 1] == "20"
-    assert UPDATES == 5000
+    assert "--disable-phase-count-equalization" in control
+    assert "--disable-phase-count-equalization" in candidate
+    assert UPDATES == 5004
     assert EVAL_INTERVAL == 1000
     assert BATCH_SIZE == 8
     assert LR == 2e-4
