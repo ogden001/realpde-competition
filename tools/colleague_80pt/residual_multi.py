@@ -546,6 +546,52 @@ def write_final_evidence(
     return aggregate
 
 
+@torch.no_grad()
+def write_horizon_snapshot(
+    model: ResidualCorrectionModel,
+    loader: DataLoader,
+    device: torch.device,
+    *,
+    out_dir: Path,
+    experiment: str,
+    alpha: float = 1.0,
+) -> dict[str, object]:
+    """Write lightweight F1-F20 evidence for a training milestone."""
+    model.eval()
+    predictions: list[np.ndarray] = []
+    targets: list[np.ndarray] = []
+    for x, y in loader:
+        x = x.to(device, non_blocking=True)
+        base = model.base_predict(x)
+        delta = model.predict_delta(x, base)
+        predictions.append(
+            model.combine(base, delta, alpha).cpu().numpy().astype(np.float32)
+        )
+        targets.append(y.numpy().astype(np.float32))
+    pred = np.concatenate(predictions, axis=0)
+    target = np.concatenate(targets, axis=0)
+    refs = loader.dataset.refs
+    names = [ref.path.name for ref in refs]
+    starts = [ref.start for ref in refs]
+    rows = aggregate_by_horizon(
+        compute_window_horizon_metrics(pred, target, names, starts),
+        experiment=experiment,
+        trajectories=len(set(names)),
+    )
+    out_dir.mkdir(parents=True, exist_ok=True)
+    write_csv(out_dir / "by_horizon.csv", rows, list(rows[0]))
+    summary = {
+        "windows": int(pred.shape[0]),
+        "trajectories": len(set(names)),
+        "alpha": float(alpha),
+    }
+    (out_dir / "manifest.json").write_text(
+        json.dumps(summary, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return summary
+
+
 def save_checkpoint(
     path: Path,
     model: ResidualCorrectionModel,
@@ -1090,6 +1136,15 @@ def main() -> None:
         json.dumps(summaries, indent=2, default=str) + "\n",
         encoding="utf-8",
     )
+    if args.selection_metric == "point_score":
+        write_horizon_snapshot(
+            model,
+            val_loader,
+            device,
+            out_dir=args.out_dir / "milestone_00000",
+            experiment=f"{args.out_dir.name}_step0",
+            alpha=float(top["alpha"]),
+        )
     save_checkpoint(
         args.out_dir / "model_best.pth",
         model,
@@ -1321,6 +1376,15 @@ def main() -> None:
                 json.dumps(summaries, indent=2, default=str) + "\n",
                 encoding="utf-8",
             )
+            if args.selection_metric == "point_score":
+                write_horizon_snapshot(
+                    model,
+                    val_loader,
+                    device,
+                    out_dir=args.out_dir / f"milestone_{step:05d}",
+                    experiment=f"{args.out_dir.name}_step{step}",
+                    alpha=float(top["alpha"]),
+                )
             save_checkpoint(
                 args.out_dir / "model_latest.pth",
                 model,
@@ -1365,6 +1429,7 @@ def main() -> None:
                     {
                         "best_iter": best_iter,
                         "best_score": best_score,
+                        "selection_metric": args.selection_metric,
                         "best_alpha": best_alpha,
                         "best_bound_abs": best_bound_abs,
                         "best_bound_rel": best_bound_rel,
