@@ -240,6 +240,143 @@ class RandomPhaseWindowSampler(Sampler[int]):
         return len(self._selected_indices)
 
 
+
+class TrajectoryStratifiedRandomStartBatchSampler(Sampler[list[int]]):
+    """Batch sampler that preserves baseline trajectory exposure but randomizes starts.
+
+    Each epoch receives an explicit per-trajectory quota, normally reconstructed
+    from the matched fixed-stride control after drop-last.  The sampler then:
+
+    1. realizes exactly those trajectory quotas;
+    2. never places the same trajectory twice in one batch;
+    3. draws starts from all legal windows of that trajectory;
+    4. uses a deterministic shuffled bag per trajectory, avoiding start repeats
+       until that trajectory's legal starts have been exhausted.
+
+    This keeps trajectory weighting and sample budget matched to the baseline
+    while changing only the temporal-start sampling policy / batch composition.
+    """
+
+    def __init__(
+        self,
+        dataset: H5WindowDataset,
+        *,
+        batch_size: int,
+        seed: int,
+    ) -> None:
+        if dataset.window_mode != "random_phase":
+            raise ValueError(
+                "TrajectoryStratifiedRandomStartBatchSampler requires "
+                "H5WindowDataset(window_mode='random_phase')"
+            )
+        if batch_size < 1:
+            raise ValueError("batch_size must be positive")
+        if batch_size > len(dataset.paths):
+            raise ValueError("batch_size cannot exceed trajectory count")
+        self.dataset = dataset
+        self.batch_size = int(batch_size)
+        self.seed = int(seed)
+        self.epoch = -1
+        self._plan: list[list[int]] = []
+        self._trajectory_quotas: dict[str, int] = {}
+        self._draw_counts = {path.name: 0 for path in dataset.paths}
+        self._path_index = {path.name: idx for idx, path in enumerate(dataset.paths)}
+        self._indices_by_path: dict[str, list[int]] = {path.name: [] for path in dataset.paths}
+        for index, ref in enumerate(dataset.refs):
+            self._indices_by_path[ref.path.name].append(index)
+        if any(not values for values in self._indices_by_path.values()):
+            raise ValueError("every trajectory must expose at least one legal start")
+        self._permutation_cache: dict[tuple[str, int], np.ndarray] = {}
+
+    @property
+    def current_plan(self) -> list[list[int]]:
+        return [list(batch) for batch in self._plan]
+
+    @property
+    def trajectory_quotas(self) -> dict[str, int]:
+        return dict(self._trajectory_quotas)
+
+    def _permutation(self, name: str, cycle: int) -> np.ndarray:
+        key = (name, int(cycle))
+        cached = self._permutation_cache.get(key)
+        if cached is not None:
+            return cached
+        path_idx = self._path_index[name]
+        size = len(self._indices_by_path[name])
+        rng = np.random.default_rng(
+            np.random.SeedSequence([self.seed, path_idx, int(cycle), 20260923])
+        )
+        permutation = rng.permutation(size)
+        self._permutation_cache[key] = permutation
+        return permutation
+
+    def _next_index(self, name: str) -> int:
+        indices = self._indices_by_path[name]
+        draw = int(self._draw_counts[name])
+        cycle, offset = divmod(draw, len(indices))
+        permutation = self._permutation(name, cycle)
+        chosen = indices[int(permutation[offset])]
+        self._draw_counts[name] = draw + 1
+        return int(chosen)
+
+    def set_epoch(self, epoch: int, *, trajectory_quotas: dict[str, int]) -> None:
+        if epoch < 0:
+            raise ValueError("epoch must be non-negative")
+        if self.epoch >= 0 and epoch != self.epoch + 1:
+            if epoch == self.epoch:
+                return
+            raise ValueError("epochs must be configured sequentially")
+        expected = {path.name for path in self.dataset.paths}
+        if set(trajectory_quotas) != expected:
+            raise ValueError("trajectory_quotas must contain every dataset trajectory exactly once")
+        quotas = {name: int(value) for name, value in trajectory_quotas.items()}
+        if any(value < 0 for value in quotas.values()):
+            raise ValueError("trajectory quotas must be non-negative")
+        total = sum(quotas.values())
+        if total == 0 or total % self.batch_size != 0:
+            raise ValueError("trajectory quota total must be a positive multiple of batch_size")
+        n_batches = total // self.batch_size
+        if max(quotas.values(), default=0) > n_batches:
+            raise ValueError(
+                "quota schedule is infeasible with unique trajectories per batch"
+            )
+
+        rng = np.random.default_rng(
+            np.random.SeedSequence([self.seed, int(epoch), 20260923, 1])
+        )
+        remaining = dict(quotas)
+        plan: list[list[int]] = []
+        for _ in range(n_batches):
+            active = [name for name, count in remaining.items() if count > 0]
+            if len(active) < self.batch_size:
+                raise RuntimeError(
+                    "trajectory quota scheduling stranded fewer than batch_size active trajectories"
+                )
+            # Havel-Hakimi style: consume the largest remaining quotas first.
+            # Random tie-breaking prevents a fixed trajectory grouping pattern.
+            jitter = {name: float(rng.random()) for name in active}
+            active.sort(key=lambda name: (-remaining[name], jitter[name]))
+            chosen_names = active[: self.batch_size]
+            batch = [self._next_index(name) for name in chosen_names]
+            rng.shuffle(batch)
+            plan.append(batch)
+            for name in chosen_names:
+                remaining[name] -= 1
+
+        if any(remaining.values()):
+            raise RuntimeError("trajectory quota schedule did not consume every requested draw")
+
+        self.epoch = int(epoch)
+        self._trajectory_quotas = quotas
+        self._plan = plan
+
+    def __iter__(self):
+        return iter(self._plan)
+
+    def __len__(self) -> int:
+        return len(self._plan)
+
+
 class PointwiseFeatureAdapter(nn.Module):
     """Residual per-point projection from engineered features back to u/v/p."""
 
