@@ -741,6 +741,8 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--test-batch-size", type=int, default=32)
     parser.add_argument("--workers", type=int, default=2)
+    parser.add_argument("--preload-to-ram", action="store_true")
+    parser.add_argument("--prefetch-factor", type=int, default=4)
     parser.add_argument("--lr", type=float, default=2e-4)
     parser.add_argument("--weight-decay", type=float, default=1e-5)
     parser.add_argument("--hidden", type=int, default=32)
@@ -851,6 +853,7 @@ def main() -> None:
             "profiling before a frozen experiment."
         ),
     )
+    parser.add_argument("--benchmark-warmup", type=int, default=0)
     args = parser.parse_args()
 
     if args.out_dir.exists():
@@ -887,6 +890,7 @@ def main() -> None:
         max_windows_per_trajectory=args.max_windows_per_trajectory,
         include_pressure=args.include_pressure_data,
         window_mode="random_phase",
+        preload_to_ram=args.preload_to_ram,
     )
     aoa_aug_dataset = None
     train_dataset = base_train_dataset
@@ -922,6 +926,7 @@ def main() -> None:
         sub_sample=args.sub_sample,
         max_windows_per_trajectory=args.max_windows_per_trajectory,
         include_pressure=args.include_pressure_data,
+        preload_to_ram=args.preload_to_ram,
     )
     control_reference_sampler = RandomPhaseWindowSampler(
         base_train_dataset,
@@ -950,11 +955,18 @@ def main() -> None:
                 reference_indices,
             ),
         )
+        worker_kwargs: dict[str, object] = {}
+        if args.workers > 0:
+            worker_kwargs = {
+                "persistent_workers": True,
+                "prefetch_factor": args.prefetch_factor,
+            }
         train_loader = DataLoader(
             train_dataset,
             batch_sampler=train_batch_sampler,
             num_workers=args.workers,
             pin_memory=device.type == "cuda",
+            **worker_kwargs,
         )
         train_samples_per_epoch = len(reference_indices)
     else:
@@ -963,6 +975,12 @@ def main() -> None:
             0,
             phases=fixed_phases if args.train_window_mode == "fixed" else None,
         )
+        worker_kwargs = {}
+        if args.workers > 0:
+            worker_kwargs = {
+                "persistent_workers": True,
+                "prefetch_factor": args.prefetch_factor,
+            }
         train_loader = DataLoader(
             train_dataset,
             batch_size=args.batch_size,
@@ -970,16 +988,24 @@ def main() -> None:
             num_workers=args.workers,
             pin_memory=device.type == "cuda",
             drop_last=True,
+            **worker_kwargs,
         )
         train_samples_per_epoch = (
             len(train_sampler) // args.batch_size
         ) * args.batch_size
+    val_worker_kwargs: dict[str, object] = {}
+    if args.workers > 0:
+        val_worker_kwargs = {
+            "persistent_workers": True,
+            "prefetch_factor": args.prefetch_factor,
+        }
     val_loader = DataLoader(
         val_dataset,
         batch_size=args.test_batch_size,
         shuffle=False,
         num_workers=args.workers,
         pin_memory=device.type == "cuda",
+        **val_worker_kwargs,
     )
 
     base_model = load_frozen_base(args.base_model, args.checkpoint, args.realpdebench_root, device)
@@ -1037,6 +1063,12 @@ def main() -> None:
         "train_samples_per_epoch": int(train_samples_per_epoch),
         "reference_fixed_stride_windows": len(control_reference_sampler),
         "val_windows": len(val_dataset),
+        "preload_to_ram": bool(args.preload_to_ram),
+        "train_ram_cache": base_train_dataset.cache_summary(),
+        "val_ram_cache": val_dataset.cache_summary(),
+        "workers": args.workers,
+        "persistent_workers": bool(args.workers > 0),
+        "prefetch_factor": args.prefetch_factor if args.workers > 0 else None,
         "train_stride": int(args.stride),
         "eval_stride": int(eval_stride),
         "train_window_mode": args.train_window_mode,
@@ -1181,7 +1213,10 @@ def main() -> None:
     sampler_epoch = 0
     sampling_epoch_plans: list[list[int]] = []
     benchmark_step_seconds = 0.0
+    benchmark_measured_updates = 0
     if args.benchmark_mode and device.type == "cuda":
+        if args.benchmark_warmup < 0 or args.benchmark_warmup >= args.updates:
+            raise ValueError("--benchmark-warmup must be in [0, updates)")
         torch.cuda.reset_peak_memory_stats(device)
     audit_path = args.out_dir / "window_audit.jsonl"
 
@@ -1339,7 +1374,9 @@ def main() -> None:
         scheduler.step()
         if args.benchmark_mode and device.type == "cuda":
             torch.cuda.synchronize(device)
-            benchmark_step_seconds += time.perf_counter() - benchmark_step_started
+            if step > args.benchmark_warmup:
+                benchmark_step_seconds += time.perf_counter() - benchmark_step_started
+                benchmark_measured_updates += 1
 
         for key, value in parts.items():
             accum.setdefault(key, []).append(float(value))
@@ -1472,12 +1509,18 @@ def main() -> None:
         runtime = {
             "benchmark_mode": True,
             "updates": int(args.updates),
+            "warmup_updates": int(args.benchmark_warmup),
+            "measured_updates": int(benchmark_measured_updates),
             "batch_size": int(args.batch_size),
             "samples_seen": int(args.updates * args.batch_size),
             "training_step_seconds": float(benchmark_step_seconds),
             "samples_per_second": float(
-                args.updates * args.batch_size / max(benchmark_step_seconds, 1e-12)
+                benchmark_measured_updates * args.batch_size / max(benchmark_step_seconds, 1e-12)
             ),
+            "train_ram_cache": base_train_dataset.cache_summary(),
+            "val_ram_cache": val_dataset.cache_summary(),
+            "workers": args.workers,
+            "prefetch_factor": args.prefetch_factor if args.workers > 0 else None,
             "peak_gpu_memory_allocated": int(torch.cuda.max_memory_allocated(device)),
             "peak_gpu_memory_reserved": int(torch.cuda.max_memory_reserved(device)),
             "gpu_total_memory": total_memory,
