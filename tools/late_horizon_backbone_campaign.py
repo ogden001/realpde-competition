@@ -534,6 +534,15 @@ def train_continuation_arm(
         raise ValueError(
             f"expected {full.FULL_DENSE_WINDOWS} dense windows, got {len(train_ds)}"
         )
+    consumed_samples = UPDATES * EFFECTIVE_BATCH
+    selected = list(getattr(sampler, "_selected_indices"))
+    if consumed_samples >= len(selected):
+        raise RuntimeError(
+            "5k screen unexpectedly crosses a Dense-All epoch boundary; "
+            "sampling parity contract must be reviewed"
+        )
+    sampler_prefix = np.asarray(selected[:consumed_samples], dtype=np.int64)
+    sampler_prefix_sha256 = hashlib.sha256(sampler_prefix.tobytes()).hexdigest()
 
     run_config = {
         "mode": mode,
@@ -557,6 +566,8 @@ def train_continuation_arm(
         "lr": LR,
         "weight_decay": optimizer.param_groups[0].get("weight_decay"),
         "sampler": "DenseAllWindowSampler reset identically at continuation epoch 0",
+        "samples_consumed": consumed_samples,
+        "sampler_prefix_sha256": sampler_prefix_sha256,
         "base_loss": {
             "n2": full.N2,
             "lambda_vort": full.LAMBDA_VORT,
