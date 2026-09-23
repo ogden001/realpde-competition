@@ -1,0 +1,13 @@
+{
+  "batch_size": 8,
+  "benchmark_mode": true,
+  "gpu_total_memory": 25425608704,
+  "peak_allocated_fraction": 0.09071663624073367,
+  "peak_gpu_memory_allocated": 2306525696,
+  "peak_gpu_memory_reserved": 3426746368,
+  "peak_reserved_fraction": 0.134775391531173,
+  "samples_per_second": 27.108869444256463,
+  "samples_seen": 1600,
+  "training_step_seconds": 59.02127358317375,
+  "updates": 200
+}

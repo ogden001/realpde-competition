@@ -1,0 +1,121 @@
+{
+  "bytes": 3464657,
+  "destination": "/Users/oukairi/project/RealPDE Competion/code/docs/colleague_v2_campaign/results/20260923_formal_b_training/formal",
+  "excluded_checkpoints": true,
+  "excluded_raw_logs": true,
+  "files": 22,
+  "items": [
+    {
+      "bytes": 1781,
+      "path": "campaign_manifest.json",
+      "sha256": "8ed6e0f52147053ad45739b267d569a82f936f3c641d5fdb444ea5b0decf7055"
+    },
+    {
+      "bytes": 30030,
+      "path": "B_strong_backbone.train.review.log",
+      "sha256": "1d0227a73bfea27f2502a69f78249a852882845e6c0e19bb30ae851e97b790d0"
+    },
+    {
+      "bytes": 639,
+      "path": "B_strong_backbone.train.review.log.meta.json",
+      "sha256": "f4863317b9b0f091a3096e7488df8b48f8aa65709df224d079592b5dce47825e"
+    },
+    {
+      "bytes": 903,
+      "path": "B_strong_backbone/summary.json",
+      "sha256": "f741e57711d0ca4972376e57498037ebe82977e45780a01a6212983a91b2c010"
+    },
+    {
+      "bytes": 135935,
+      "path": "B_strong_backbone/window_audit.jsonl",
+      "sha256": "20ecd87aaa0f8eb5add3d163df4fd0e2860104ec664516c67cf57f600bee4a51"
+    },
+    {
+      "bytes": 2655,
+      "path": "B_strong_backbone/by_horizon.csv",
+      "sha256": "60e8178e5399e5262d01ce6f8aa9a62e1aee2e184a1410eafad5f000ef618566"
+    },
+    {
+      "bytes": 8100,
+      "path": "B_strong_backbone/eval_step_38400.json",
+      "sha256": "b21ceede783844931e3ea8a4a0977ac69e24f31294083356b881384509f57af3"
+    },
+    {
+      "bytes": 8108,
+      "path": "B_strong_backbone/eval_step_28800.json",
+      "sha256": "eb417bf6dfcf0fe34fa7a716f401afd7670a98d93d067b9063fcf1acbcfd27e9"
+    },
+    {
+      "bytes": 479,
+      "path": "B_strong_backbone/final_primary_metrics.json",
+      "sha256": "4e23205c39aafcc6fa2a66b4ff109e9c1b6cbe66f264234d44aa795efb7a9947"
+    },
+    {
+      "bytes": 8108,
+      "path": "B_strong_backbone/eval_step_04800.json",
+      "sha256": "4a0b5fda5b08a42cc498ead819b4b21c074440e7ee57b2cc622586109743e1cb"
+    },
+    {
+      "bytes": 8113,
+      "path": "B_strong_backbone/eval_step_14400.json",
+      "sha256": "cb6074bb68b9906254c71ad8c01478b8c50c297057172e724d92db7c7ed5e057"
+    },
+    {
+      "bytes": 8074,
+      "path": "B_strong_backbone/eval_step_33600.json",
+      "sha256": "6007eb0972b58890be59fd3066297d32a0c0b617823c99f7ed9695edf24cbccc"
+    },
+    {
+      "bytes": 2279,
+      "path": "B_strong_backbone/run_config.json",
+      "sha256": "74a415ee324471063a8021d7fda4f28db7d92e1975a1333428f4de84a33fc3d0"
+    },
+    {
+      "bytes": 8106,
+      "path": "B_strong_backbone/eval_step_09600.json",
+      "sha256": "3df734f05dba2f97ccac321cf0cebf3ba7d7892298c71aab437cae8761969d45"
+    },
+    {
+      "bytes": 8094,
+      "path": "B_strong_backbone/eval_step_24000.json",
+      "sha256": "353894f1efbd7ae511669289af7515ff263e192410fe8b6e2377cb359d492a3b"
+    },
+    {
+      "bytes": 1537,
+      "path": "B_strong_backbone/by_trajectory.csv",
+      "sha256": "db1232b8b1d67d806b00ceb781cb5dbae9b7688596e70db950dab443d8192639"
+    },
+    {
+      "bytes": 8100,
+      "path": "B_strong_backbone/eval_step_19200.json",
+      "sha256": "f5575b6bdec021eca48cb16460fb068971947c8cbeb4e16aee5c86b3cb5eea79"
+    },
+    {
+      "bytes": 1733812,
+      "path": "B_strong_backbone/by_trajectory_horizon.csv",
+      "sha256": "c43997b80f9235126628ab6d0b4dd85b4f02e3a2635d1a0a95f5777b6f7d4e7e"
+    },
+    {
+      "bytes": 1341,
+      "path": "B_strong_backbone/diagnostics/summary.json",
+      "sha256": "b6a3a4751e891cda1904a6a8f83145d72c4edee57724105c59715fa691187a30"
+    },
+    {
+      "bytes": 4572,
+      "path": "B_strong_backbone/diagnostics/by_horizon.csv",
+      "sha256": "96cf4fd659b5710c09156f7bd9396ebe8e29410df7dc30d7e6fa0ce239aa540f"
+    },
+    {
+      "bytes": 3949,
+      "path": "B_strong_backbone/diagnostics/by_trajectory.csv",
+      "sha256": "2208439bdada40a9bcd72c22c6ec10cb8b949e857610dc6936d91fe2ff6d22e7"
+    },
+    {
+      "bytes": 1479942,
+      "path": "B_strong_backbone/diagnostics/by_trajectory_horizon.csv",
+      "sha256": "6ac7610a91b54c8c265a34afa7982c94a52dcb53a5cc3ed692f791223c9a0d3f"
+    }
+  ],
+  "max_bytes": 33554432,
+  "source": "/tmp/realpde-armb-evidence.6a1zJt/extracted"
+}

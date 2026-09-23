@@ -1,0 +1,61 @@
+{
+  "automatic_combo_started": false,
+  "base_weights_frozen": true,
+  "batch_benchmark_root": "/hy-tmp/realpde_runs/colleague80_v2_arm_b_benchmark_20260923",
+  "batch_profile": {
+    "batch_size": 8,
+    "decision": {
+      "checks": {
+        "peak_allocated_le_0p92": true,
+        "peak_reserved_le_0p96": true,
+        "throughput_gain_ge_1p20": false
+      },
+      "reason": "b16_checks_failed",
+      "selected": "b8",
+      "throughput_gain": 1.0332306670999127
+    },
+    "eval_interval": 4800,
+    "lr": 0.0002,
+    "matched_control_step": null,
+    "name": "b8",
+    "samples": 307200,
+    "updates": 38400
+  },
+  "campaign": "colleague80_v2_arm_b_strong_backbone",
+  "codabench_accessed": false,
+  "data": {
+    "dev_trajectories": 16,
+    "locked_final_accessed": false,
+    "train_dev_overlap": true,
+    "train_trajectories": 81
+  },
+  "execution_commit": "5ab7a15835d263f56feaf2e0f9232b366dbc2a64",
+  "residual_initialization": "fresh zero-init ResidualCorrector3D; no resume checkpoint",
+  "strong_backbone_checkpoint": "/hy-tmp/realpde_runs/sota_v2_full_20260922_rebuild/run/checkpoints/model_update_53582.pth",
+  "strong_backbone_provenance": "audited_rebuild_20260923",
+  "strong_backbone_sha256": "cc732555859cb00b3ea1af31415632c087af1fc60abd4f4056263e6f02ffa307",
+  "train_profile": {
+    "alpha": 1.0,
+    "batch_size": 8,
+    "blocks": 2,
+    "dropout": 0.0,
+    "eval_interval": 4800,
+    "gradient_mode": "scalar",
+    "hidden": 96,
+    "loss_weights": {
+      "delta_penalty": 0.02,
+      "grad": 0.015,
+      "mse": 0.05,
+      "p_zero": 0.01,
+      "point": 1.0,
+      "residual_mse": 0.25,
+      "temporal": 0.03,
+      "tke": 0.06
+    },
+    "lr": 0.0002,
+    "max_delta": 0.04,
+    "seed": 41,
+    "updates": 38400,
+    "weight_decay": 1e-05
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "arms": {
+    "B_strong_backbone": {
+      "batch_size": 8,
+      "decision": {
+        "checks": {
+          "peak_allocated_le_0p92": true,
+          "peak_reserved_le_0p96": true,
+          "throughput_gain_ge_1p20": false
+        },
+        "reason": "b16_checks_failed",
+        "selected": "b8",
+        "throughput_gain": 1.0332306670999127
+      },
+      "eval_interval": 4800,
+      "lr": 0.0002,
+      "matched_control_step": null,
+      "name": "b8",
+      "samples": 307200,
+      "updates": 38400
+    }
+  },
+  "selection_rule": {
+    "b16_max_peak_allocated_fraction": 0.92,
+    "b16_max_peak_reserved_fraction": 0.96,
+    "b16_min_throughput_gain": 1.2,
+    "validation_metrics_used": false
+  },
+  "version": 1
+}
