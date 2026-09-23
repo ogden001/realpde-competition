@@ -322,7 +322,7 @@ def main() -> None:
             "seed": SEED,
             "train_stride_parameter": 20,
             "eval_stride": 20,
-            "phase_count_equalization": false,
+            "phase_count_equalization": False,
             "expected_original_stride20_windows": 3341,
             "expected_consumed_samples_per_epoch_after_drop_last": 3336,
             "precision": "fp32",
