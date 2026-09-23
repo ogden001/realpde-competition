@@ -1,0 +1,34 @@
+{
+  "a18_checkpoint": "/hy-tmp/realpde_runs/colleague80_v2_arm_a_pareto_tke_continuation_20260923/A_pareto_tke/model_best.pth",
+  "a18_sha256": "852b41cda7d15ce9b205aecb32e206712e7a036b18981a62a9afc4e9a0b9a238",
+  "betas": [
+    0.5,
+    0.65,
+    0.8,
+    1.0
+  ],
+  "codabench_accessed": false,
+  "current80_checkpoint": "/hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/residual_model_best.pth",
+  "current80_sha256": "909fdc7f8a6a42335e4ea4ce7471fc9a507135e9a29a4927bc7b7318be9c85b2",
+  "execution_commit": "c2e08c5ec880681dedd84be1a0fc23d757b679c4",
+  "experiment": "current80_to_A18_corrector_weight_interpolation",
+  "fixed_time_seconds": 0.01762683533,
+  "frozen_backbone_requires_bitwise_parity": true,
+  "gpu": {
+    "cuda_runtime": "12.1",
+    "gpu": "NVIDIA GeForce RTX 3090 Ti",
+    "gpu_memory_bytes": 25425608704,
+    "torch": "2.4.0+cu121"
+  },
+  "interpolated_scope": "corrector.* only",
+  "locked_final_accessed": false,
+  "runtime_alpha": 1.0,
+  "stage1_base_expected_sha256": "ff28aaf0114d57e320e5ea9cf9945d874a7482f22e3f0aeaed5ebbe286573f8a",
+  "training_started": false,
+  "verified_data": {
+    "dev": 16,
+    "train": 81,
+    "train_dev_overlap": true,
+    "verified_files": 81
+  }
+}

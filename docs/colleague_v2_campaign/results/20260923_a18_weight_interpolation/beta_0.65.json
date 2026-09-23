@@ -1,0 +1,20 @@
+{
+  "beta": 0.65,
+  "final_est": 81.98481375474917,
+  "mechanical_gate": {
+    "checks": {
+      "mvpe_degradation_le_0p3pct": true,
+      "rel_degradation_le_0p5pct": true,
+      "tke_improvement_ge_3pct": true
+    },
+    "delta_mvpe_pct_vs_current80": -0.46960021900125776,
+    "delta_rel_l2_pct_vs_current80": 0.43552038819157113,
+    "delta_tke_pct_vs_current80": -3.824612092560336,
+    "pass": true
+  },
+  "mvpe_raw": 0.07078295163810253,
+  "rel_l2_raw": 0.08077066689729691,
+  "sps_score": 48.44399018287659,
+  "time_score": 86.54248999999716,
+  "tke_raw": 0.4319796904921532
+}
