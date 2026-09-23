@@ -1168,7 +1168,7 @@ def main() -> None:
         json.dumps(summaries, indent=2, default=str) + "\n",
         encoding="utf-8",
     )
-    if args.selection_metric == "point_score":
+    if args.selection_metric == "point_score" and not args.benchmark_mode:
         write_horizon_snapshot(
             model,
             val_loader,
@@ -1413,7 +1413,7 @@ def main() -> None:
                 json.dumps(summaries, indent=2, default=str) + "\n",
                 encoding="utf-8",
             )
-            if args.selection_metric == "point_score":
+            if args.selection_metric == "point_score" and not args.benchmark_mode:
                 write_horizon_snapshot(
                     model,
                     val_loader,
