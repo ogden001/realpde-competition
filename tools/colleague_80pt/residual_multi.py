@@ -706,6 +706,15 @@ def main() -> None:
         default="fixed",
     )
     parser.add_argument(
+        "--disable-phase-count-equalization",
+        action="store_true",
+        help=(
+            "Preserve every fixed-stride window instead of trimming each trajectory "
+            "to the minimum count across phases. Use this to reproduce the original "
+            "colleague Stage-2 3341-window stride20 baseline."
+        ),
+    )
+    parser.add_argument(
         "--angle-aug-max-deg",
         type=float,
         default=0.0,
@@ -844,7 +853,7 @@ def main() -> None:
     control_reference_sampler = RandomPhaseWindowSampler(
         base_train_dataset,
         seed=args.seed,
-        equalize_phase_counts=True,
+        equalize_phase_counts=not args.disable_phase_count_equalization,
     )
     fixed_phases = {path.name: 0 for path in fit_paths}
     train_sampler: RandomPhaseWindowSampler | None = None
@@ -985,7 +994,7 @@ def main() -> None:
             "future_used_to_construct_input_shift": False,
             "audit": aoa_aug_dataset.audit() if aoa_aug_dataset is not None else None,
         },
-        "phase_counts_equalized": True,
+        "phase_counts_equalized": not args.disable_phase_count_equalization,
         "updates": args.updates,
         "eval_interval": args.eval_interval,
         "batch_size": args.batch_size,
