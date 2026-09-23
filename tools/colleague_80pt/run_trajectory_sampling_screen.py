@@ -147,6 +147,7 @@ def build_arm_command(
         "--train-alpha", "1.0",
         "--tke", "0.06",
         "--train-window-mode", sampling_mode,
+        "--disable-phase-count-equalization",
         "--bound-abs", "0.0075",
         "--bound-rel", "0.0075",
         "--fixed-time-seconds", str(FIXED_TIME_SECONDS),
@@ -321,6 +322,9 @@ def main() -> None:
             "seed": SEED,
             "train_stride_parameter": 20,
             "eval_stride": 20,
+            "phase_count_equalization": false,
+            "expected_original_stride20_windows": 3341,
+            "expected_consumed_samples_per_epoch_after_drop_last": 3336,
             "precision": "fp32",
         },
         "arms": {
@@ -392,6 +396,27 @@ def main() -> None:
                 args.out_root / f"{label}.review_builder.log",
                 command_log,
             )
+
+        control_config = json.loads(
+            (control_dir / "run_config.json").read_text(encoding="utf-8")
+        )
+        candidate_config = json.loads(
+            (candidate_dir / "run_config.json").read_text(encoding="utf-8")
+        )
+        for label, config in (
+            ("control", control_config),
+            ("candidate", candidate_config),
+        ):
+            if int(config["reference_fixed_stride_windows"]) != 3341:
+                raise RuntimeError(
+                    f"{label} does not reproduce original 3341-window Stage-2 baseline"
+                )
+            if int(config["train_samples_per_epoch"]) != 3336:
+                raise RuntimeError(
+                    f"{label} consumed-samples-per-epoch mismatch after batch drop-last"
+                )
+            if bool(config["phase_counts_equalized"]):
+                raise RuntimeError(f"{label} unexpectedly equalized phase counts")
 
         init_parity = compare_initial_states(
             control_dir / "model_init.pth",
@@ -475,6 +500,7 @@ def main() -> None:
         evidence = {
             "execution_commit": execution_commit,
             "initialization_parity": "PASS",
+            "original_3341_window_baseline_reproduced": "PASS",
             "control_best_iteration": json.loads(
                 (control_dir / "summary.json").read_text(encoding="utf-8")
             )["best_iter"],
