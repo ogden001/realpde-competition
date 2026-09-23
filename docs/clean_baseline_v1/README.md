@@ -139,3 +139,14 @@ The runner writes:
 - REVIEW_REQUIRED status
 
 It does not train SPS, refit all released data, package a submission, access locked-final/private data, or access Codabench.
+
+
+## 3090 / 3090 Ti runtime engineering profile
+
+The clean baseline preloads released Train/Dev PIV tensors into host RAM after P00 subsampling and float32 conversion. Window semantics are unchanged: the same legal starts, stride, shuffle order and training batch are used; only repeated HDF5 opens/reads are removed.
+
+For DataLoader workers > 0, clean training uses persistent workers plus prefetching. RAM-cache size, worker count and prefetch settings are written into run/runtime evidence.
+
+Optional `--runtime-profile` on `run_clean_baseline_v1.py` performs disposable batch=8 versus batch=16 benchmarks for Stage1 and Stage2. Selection uses throughput and VRAM only, via the existing rule that b16 must achieve at least 1.20x samples/sec while staying within the configured VRAM headroom.
+
+The recommendation is evidence for future experiment families only. It never overrides REALPDE_CLEAN_BASELINE_V1, whose actual training remains batch=8.
