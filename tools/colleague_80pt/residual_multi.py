@@ -950,7 +950,12 @@ def main() -> None:
         "train_trajectories": len(train_paths),
         "fit_trajectories": len(fit_paths),
         "val_trajectories": len(val_paths),
-        "train_windows": len(base_train_dataset),
+        "train_windows": (
+            len(base_train_dataset)
+            if train_batch_sampler is not None
+            else len(train_sampler)  # type: ignore[arg-type]
+        ),
+        "candidate_legal_windows": len(base_train_dataset),
         "train_samples_per_epoch": int(train_samples_per_epoch),
         "reference_fixed_stride_windows": len(control_reference_sampler),
         "val_windows": len(val_dataset),
