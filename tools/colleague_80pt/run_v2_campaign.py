@@ -42,9 +42,17 @@ ARM_A_EVAL = 2_000
 ARM_B_UPDATES = 38_400
 ARM_B_EVAL = 4_800
 ARM_C_UPDATES = 20_000
-EXPECTED_STRONG_BACKBONE_SHA256 = (
+HISTORICAL_STRONG_BACKBONE_SHA256 = (
     "f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce8"
 )
+REBUILT_STRONG_BACKBONE_SHA256 = (
+    "cc732555859cb00b3ea1af31415632c087af1fc60abd4f4056263e6f02ffa307"
+)
+APPROVED_STRONG_BACKBONE_SHA256 = {
+    HISTORICAL_STRONG_BACKBONE_SHA256: "historical_20260916",
+    REBUILT_STRONG_BACKBONE_SHA256: "audited_rebuild_20260923",
+}
+EXPECTED_STRONG_BACKBONE_SHA256 = HISTORICAL_STRONG_BACKBONE_SHA256
 
 
 def load_training_profiles(path: Path | None) -> dict[str, TrainProfile]:
@@ -241,8 +249,9 @@ def run_campaign(args: argparse.Namespace) -> dict[str, object]:
         raise RuntimeError("colleague Stage-1 CNO checkpoint SHA-256 mismatch")
     if sha256(args.colleague_residual_checkpoint) != EXPECTED_START_SHA256:
         raise RuntimeError("colleague 80-point residual checkpoint SHA-256 mismatch")
-    if sha256(args.strong_backbone_checkpoint) != EXPECTED_STRONG_BACKBONE_SHA256:
-        raise RuntimeError("SOTA-V2 full@53582 checkpoint SHA-256 mismatch")
+    strong_sha = sha256(args.strong_backbone_checkpoint)
+    if strong_sha not in APPROVED_STRONG_BACKBONE_SHA256:
+        raise RuntimeError("SOTA-V2 full@53582 checkpoint SHA-256 is not approved")
 
     execution_commit = require_clean_main_checkout(REPO_ROOT)
     gpu = require_gpu()
@@ -271,7 +280,8 @@ def run_campaign(args: argparse.Namespace) -> dict[str, object]:
                     args.colleague_residual_checkpoint
                 ),
                 "strong_backbone": str(args.strong_backbone_checkpoint),
-                "strong_backbone_sha256": sha256(args.strong_backbone_checkpoint),
+                "strong_backbone_sha256": strong_sha,
+                "strong_backbone_provenance": APPROVED_STRONG_BACKBONE_SHA256[strong_sha],
             },
             "batch_profile_source": (
                 str(args.profile_json) if args.profile_json is not None else "default_b8"
