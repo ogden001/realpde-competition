@@ -1,0 +1,22 @@
+{
+  "canonical_windows": 3383,
+  "dense_windows": 66755,
+  "direct_to_mf_uv_max_abs_diff": 1.1920928955078125e-07,
+  "feature_count": 20,
+  "final_update": 53582,
+  "gradient_max_abs": 1892.693359375,
+  "loss": 53.3288459777832,
+  "loss_parts": {
+    "fluct": 43.20071792602539,
+    "mean": 7.137800693511963,
+    "mse": 0.33629828691482544,
+    "mvpe": 8.997167587280273,
+    "rel": 7.82802677154541,
+    "tke": 1045.68701171875,
+    "vorticity": 0.026066044345498085
+  },
+  "passed": true,
+  "pressure_max_abs": 0.0,
+  "released_trajectories": 82,
+  "stage_a_end": 49461
+}
