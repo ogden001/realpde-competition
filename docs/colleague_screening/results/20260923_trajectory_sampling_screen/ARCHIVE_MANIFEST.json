@@ -1,0 +1,14 @@
+{
+  "arms": [
+    "A_fixed_stride20",
+    "B_stratified_random_start"
+  ],
+  "checkpoints_copied": false,
+  "destination": "docs/colleague_screening/results/20260923_trajectory_sampling_screen",
+  "h5_copied": false,
+  "locked_final_copied": false,
+  "prediction_caches_copied": false,
+  "raw_training_logs_copied": false,
+  "scientific_variable": "training sampling policy only",
+  "source_run_root": "/hy-tmp/realpde_runs/trajectory_sampling_screen_20260923_v1"
+}

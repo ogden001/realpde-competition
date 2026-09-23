@@ -1,0 +1,13 @@
+{
+  "automatic_long_training_started": false,
+  "candidate_best_iteration": 5004,
+  "candidate_sampling_audit": "PASS",
+  "codabench_accessed": false,
+  "control_best_iteration": 5000,
+  "control_sampling_audit": "PASS",
+  "execution_commit": "6b7eab5f0e8410268d5e112ac02a8052921ffa41",
+  "initialization_parity": "PASS",
+  "locked_final_accessed": false,
+  "matched_progress_rows": 7,
+  "original_3341_window_baseline_reproduced": "PASS"
+}

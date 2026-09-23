@@ -1,0 +1,36 @@
+{
+  "candidate": {
+    "candidate_legal_windows": 65926,
+    "duplicate_trajectory_batches": 0,
+    "samples_consumed": 40032,
+    "sampling_policy": "baseline_weight_matched_trajectory_stratified_random_start",
+    "trajectory_draw_max": 504,
+    "trajectory_draw_median": 503.0,
+    "trajectory_draw_min": 155,
+    "unique_start_fraction_median": 0.6067551266586249,
+    "unique_start_max": 504,
+    "unique_start_median": 503.0,
+    "unique_start_min": 155,
+    "unique_window_fraction": 0.6072262840154112,
+    "unique_windows_consumed": 40032
+  },
+  "candidate_batch_trajectory_duplicates": 0,
+  "candidate_unique_window_gain": 36691,
+  "control": {
+    "candidate_legal_windows": 65926,
+    "duplicate_trajectory_batches": 1519,
+    "samples_consumed": 40032,
+    "sampling_policy": "baseline_fixed_stride_global_shuffle",
+    "trajectory_draw_max": 504,
+    "trajectory_draw_median": 503.0,
+    "trajectory_draw_min": 155,
+    "unique_start_fraction_median": 0.05066344993968637,
+    "unique_start_max": 42,
+    "unique_start_median": 42.0,
+    "unique_start_min": 13,
+    "unique_window_fraction": 0.0506780329460304,
+    "unique_windows_consumed": 3341
+  },
+  "per_trajectory_draws_matched": true,
+  "same_samples_consumed": true
+}

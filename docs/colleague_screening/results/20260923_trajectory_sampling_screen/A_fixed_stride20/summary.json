@@ -1,0 +1,34 @@
+{
+  "best_iter": 5000,
+  "best_score": 81.34794507420403,
+  "best_alpha": 1.0,
+  "best_bound_abs": 0.0075,
+  "best_bound_rel": 0.0075,
+  "latest_top": {
+    "n": 640,
+    "rel_l2": 0.08404701594263315,
+    "tke": 0.4835275799036026,
+    "mvpe": 0.07628247560933232,
+    "mean_t_neural_s": 0.01762683533,
+    "rel_l2_score": 95.96712476735475,
+    "tke_score": 80.53061363939553,
+    "mvpe_score": 96.32600686537387,
+    "time_score": 86.54248999999716,
+    "best_bounds": [
+      {
+        "abs": 0.0075,
+        "rel": 0.0075,
+        "coverage": 0.8254303169250489,
+        "sps_raw": 0.4737347902059555,
+        "sps_score_linear": 47.373479020595546,
+        "sps_score_used": 47.373479020595546,
+        "final_est": 81.34794285854336
+      }
+    ],
+    "alpha": 1.0,
+    "best_final_est": 81.34794285854336,
+    "best_bound_abs": 0.0075,
+    "best_bound_rel": 0.0075,
+    "iteration": 5004
+  }
+}

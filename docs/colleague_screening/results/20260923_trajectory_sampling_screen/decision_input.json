@@ -1,0 +1,60 @@
+{
+  "initialization_parity": {
+    "exact": true,
+    "max_abs_difference": 0.0,
+    "mismatch_keys": [],
+    "state_keys": 256
+  },
+  "note": "No automatic scientific verdict and no automatic extension. Sol reviews trajectory/horizon diagnostics and sampling exposure.",
+  "primary_comparison": "candidate_final_vs_control_final_at_5004",
+  "sampling_exposure": {
+    "candidate": {
+      "candidate_legal_windows": 65926,
+      "duplicate_trajectory_batches": 0,
+      "samples_consumed": 40032,
+      "sampling_policy": "baseline_weight_matched_trajectory_stratified_random_start",
+      "trajectory_draw_max": 504,
+      "trajectory_draw_median": 503.0,
+      "trajectory_draw_min": 155,
+      "unique_start_fraction_median": 0.6067551266586249,
+      "unique_start_max": 504,
+      "unique_start_median": 503.0,
+      "unique_start_min": 155,
+      "unique_window_fraction": 0.6072262840154112,
+      "unique_windows_consumed": 40032
+    },
+    "candidate_batch_trajectory_duplicates": 0,
+    "candidate_unique_window_gain": 36691,
+    "control": {
+      "candidate_legal_windows": 65926,
+      "duplicate_trajectory_batches": 1519,
+      "samples_consumed": 40032,
+      "sampling_policy": "baseline_fixed_stride_global_shuffle",
+      "trajectory_draw_max": 504,
+      "trajectory_draw_median": 503.0,
+      "trajectory_draw_min": 155,
+      "unique_start_fraction_median": 0.05066344993968637,
+      "unique_start_max": 42,
+      "unique_start_median": 42.0,
+      "unique_start_min": 13,
+      "unique_window_fraction": 0.0506780329460304,
+      "unique_windows_consumed": 3341
+    },
+    "per_trajectory_draws_matched": true,
+    "same_samples_consumed": true
+  },
+  "step_5004": {
+    "candidate_final_est": 81.30112811197371,
+    "candidate_mvpe_raw": 0.07654542839154602,
+    "candidate_rel_l2_raw": 0.08415309935808182,
+    "candidate_tke_raw": 0.4884380303323269,
+    "control_final_est": 81.34794285854336,
+    "control_mvpe_raw": 0.07628247560933232,
+    "control_rel_l2_raw": 0.08404701594263315,
+    "control_tke_raw": 0.4835275799036026,
+    "delta_mvpe_pct_candidate_vs_control": 0.34470929281367485,
+    "delta_rel_l2_pct_candidate_vs_control": 0.12621913372995458,
+    "delta_tke_pct_candidate_vs_control": 1.0155471234346651,
+    "step": 5004
+  }
+}
