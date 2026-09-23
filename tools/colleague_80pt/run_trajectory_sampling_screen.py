@@ -41,7 +41,7 @@ from run_incremental_screen import (
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
-UPDATES = 5_000
+UPDATES = 5_004
 EVAL_INTERVAL = 1_000
 BATCH_SIZE = 8
 LR = 2e-4
@@ -194,7 +194,8 @@ def compare_initial_states(control_path: Path, candidate_path: Path) -> dict[str
 
 def build_progress(control_dir: Path, candidate_dir: Path, out_path: Path) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
-    for step in range(0, UPDATES + 1, EVAL_INTERVAL):
+    steps = list(range(0, 5_001, EVAL_INTERVAL)) + [UPDATES]
+    for step in steps:
         control = alpha_one_metrics(control_dir / f"eval_step_{step:05d}.json")
         candidate = alpha_one_metrics(candidate_dir / f"eval_step_{step:05d}.json")
         row: dict[str, object] = {
@@ -311,6 +312,7 @@ def main() -> None:
             "resume_checkpoint": None,
             "residual_initialization": "fresh_zero_output_layer_same_seed",
             "updates": UPDATES,
+            "budget_note": "5004 updates = exactly 12 x 417 matched batches",
             "eval_interval": EVAL_INTERVAL,
             "batch_size": BATCH_SIZE,
             "lr": LR,
