@@ -120,6 +120,7 @@ class H5WindowDataset(Dataset):
         max_windows_per_trajectory: int | None = None,
         include_pressure: bool = False,
         window_mode: str = "fixed",
+        preload_to_ram: bool = False,
     ) -> None:
         if min(in_steps, out_steps, stride, sub_sample) < 1:
             raise ValueError("in_steps, out_steps, stride, and sub_sample must be positive")
@@ -131,14 +132,34 @@ class H5WindowDataset(Dataset):
         self.sub_sample = int(sub_sample)
         self.include_pressure = bool(include_pressure)
         self.window_mode = window_mode
+        self.preload_to_ram = bool(preload_to_ram)
         self.max_windows_per_trajectory = max_windows_per_trajectory
         self.paths = list(paths)
         self.lengths: dict[Path, int] = {}
         self.refs: list[WindowRef] = []
+        self._ram_cache: dict[Path, tuple[np.ndarray, np.ndarray, np.ndarray | None]] = {}
+        self._cache_bytes = 0
         total = self.in_steps + self.out_steps
         for path in self.paths:
             with h5py.File(path, "r") as handle:
                 length = int(h5_field(handle, "u").shape[0])
+                if self.preload_to_ram:
+                    ss = self.sub_sample
+                    u_all = np.asarray(h5_field(handle, "u")[:, ::ss, ::ss], dtype=np.float32)
+                    v_all = np.asarray(h5_field(handle, "v")[:, ::ss, ::ss], dtype=np.float32)
+                    p_all: np.ndarray | None = None
+                    if self.include_pressure:
+                        try:
+                            p_all = np.asarray(
+                                h5_field(handle, "p")[:, ::ss, ::ss],
+                                dtype=np.float32,
+                            )
+                        except KeyError:
+                            p_all = None
+                    self._ram_cache[path] = (u_all, v_all, p_all)
+                    self._cache_bytes += int(u_all.nbytes + v_all.nbytes)
+                    if p_all is not None:
+                        self._cache_bytes += int(p_all.nbytes)
             self.lengths[path] = length
             step = 1 if window_mode == "random_phase" else self.stride
             starts = list(range(0, length - total + 1, step))
@@ -151,21 +172,39 @@ class H5WindowDataset(Dataset):
     def __len__(self) -> int:
         return len(self.refs)
 
+    @property
+    def cache_bytes(self) -> int:
+        return int(self._cache_bytes)
+
+    def cache_summary(self) -> dict[str, object]:
+        return {
+            "enabled": self.preload_to_ram,
+            "trajectories": len(self._ram_cache),
+            "bytes": int(self._cache_bytes),
+            "gib": float(self._cache_bytes / (1024 ** 3)),
+        }
+
     def __getitem__(self, index: int) -> tuple[Tensor, Tensor]:
         ref = self.refs[index]
         total = self.in_steps + self.out_steps
-        with h5py.File(ref.path, "r") as handle:
-            sl = slice(ref.start, ref.start + total)
-            ss = self.sub_sample
-            u = np.asarray(h5_field(handle, "u")[sl, ::ss, ::ss], dtype=np.float32)
-            v = np.asarray(h5_field(handle, "v")[sl, ::ss, ::ss], dtype=np.float32)
-            if self.include_pressure:
-                try:
-                    p = np.asarray(h5_field(handle, "p")[sl, ::ss, ::ss], dtype=np.float32)
-                except KeyError:
+        sl = slice(ref.start, ref.start + total)
+        if self.preload_to_ram:
+            u_all, v_all, p_all = self._ram_cache[ref.path]
+            u = u_all[sl]
+            v = v_all[sl]
+            p = p_all[sl] if p_all is not None else np.zeros_like(u)
+        else:
+            with h5py.File(ref.path, "r") as handle:
+                ss = self.sub_sample
+                u = np.asarray(h5_field(handle, "u")[sl, ::ss, ::ss], dtype=np.float32)
+                v = np.asarray(h5_field(handle, "v")[sl, ::ss, ::ss], dtype=np.float32)
+                if self.include_pressure:
+                    try:
+                        p = np.asarray(h5_field(handle, "p")[sl, ::ss, ::ss], dtype=np.float32)
+                    except KeyError:
+                        p = np.zeros_like(u)
+                else:
                     p = np.zeros_like(u)
-            else:
-                p = np.zeros_like(u)
         full = torch.from_numpy(np.stack([u, v, p], axis=-1))
         return full[: self.in_steps], full[self.in_steps :]
 
