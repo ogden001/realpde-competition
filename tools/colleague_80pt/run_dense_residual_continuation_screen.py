@@ -230,7 +230,8 @@ def main() -> None:
         "gpu": gpu,
         "candidate": {
             "scientific_variable": "residual_continuation_training_stride",
-            "stride": 1,
+            "train_stride": 1,
+            "eval_stride": 20,
             "updates": UPDATES,
             "eval_interval": EVAL_INTERVAL,
             "batch_size": 8,
@@ -290,6 +291,7 @@ def main() -> None:
             "--blocks", "2",
             "--max-delta", "0.04",
             "--stride", "1",
+            "--eval-stride", "20",
             "--train-alpha", "1.0",
             "--tke", "0.06",
             "--train-window-mode", "fixed",
