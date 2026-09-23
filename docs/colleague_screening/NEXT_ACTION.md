@@ -1,4 +1,4 @@
-# NEXT_ACTION — CURRENT80 RESIDUAL DENSE-CONTINUATION SCREEN
+# NEXT_ACTION — MATCHED RESIDUAL TRAJECTORY-SAMPLING SCREEN
 
 Status: `READY_FOR_EXECUTION / REVIEW_REQUIRED_AFTER_RUN`
 
@@ -6,413 +6,412 @@ Status: `READY_FOR_EXECUTION / REVIEW_REQUIRED_AFTER_RUN`
 
 验证：
 
-> 当前成熟的 colleague 80pt residual corrector 已经在 stride=20 上长训收敛后，再用真实 PIV 的 dense temporal starts（stride=1）继续训练，是否比同预算的 sparse stride=20 continuation 更有效？
+> 在完全相同的 released PIV trajectory、frozen CNO、fresh residual 初始化、模型、loss、optimizer 和训练 sample budget 下，只改变 residual 的训练采样策略，能否通过更充分地利用每条真实 trajectory 的 temporal starts 提高学习效果？
 
-这是一个 **continuation curriculum（续训课程）** 实验，不是 dense-from-scratch 实验。
+本实验不是：
 
-### Existing evidence that MUST be respected
+- 数据增强；
+- AoA 实验；
+- CFD 实验；
+- current80 continuation；
+- stride=1 flattened dataset 重跑；
+- 长训。
 
-同事 handoff 已明确记录：
-
-- **Residual stride=1 from scratch：-2.9%，NO-GO**
-- 历史上 dense 只有以 continuation 形式出现过正信号
-- 当前 80pt residual 的正式训练仍是 stride=20、38,400 updates、best@34,000
-
-因此本任务禁止：
-
-- 从 CNO 上重新初始化一个 stride=1 residual；
-- 重跑已经失败的 dense-from-scratch；
-- 把本任务解释成“stride=1 residual 从零训练”。
-
-本任务唯一的新问题是：
-
-```text
-mature current80 residual
-        ↓
-short dense stride=1 continuation
-```
+本实验只比较 **sampling policy（采样策略）**。
 
 ---
 
-## 2. Frozen baseline
+## 2. Why this experiment exists
 
-### Stage-1 frozen CNO
+已知事实：
+
+1. 原始 80pt Stage2 residual：
+   - all81 released PIV
+   - fixed stride=20
+   - **3341 windows**
+   - h96/b2
+   - 38400 updates
+   - best@34000
+
+2. `dense stride=1 from scratch` 在同事历史记录中曾失败，但当时没有严格的 trajectory-stratified sampler 对照。
+
+3. 2026-09-23 的 current80 dense continuation 也失败，但它回答的是：
+   - 一个已经被 stride20 长训到成熟状态的 residual，
+   - 突然切换 sampling distribution 后短程 continuation 是否有效。
+   
+   它**不能回答** fresh residual 从训练开始就使用更合理 random-start sampler 是否更好。
+
+4. 因此这次必须从相同的 fresh residual 开始做 matched A/B，避免 continuation history bias。
+
+---
+
+## 3. Frozen data / model baseline
+
+### Released PIV data
+
+严格使用 historical colleague protocol：
+
+- train: all 81 usable released PIV trajectories
+- dev: frozen Dev16，按历史 colleague protocol 与 all81 overlap
+- locked-final/private: 禁止访问
+
+Frozen split manifest SHA256：
+
+`d127e851f3f5eefb011313b1b0b1d79e65db6d99c0754d264119ff12046a83a2`
+
+Frozen data manifest SHA256：
+
+`3612185c939f6c4cd4890afd3968d160a44e88d3e6f7733b8cb9ce71501d532c`
+
+不得重新划分，不得换 trajectory。
+
+### Frozen Stage1 CNO
+
+使用 colleague all81 CNO：
 
 SHA256：
 
 `ff28aaf0114d57e320e5ea9cf9945d874a7482f22e3f0aeaed5ebbe286573f8a`
 
-### Current 80pt residual start checkpoint
+两个 arm 使用完全相同 checkpoint。
 
-SHA256：
+### Residual initialization
 
-`909fdc7f8a6a42335e4ea4ce7471fc9a507135e9a29a4927bc7b7318be9c85b2`
+两个 arm 都：
 
-Unified offline current80:
+- fresh `ResidualCorrector3D`
+- hidden=96
+- blocks=2
+- max_delta=0.04
+- output layer zero-init
+- seed=41
+- **禁止 resume 任何 residual checkpoint**
 
-- Rel-L2: `0.0804204195737838`
-- TKE: `0.4491582512855530`
-- MVPE: `0.0711169168353080`
+runner 必须在训练完成后比较两个 `model_init.pth` 的 `model_state_dict`：
 
----
+- key 完全相同
+- tensor 完全 bitwise equal
+- max absolute difference = 0
 
-## 3. Historical matched sparse control — DO NOT RERUN
-
-We already have an exact same-budget sparse continuation control from 2026-09-21 R0.
-
-Evidence:
-
-`docs/colleague_screening/results/20260921`
-
-Historical execution commit:
-
-`ef9c54f621efcb82703cb2de40ce979c40df3c6a`
-
-R0 semantics:
-
-- same base CNO
-- same current80 residual start checkpoint
-- updates = `5000`
-- eval interval = `1000`
-- batch = `8`
-- lr = `2e-4`
-- weight decay = `1e-5`
-- hidden = `96`
-- blocks = `2`
-- max_delta = `0.04`
-- TKE weight = `0.06`
-- seed = `41`
-- optimizer/scheduler reset for continuation
-- train window mode = fixed
-- **stride = 20**
-
-R0 @5k:
-
-- Rel-L2 = `0.0802410691976547`
-- TKE = `0.4503658413887024`
-- MVPE = `0.0710276663303375`
-
-This historical R0 is the matched control. Do not waste GPU reproducing it unless its provenance validation fails.
+否则：`BLOCKED`。
 
 ---
 
-## 4. New candidate — Dense continuation
+## 4. Exact original Stage2 sampling baseline
 
-Only one scientific change relative to historical R0:
+原始 handoff 的真实 Stage2 evidence：
+
+`docs/colleague_80pt_handoff/evidence/run_config.json`
+
+明确记录：
+
+`train_windows = 3341`
+
+因此本实验 Control 必须复刻：
+
+- stride=20
+- starts = 0,20,40,...
+- all 81 trajectories
+- **3341 candidate windows**
+- batch=8
+- DataLoader drop-last
+
+3341 / 8：
+
+- 每完整 epoch = 417 batches
+- 实际 consumed samples = 3336
+- 5 windows 被 drop-last
+
+为了消除最后 partial epoch 的 trajectory exposure 偏差，本实验固定：
+
+`5004 updates = 417 × 12`
+
+即：
+
+> **恰好 12 个完整 matched epochs**
+
+这仍然是约 5k update screen，只比 5000 多 4 steps。
+
+### Important compatibility rule
+
+当前重构版 runner 曾加入 phase-count equalization。
+
+本任务必须：
+
+`--disable-phase-count-equalization`
+
+并强制验证：
+
+- `reference_fixed_stride_windows == 3341`
+- `train_samples_per_epoch == 3336`
+- `phase_counts_equalized == false`
+
+任何一项不满足：`BLOCKED`。
+
+---
+
+## 5. Arm A — Baseline Control
+
+名称：
+
+`A_fixed_stride20`
+
+Sampling：
 
 ```text
-stride: 20 → 1
+all81 trajectories
+        ↓
+fixed start = 0,20,40,...
+        ↓
+3341 windows
+        ↓
+global shuffle
+        ↓
+batch=8, drop-last
 ```
 
-Everything else remains matched.
-
-Fixed:
-
-- resume from current80 residual SHA above
-- frozen all81 CNO SHA above
-- updates = `5000`
-- eval every = `1000`
-- batch = `8`
-- lr = `2e-4`
-- weight decay = `1e-5`
-- hidden = `96`
-- blocks = `2`
-- max_delta = `0.04`
-- TKE = `0.06`
-- point/MSE/temporal/grad/residual/delta losses unchanged
-- train alpha = `1.0`
-- fixed window mode
-- **training stride = 1**
-- **evaluation stride = 20**，必须保持与 historical R0 完全相同的评估口径
-- seed = `41`
-- no AoA augmentation
-- no rotation augmentation
-- no random-phase sampler semantics beyond stride=1 dense starts
-- no architecture change
-- no loss change
-
-The experiment is intentionally short. Do not automatically extend beyond 5k.
+保持原始 residual Stage2 的 fixed-stride sampling semantics。
 
 ---
 
-## 5. Data protocol
+## 6. Arm B — Trajectory-Stratified Random-Start
 
-Use the exact colleague competition-oriented all81 / Dev16-overlap protocol used by historical R0.
+名称：
 
-Expected split manifest SHA256:
+`B_stratified_random_start`
 
-`d127e851f3f5eefb011313b1b0b1d79e65db6d99c0754d264119ff12046a83a2`
+数据集 membership 与 A **完全相同**。
 
-Expected data manifest SHA256:
+每个 epoch 先读取 Arm A 在该 epoch、drop-last 后的实际 trajectory sample quota。
 
-`3612185c939f6c4cd4890afd3968d160a44e88d3e6f7733b8cb9ce71501d532c`
+例如某 trajectory 在 A 这一 epoch 实际出现 41 次，那么 B 也必须出现 **恰好 41 次**。
 
-Semantics:
+因此 B 不得：
 
-- train = all 81 usable released PIV trajectories
-- Dev16 overlaps train by the frozen colleague protocol
-- this is a **competition-oriented matched screen**, not a clean generalization estimate
-- locked-final/private data forbidden
+- 均匀重权重 short trajectory；
+- 增加或减少任何 trajectory 的 epoch exposure；
+- 改变总 sample 数。
 
-Do not substitute another split.
-
----
-
-## 6. Why this experiment is worth running
-
-Current Stage 2 sparse residual:
-
-- ~3,341 stride=20 windows
-- 38.4k long training updates
-- repeatedly revisits a relatively small set of temporal phases
-
-Stage 1 CNO already saw dense stride=1 starts.
-
-The candidate asks whether, after the residual has already learned a stable correction from sparse windows, a short dense continuation can expose it to more **real temporal phases** without forcing it to learn the residual from scratch.
-
-This is not synthetic augmentation. Every dense window is a real PIV Past20→Future20 pair.
-
----
-
-## 7. Required runner
-
-Use:
-
-`tools/colleague_80pt/run_dense_residual_continuation_screen.py`
-
-The runner must:
-
-1. verify base CNO SHA;
-2. verify current80 residual SHA;
-3. verify exact historical split/data-manifest SHA;
-4. verify all81 data;
-5. run one train-stride=1 continuation arm for 5k;
-6. keep validation/evaluation stride fixed at 20;
-7. eval at 1k/2k/3k/4k/5k;
-8. build deterministic training review log;
-9. build `training_progress.csv`;
-10. build `comparison_at_5k.csv` containing:
-   - frozen current80
-   - historical sparse-5k R0
-   - new dense-5k
-11. replay:
-   - current80
-   - dense_best
-   - dense_final
-12. write standard horizon/trajectory/mean/fluctuation/energy diagnostics;
-13. stop at REVIEW_REQUIRED.
-
-No automatic scientific verdict is allowed in the runner.
-
----
-
-## 8. Review criteria for Sol
-
-Primary comparison:
+B 只改变如何选择 temporal start 与 batch composition：
 
 ```text
-dense-5k vs historical sparse-5k R0
+Arm A 的每-trajectory quota
+        ↓
+按相同 quota 选择 trajectory
+        ↓
+一个 batch 内 8 条 trajectory 必须互不重复
+        ↓
+每条 trajectory 从全部合法 start 中取一个 start
+        ↓
+per-trajectory shuffled-start bag
+        ↓
+该 trajectory 的合法 start 未遍历完之前尽量不重复
 ```
 
-Secondary comparison:
+### Hard sampler requirements
+
+必须满足：
+
+1. 每个完整 epoch：
+   - A/B total consumed samples 相同；
+   - A/B 每条 trajectory draw count 完全相同。
+
+2. B：
+   - batch 内 duplicate trajectory 数 = 0；
+   - candidate 使用所有合法 Past20→Future20 starts 作为 start pool；
+   - start selection deterministic under seed=41；
+   - shuffled bag 在合法 starts 耗尽前不重复。
+
+3. 5004 updates 完成后：
+   - A/B total consumed samples 完全相同；
+   - A/B per-trajectory draw counts 完全相同；
+   - B 的 unique windows / unique starts 必须明显高于 A。
+   
+若 B 没有实际提升 unique-start exposure，说明 sampler 实现错误，返回 `BLOCKED`。
+
+---
+
+## 7. Common training semantics — HARD CONTRACT
+
+两个 arm 完全相同：
+
+- frozen CNO SHA above
+- fresh residual
+- hidden=96
+- blocks=2
+- dropout=0
+- include pressure feature=true
+- max_delta=0.04
+- train alpha=1.0
+- updates=`5004`
+- eval steps:
+  - 0
+  - 1000
+  - 2000
+  - 3000
+  - 4000
+  - 5000
+  - 5004
+- batch=8
+- test batch=32
+- lr=`2e-4`
+- weight decay=`1e-5`
+- AdamW
+- cosine scheduler T_max=5004
+- seed=41
+- fp32
+- grad clip=1.0
+- eval stride=20
+- same Dev16
+- same alpha scan
+- same fixed-time proxy
+
+Loss 必须保持 colleague Stage2：
 
 ```text
-dense-5k vs frozen current80
+point          = 1.0
+mse            = 0.05
+tke            = 0.06
+temporal       = 0.03
+grad           = 0.015
+p_zero         = 0.01
+residual_mse   = 0.25
+delta_penalty  = 0.02
 ```
 
-Interpretation guidance:
+禁止：
 
-### Strong positive signal
+- 改 LR
+- 改 batch
+- 改 loss
+- 改 TKE weight
+- 改 residual capacity
+- AMP / bf16
+- augmentation
+- AoA transform
+- random rotation
+- CFD
+- EMA
+- checkpoint averaging
 
-Dense continuation is worth a longer follow-up only if the improvement is not a one-metric tradeoff. Prefer:
-
-- at least 2/3 of Rel-L2, TKE, MVPE improve versus sparse R0;
-- no primary metric has a material regression;
-- horizon/trajectory evidence is broad rather than driven by a few cases.
-
-### Weak / no signal
-
-If gains are tiny, mixed, or mostly a TKE↔Rel tradeoff, stop. Do not start 20k/38.4k automatically.
-
-Sol makes the final decision after Git evidence acceptance.
-
----
-
-## 9. Environment autonomy
-
-Scientific semantics are hard constraints; runtime environment is soft.
-
-This experiment runs on a newly configured GPU machine. Codex is explicitly authorized to make reasonable runtime/environment adjustments without stopping for approval, as long as scientific semantics remain unchanged.
-
-### Allowed autonomous environment work
-
-Codex may inspect, set, unset, or persist process-local / shell-local environment variables when needed, including but not limited to:
-
-- `CUDA_VISIBLE_DEVICES`
-- `PYTORCH_CUDA_ALLOC_CONF`
-- `OMP_NUM_THREADS`
-- `MKL_NUM_THREADS`
-- `OPENBLAS_NUM_THREADS`
-- `NUMEXPR_NUM_THREADS`
-- `TMPDIR` / `TMP`
-- `TORCH_HOME`
-- `HF_HOME`
-- `XDG_CACHE_HOME`
-- `PYTHONPATH`
-- `HDF5_USE_FILE_LOCKING`
-- non-semantic CUDA / NCCL diagnostic variables if required by the machine
-
-Codex may also autonomously:
-
-- create or repair a Python virtual environment;
-- install missing Python packages required by the existing repository code;
-- select the compatible Python executable;
-- verify PyTorch/CUDA/driver compatibility;
-- choose DataLoader `workers` according to the new machine;
-- change `workers` during preflight if throughput or HDF5 stability requires it;
-- configure CPU thread counts;
-- move caches / temporary files to a filesystem with enough free space;
-- repair file permissions;
-- change launcher / nohup / tmux / PID / log handling;
-- fix Git tracking / detached checkout / remote issues;
-- adjust path discovery for checkpoints, data, repository, and third-party code;
-- create a new output-root suffix such as v2/v3 when a previous directory exists;
-- apply minimal non-semantic compatibility patches and add tests for them;
-- restart a failed run after a pure environment/infrastructure failure, provided no completed scientific result from that run is used for model selection.
-
-No approval is needed for the above.
-
-### Environment preflight
-
-Before training, Codex should record:
-
-- GPU model and VRAM;
-- `nvidia-smi`;
-- Python version;
-- PyTorch version;
-- CUDA runtime / driver compatibility;
-- free disk space for data, logs, and checkpoints;
-- chosen `workers`;
-- relevant environment variables that were explicitly set.
-
-If the default environment fails, fix it and continue rather than returning BLOCKED, unless the fix would alter scientific semantics.
-
-### Still forbidden
-
-Codex may NOT change:
-
-- base/start checkpoint identities or checkpoint contents;
-- split/data manifest identities or membership;
-- 5k training budget;
-- train stride=1 / eval stride=20 candidate semantics;
-- batch size;
-- learning rate or weight decay;
-- seed;
-- architecture / hidden / blocks / max_delta;
-- feature set;
-- loss or loss weights;
-- optimizer/scheduler semantics;
-- precision mode (keep the experiment's existing fp32 semantics unless the code already specifies otherwise);
-- input/output resolution;
-- training/evaluation target definitions;
-- locked-final/private/Codabench boundary.
-
-In short:
-
-> 科研语义是硬约束，运行环境是软约束。新 GPU 上的环境问题优先由 Codex 自主解决，不要因为 CUDA、venv、线程、缓存、HDF5、路径或 workers 问题频繁停下来等待人工确认。
+本轮**唯一科研变量 = training sampling policy**。
 
 ---
 
-## 10. Preflight
+## 8. Required implementation
 
-Pull latest main and record actual execution HEAD.
+Sampler：
 
-Run:
+`TrajectoryStratifiedRandomStartBatchSampler`
 
-```bash
-python -m pytest -q \
-  tests/test_dense_residual_continuation_screen.py \
-  tests/test_colleague_incremental_screen.py \
-  tests/test_post_train_diagnostics.py
-```
+位于：
 
-Pure environment/integration failures may be repaired and committed.
+`tools/colleague_80pt/realpde_h5_feature_adapter_train.py`
 
-Any required scientific-semantic change must BLOCK.
+Residual runner 已支持：
 
----
+`--train-window-mode trajectory_stratified_random_start`
 
-## 11. Execute
+主 campaign runner：
 
-Reference command:
+`tools/colleague_80pt/run_trajectory_sampling_screen.py`
 
-```bash
-python -u -B tools/colleague_80pt/run_dense_residual_continuation_screen.py \
-  --real-root /hy-tmp/realpde_data/train_real \
-  --base-checkpoint /hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/cno_final_all81.pt \
-  --start-checkpoint /hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/residual_model_best.pth \
-  --model-root tools/colleague_80pt/submission \
-  --data-manifest /hy-tmp/realpde_data/data_manifest.tsv \
-  --split-manifest /hy-tmp/realpde_runs/colleague_incremental_screen_20260921/colleague_dev16_manifest.json \
-  --out-root /hy-tmp/realpde_runs/dense_residual_continuation_20260923_v1 \
-  --workers 4
-```
+Archive：
 
-If output root exists, use v2/v3. Do not delete prior runs.
-
-Expected runtime is roughly one 5k residual continuation plus diagnostics, not a 20k or 38.4k campaign.
+`tools/colleague_80pt/archive_trajectory_sampling_screen.py`
 
 ---
 
-## 12. Required evidence
+## 9. Required evidence
 
-Must include:
+### A. Provenance
 
-### Provenance
+必须归档：
 
-- campaign manifest
-- exact execution commit
-- base/start checkpoint SHA
-- split/data manifest SHA and copies
-- GPU/runtime identity
-- command log
+- execution commit
+- data manifest + SHA
+- split manifest + SHA
+- base CNO SHA
+- GPU / VRAM
+- Python / PyTorch / CUDA
+- environment variables explicitly changed
+- commands
 
-### Training
+### B. Initialization parity
 
-- step 0
-- step 1000
-- step 2000
-- step 3000
-- step 4000
-- step 5000
-- learning rate
-- loss components
-- training review log
-- best iteration
+`initialization_parity.json`
 
-### Matched comparison
+必须：
 
-`dense_stride1_5k/comparison_at_5k.csv`
+`exact = true`
 
-with:
+否则 BLOCKED。
 
-- current80
-- historical sparse5k
-- dense5k
-- percentage deltas versus current80
-- dense percentage deltas versus sparse5k
+### C. Sampling audit
 
-### Diagnostics
+两个 arm 都必须输出：
 
-For:
+`sampling_audit.json`
 
-- current80
-- dense_best
-- dense_final
+至少包含：
 
-Must include:
+- samples_consumed
+- unique_windows_consumed
+- candidate_legal_windows
+- unique_window_fraction
+- duplicate_trajectory_batches
+- 每条 trajectory:
+  - draws
+  - unique_starts
+  - legal_starts
+  - repeated_draws
 
-- overall Rel/TKE/MVPE
+Campaign 必须输出：
+
+`sampling_comparison.json`
+
+强制验证：
+
+- A/B samples consumed equal
+- A/B per-trajectory draws exact equal
+- B batch duplicate trajectory = 0
+- B unique window count > A
+
+### D. Training curve
+
+`matched_progress.csv`
+
+必须包含：
+
+- step0
+- 1k
+- 2k
+- 3k
+- 4k
+- 5k
+- 5004 final
+
+每一步 A/B：
+
+- Rel-L2
+- TKE
+- MVPE
+- percentage delta B vs A
+- fixed-time final estimate
+
+### E. Standard diagnostics
+
+对：
+
+- init
+- control_best
+- control_final
+- candidate_best
+- candidate_final
+
+统一输出：
+
+- aggregate Rel/TKE/MVPE
 - Future1..20
 - by trajectory
 - trajectory × horizon
@@ -420,64 +419,207 @@ Must include:
 - fluctuation
 - TKE energy ratio
 - correction help/hurt
+- delta RMS
 - spatial maps
 
 ---
 
-## 13. Archive
+## 10. Scientific review rule
 
-After completion:
+Primary comparison：
 
-```bash
-python -u -B tools/colleague_80pt/archive_dense_residual_continuation_screen.py \
-  --run-root <ACTUAL_RUN_ROOT> \
-  --dest docs/colleague_screening/results/20260923_dense_residual_continuation
+```text
+candidate_final@5004
+vs
+control_final@5004
 ```
 
-If destination exists, append v2/v3. Do not overwrite.
+Best checkpoint 只作为 secondary evidence。
 
-Then:
+原因：
+
+> 这轮首先研究同预算 sampler learning behavior，不允许用不同 early-stop iteration 掩盖 sampler 差异。
+
+### What counts as positive signal
+
+不预注册一个机械单数字阈值。
+
+Sol review 时重点看：
+
+1. 至少 2/3 primary metrics 是否改善；
+2. 是否存在明显 TKE↔Rel/MVPE tradeoff；
+3. trajectory-level 改善是否广泛；
+4. horizon-level 改善是否广泛；
+5. B 是否真的获得大幅更多 unique-start exposure；
+6. 是否出现系统性 energy-ratio / late-horizon 退化；
+7. 学习曲线到 5004 时是在拉开、持平还是反转。
+
+只有出现**清晰、机制一致的正信号**，才讨论 20k matched follow-up。
+
+不得由 Codex 自动判 GO，也不得自动长训。
+
+---
+
+## 11. Environment autonomy
+
+这是新配置 GPU 环境。
+
+科研语义是硬约束，运行环境是软约束。
+
+Codex 可以自主处理：
+
+- CUDA / driver / PyTorch compatibility
+- Python / venv
+- missing dependencies
+- `CUDA_VISIBLE_DEVICES`
+- `PYTORCH_CUDA_ALLOC_CONF`
+- OMP / MKL / OPENBLAS / NUMEXPR thread vars
+- `TMPDIR`
+- `TORCH_HOME`
+- `HF_HOME`
+- `XDG_CACHE_HOME`
+- `PYTHONPATH`
+- `HDF5_USE_FILE_LOCKING`
+- DataLoader workers
+- cache/temp paths
+- Git tracking / detached checkout
+- path discovery
+- file permissions
+- launcher / nohup / tmux / PID / logs
+- output-root v2/v3 naming
+- pure compatibility fixes
+- tests for compatibility fixes
+- pure infrastructure failure retry
+
+无需人工确认。
+
+但不得改变：
+
+- dataset membership
+- split
+- base checkpoint
+- 5004 update budget
+- batch
+- lr / wd
+- seed
+- model
+- loss
+- sampler scientific semantics
+- fp32
+- eval protocol
+- locked-final/private/Codabench boundary
+
+如果环境修复必须触碰这些科研语义，返回 BLOCKED。
+
+---
+
+## 12. Preflight tests
+
+拉取最新 main，记录实际 execution HEAD。
+
+至少运行：
+
+```bash
+python -m pytest -q \
+  tests/test_trajectory_sampling_screen.py \
+  tests/test_colleague_incremental_screen.py \
+  tests/test_post_train_diagnostics.py
+```
+
+另外建议：
+
+```bash
+python -m py_compile \
+  tools/colleague_80pt/realpde_h5_feature_adapter_train.py \
+  tools/colleague_80pt/residual_multi.py \
+  tools/colleague_80pt/run_trajectory_sampling_screen.py \
+  tools/colleague_80pt/archive_trajectory_sampling_screen.py
+```
+
+测试失败：
+
+- 纯环境 / integration issue：Codex 最小修复 + 补测试 + 继续；
+- 科研语义问题：BLOCK。
+
+---
+
+## 13. Execute
+
+参考：
+
+```bash
+python -u -B tools/colleague_80pt/run_trajectory_sampling_screen.py \
+  --real-root /hy-tmp/realpde_data/train_real \
+  --base-checkpoint /hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/cno_final_all81.pt \
+  --model-root tools/colleague_80pt/submission \
+  --data-manifest /hy-tmp/realpde_data/data_manifest.tsv \
+  --split-manifest /hy-tmp/realpde_runs/colleague_incremental_screen_20260921/colleague_dev16_manifest.json \
+  --out-root /hy-tmp/realpde_runs/trajectory_sampling_screen_20260923_v1 \
+  --workers 4
+```
+
+workers 可根据新 GPU 环境自行调整。
+
+如果 output root 已存在：
+
+- 用 v2/v3
+- 不覆盖、不删除旧 run
+
+---
+
+## 14. Archive
+
+训练完成且所有 audit PASS：
+
+```bash
+python -u -B tools/colleague_80pt/archive_trajectory_sampling_screen.py \
+  --run-root <ACTUAL_RUN_ROOT> \
+  --dest docs/colleague_screening/results/20260923_trajectory_sampling_screen
+```
+
+若 destination 已存在，使用 v2/v3。
+
+然后：
 
 ```bash
 git diff --check
-git add docs/colleague_screening/results/20260923_dense_residual_continuation*
-git commit -m "Archive dense residual continuation screen"
+git add docs/colleague_screening/results/20260923_trajectory_sampling_screen*
+git commit -m "Archive matched trajectory sampling screen"
 git pull --rebase origin main
 git push origin main
 ```
 
-Do not commit:
+禁止提交：
 
-- checkpoints
+- checkpoint
 - H5
 - raw full training log
-- prediction caches
+- prediction cache
 
 ---
 
-## 14. Stop conditions
+## 15. Stop
 
-After archive + push, stop.
+完成归档并 push 后停止。
 
-Do NOT:
+禁止自动：
 
-- automatically extend training
-- rerun with another stride
-- tune LR
-- tune loss
-- add EMA
-- add checkpoint averaging
+- 20k / 38.4k continuation
+- sampler sweep
+- LR sweep
+- batch sweep
+- loss tweak
+- EMA
+- ensemble
 - full refit
 - package
-- Codabench submit
-- access locked-final/private
+- Codabench
+- locked-final/private access
 
-EMA / late-checkpoint averaging is deliberately deferred. First isolate whether dense continuation itself has value.
-
-Final response format:
+返回：
 
 ```text
-REALPDE DENSE RESIDUAL CONTINUATION SCREEN
+REALPDE MATCHED TRAJECTORY SAMPLING SCREEN
 
 Status:
 REVIEW_REQUIRED / BLOCKED
@@ -488,28 +630,49 @@ Execution commit:
 Results commit:
 ...
 
-Historical sparse control provenance:
-PASS / FAIL
-
-Base/start checkpoint SHA:
+Base CNO SHA:
 PASS / FAIL
 
 Split/data manifest:
 PASS / FAIL
 
-Dense stride1 5k:
-COMPLETE / BLOCKED
-
-Training review log:
+Original 3341-window baseline:
 PASS / FAIL
 
-Matched 5k comparison:
+A/B initialization parity:
+PASS / FAIL
+
+Arm A fixed stride20:
+COMPLETE / BLOCKED
+
+Arm B stratified random-start:
+COMPLETE / BLOCKED
+
+A/B samples consumed:
+MATCHED / FAIL
+
+A/B per-trajectory draws:
+MATCHED / FAIL
+
+Candidate duplicate-trajectory batches:
+0 / ...
+
+Candidate unique-start gain:
+...
+
+Training review logs:
+PASS / FAIL
+
+Matched progress:
 PASS / FAIL
 
 Standard diagnostics:
 PASS / FAIL
 
-Best dense iteration:
+Control best iteration:
+...
+
+Candidate best iteration:
 ...
 
 Long follow-up started:
@@ -524,3 +687,5 @@ NO
 Missing items:
 NONE / ...
 ```
+
+Codex 不做最终科研判断。Sol 在 Git Evidence Acceptance 后 review。
