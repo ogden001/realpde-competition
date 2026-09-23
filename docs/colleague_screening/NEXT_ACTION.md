@@ -242,30 +242,84 @@ Sol makes the final decision after Git evidence acceptance.
 
 Scientific semantics are hard constraints; runtime environment is soft.
 
-Codex may autonomously repair:
+This experiment runs on a newly configured GPU machine. Codex is explicitly authorized to make reasonable runtime/environment adjustments without stopping for approval, as long as scientific semantics remain unchanged.
 
-- Git tracking/detached checkout
-- Python/venv/CUDA
-- paths
-- DataLoader workers
-- launcher/PID/log paths
-- output-root versioning
-- whitelist archive
-- file permissions
-- non-semantic compatibility issues
+### Allowed autonomous environment work
+
+Codex may inspect, set, unset, or persist process-local / shell-local environment variables when needed, including but not limited to:
+
+- `CUDA_VISIBLE_DEVICES`
+- `PYTORCH_CUDA_ALLOC_CONF`
+- `OMP_NUM_THREADS`
+- `MKL_NUM_THREADS`
+- `OPENBLAS_NUM_THREADS`
+- `NUMEXPR_NUM_THREADS`
+- `TMPDIR` / `TMP`
+- `TORCH_HOME`
+- `HF_HOME`
+- `XDG_CACHE_HOME`
+- `PYTHONPATH`
+- `HDF5_USE_FILE_LOCKING`
+- non-semantic CUDA / NCCL diagnostic variables if required by the machine
+
+Codex may also autonomously:
+
+- create or repair a Python virtual environment;
+- install missing Python packages required by the existing repository code;
+- select the compatible Python executable;
+- verify PyTorch/CUDA/driver compatibility;
+- choose DataLoader `workers` according to the new machine;
+- change `workers` during preflight if throughput or HDF5 stability requires it;
+- configure CPU thread counts;
+- move caches / temporary files to a filesystem with enough free space;
+- repair file permissions;
+- change launcher / nohup / tmux / PID / log handling;
+- fix Git tracking / detached checkout / remote issues;
+- adjust path discovery for checkpoints, data, repository, and third-party code;
+- create a new output-root suffix such as v2/v3 when a previous directory exists;
+- apply minimal non-semantic compatibility patches and add tests for them;
+- restart a failed run after a pure environment/infrastructure failure, provided no completed scientific result from that run is used for model selection.
+
+No approval is needed for the above.
+
+### Environment preflight
+
+Before training, Codex should record:
+
+- GPU model and VRAM;
+- `nvidia-smi`;
+- Python version;
+- PyTorch version;
+- CUDA runtime / driver compatibility;
+- free disk space for data, logs, and checkpoints;
+- chosen `workers`;
+- relevant environment variables that were explicitly set.
+
+If the default environment fails, fix it and continue rather than returning BLOCKED, unless the fix would alter scientific semantics.
+
+### Still forbidden
 
 Codex may NOT change:
 
-- base/start checkpoint identities
-- split/data manifest identities
-- 5k budget
-- train stride=1 / eval stride=20 candidate semantics
-- lr/batch/seed
-- architecture
-- feature set
-- loss or loss weights
-- optimizer/scheduler semantics
-- locked-final/private/Codabench boundary
+- base/start checkpoint identities or checkpoint contents;
+- split/data manifest identities or membership;
+- 5k training budget;
+- train stride=1 / eval stride=20 candidate semantics;
+- batch size;
+- learning rate or weight decay;
+- seed;
+- architecture / hidden / blocks / max_delta;
+- feature set;
+- loss or loss weights;
+- optimizer/scheduler semantics;
+- precision mode (keep the experiment's existing fp32 semantics unless the code already specifies otherwise);
+- input/output resolution;
+- training/evaluation target definitions;
+- locked-final/private/Codabench boundary.
+
+In short:
+
+> 科研语义是硬约束，运行环境是软约束。新 GPU 上的环境问题优先由 Codex 自主解决，不要因为 CUDA、venv、线程、缓存、HDF5、路径或 workers 问题频繁停下来等待人工确认。
 
 ---
 
