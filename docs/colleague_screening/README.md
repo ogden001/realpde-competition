@@ -67,3 +67,25 @@ verdict):
 |---|---:|---:|---:|
 | A fixed stride-20 | 0.08404702 | 0.48352758 | 0.07628248 |
 | B stratified random-start | 0.08415310 | 0.48843803 | 0.07654543 |
+
+## 2026-09-23 late-horizon backbone campaign
+
+Status: `REVIEW_REQUIRED`; no automatic GO/NO-GO or follow-up was started.
+
+Evidence: `docs/colleague_screening/results/20260923_late_horizon_backbone_campaign`.
+Execution commit: `6fa2f13d7db2e81e4c913df35fe379007953d185`.
+
+The same 640 Dev16 stride-20 windows were replayed across the four specified
+backbones without training. The matched continuation then ran Control and
+Ramp for exactly 5,000 updates each from the same audited @53582 checkpoint,
+with the same restored optimizer, Dense-All data order, seed, and Stage-B
+objective. Ramp changed only the N2 velocity-MSE horizon weights (normalized
+linear F1=1 to F20=2). Both arms have evaluations at 0/1k/2k/3k/4k/5k.
+
+At update 5,000, Control vs Ramp Dev metrics were: Rel-L2 `0.10138615` vs
+`0.10130069`, TKE `0.41880146` vs `0.41889709`, MVPE `0.07759760` vs
+`0.07762400`, and F20 Rel `0.17830724` vs `0.17716208`. The archive contains
+the full horizon, per-trajectory, and matched-comparison evidence for Sol's
+review; these figures are not a GO/NO-GO determination. No >5k continuation,
+residual or uncertainty training, Codabench, or locked-final/private access
+was performed.

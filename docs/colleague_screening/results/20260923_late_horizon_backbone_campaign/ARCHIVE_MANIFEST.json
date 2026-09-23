@@ -1,0 +1,491 @@
+{
+  "bytes": 23494128,
+  "destination": "realpde-lhbc-campaign/docs/colleague_screening/results/20260923_late_horizon_backbone_campaign",
+  "excluded_checkpoints": true,
+  "excluded_raw_logs": true,
+  "files": 96,
+  "items": [
+    {
+      "bytes": 824,
+      "path": "campaign_config.json",
+      "sha256": "2b7056ad7cdb9c3e39ab5aa207bf3dfa802fe75fc872494c6236db00eea38982"
+    },
+    {
+      "bytes": 6089,
+      "path": "campaign_result.json",
+      "sha256": "284142a563194cd28227ecc5c4060c0344fcf4dfb990fefc5d4b09d901125d6f"
+    },
+    {
+      "bytes": 3142,
+      "path": "EXECUTION_PROVENANCE.md",
+      "sha256": "3c86131d0accd23d1e24347c78804930d55d370eb90446acd6cbd45946699629"
+    },
+    {
+      "bytes": 357,
+      "path": "experiment0_fingerprint/checkpoint_sha256.json",
+      "sha256": "6c896afa62a72cf0d363fbef51b0a7cae84658f8f2d1a027f701ba78795b9f72"
+    },
+    {
+      "bytes": 2016,
+      "path": "experiment0_fingerprint/fingerprint_summary.csv",
+      "sha256": "52e34bd5466918d294a340a7c2807d28bfa4521edb8c230b736a82ebf89b6773"
+    },
+    {
+      "bytes": 3952,
+      "path": "experiment0_fingerprint/fingerprint_result.json",
+      "sha256": "7a7eb102b5936476594285cbba6ae0ce2a89ed64d8dfc5ac2018f83ec5a87c62"
+    },
+    {
+      "bytes": 734,
+      "path": "experiment0_fingerprint/colleague_backbone/summary.json",
+      "sha256": "dfa0a1088d404c621d8c58f9a18af8aa07f8d74f000b6e43917cd74b219e46c9"
+    },
+    {
+      "bytes": 2954,
+      "path": "experiment0_fingerprint/colleague_backbone/diagnostics/by_horizon.csv",
+      "sha256": "b58e4d2d6efa70dd22791dbd6bd9f04892803f23027d0608e244326d5f77433c"
+    },
+    {
+      "bytes": 3956,
+      "path": "experiment0_fingerprint/colleague_backbone/diagnostics/by_trajectory.csv",
+      "sha256": "f7f76fe871dafd6284886ce9f6ea10e3d776887c12c632eb0b430286837a4de0"
+    },
+    {
+      "bytes": 1491738,
+      "path": "experiment0_fingerprint/colleague_backbone/diagnostics/by_trajectory_horizon.csv",
+      "sha256": "8aadb6b5e2f255b43462992c9a5d1e9cf8afce155cf3e566dcd5c4f847f2249b"
+    },
+    {
+      "bytes": 565,
+      "path": "experiment0_fingerprint/colleague_backbone/diagnostics/summary.json",
+      "sha256": "207050a927d8cca33ce662a5e42c1313dac630ce4c4aa0579b74635fa624d70f"
+    },
+    {
+      "bytes": 730,
+      "path": "experiment0_fingerprint/current80/summary.json",
+      "sha256": "68211aab40750d58ffb03d5040d183bd6e8875cfc7c76abdfaf9c8e5df5fae76"
+    },
+    {
+      "bytes": 4418,
+      "path": "experiment0_fingerprint/current80/diagnostics/by_horizon.csv",
+      "sha256": "edcd79dec8d4402ab038692c0705c568094c9bd74dfad4ad5719e88e5350e5f4"
+    },
+    {
+      "bytes": 3811,
+      "path": "experiment0_fingerprint/current80/diagnostics/by_trajectory.csv",
+      "sha256": "a70451deead012bd9da2f2f7b822431c2340e5aeccdb5f22df5f9edc403923a5"
+    },
+    {
+      "bytes": 1377793,
+      "path": "experiment0_fingerprint/current80/diagnostics/by_trajectory_horizon.csv",
+      "sha256": "50ed0f2c4d91219d41b4e3c8381d5612d62f4601b1acb78877b748cfbee660c7"
+    },
+    {
+      "bytes": 1336,
+      "path": "experiment0_fingerprint/current80/diagnostics/summary.json",
+      "sha256": "589345779601f28496e04ebf5e4c7ec1bd945e54eb006fb38b6fcba81ebe3bed"
+    },
+    {
+      "bytes": 735,
+      "path": "experiment0_fingerprint/strong_backbone/summary.json",
+      "sha256": "3e57768ca14e21b9ab9f43e53a6a509ee6ba1ce9b6f642b5c4bea3a8d2e09715"
+    },
+    {
+      "bytes": 2884,
+      "path": "experiment0_fingerprint/strong_backbone/diagnostics/by_horizon.csv",
+      "sha256": "e0c92938ec2b016569b8d1990e37dc7d602bcff2a45f21aa012d40fa9033bc2d"
+    },
+    {
+      "bytes": 3916,
+      "path": "experiment0_fingerprint/strong_backbone/diagnostics/by_trajectory.csv",
+      "sha256": "738051a5c818dfe945d121a0edf1cd32c393a0d124ce7edfdfaad05433244223"
+    },
+    {
+      "bytes": 1449658,
+      "path": "experiment0_fingerprint/strong_backbone/diagnostics/by_trajectory_horizon.csv",
+      "sha256": "a8c84c4901690e8773134f05f6c2f6459ece4c621c234016ed481d7b24831cf3"
+    },
+    {
+      "bytes": 565,
+      "path": "experiment0_fingerprint/strong_backbone/diagnostics/summary.json",
+      "sha256": "85d8103b0f0b87e3f517bcdf8909a2cf87951d78f5fbb45007d8e01c411d6bc8"
+    },
+    {
+      "bytes": 725,
+      "path": "experiment0_fingerprint/arm_b/summary.json",
+      "sha256": "5f1daa069dc7d66fa1eac026ec98c7140d7e80b3f9f9bafca7c6b273d5a51560"
+    },
+    {
+      "bytes": 4332,
+      "path": "experiment0_fingerprint/arm_b/diagnostics/by_horizon.csv",
+      "sha256": "ea1544c68f936826163711553a0ab8f0e31278621f9cdd4d4e6c86a3cfb8ff05"
+    },
+    {
+      "bytes": 3757,
+      "path": "experiment0_fingerprint/arm_b/diagnostics/by_trajectory.csv",
+      "sha256": "199d8213560caf4899120e86802c78b92bc1823ce44fe87d57eb60e949d945ea"
+    },
+    {
+      "bytes": 1326342,
+      "path": "experiment0_fingerprint/arm_b/diagnostics/by_trajectory_horizon.csv",
+      "sha256": "54768010d6c007770b0cbda25693ab0e58b3f2364960510a358f8783bbbff494"
+    },
+    {
+      "bytes": 1329,
+      "path": "experiment0_fingerprint/arm_b/diagnostics/summary.json",
+      "sha256": "73bd960b1bde295e8f4cd472b8d49144f743c4c96a79638e1d98265a2f505287"
+    },
+    {
+      "bytes": 3278,
+      "path": "experiment1_backbone_continuation/matched_comparison.csv",
+      "sha256": "d0d848563cda2c9e56e73bb985c8ebc9dabc0e4cec73966b598ecc6b26139169"
+    },
+    {
+      "bytes": 1662,
+      "path": "experiment1_backbone_continuation/comparison_result.json",
+      "sha256": "54e02c221f618a8540068e5ff1a3061ec0dfe49eaf9ad4f8fdfd5cee29ef1f10"
+    },
+    {
+      "bytes": 1273,
+      "path": "experiment1_backbone_continuation/control/run_config.json",
+      "sha256": "83965b534df847f153171263a3001c590380e3aa75aa5c11b06279551247a465"
+    },
+    {
+      "bytes": 3018,
+      "path": "experiment1_backbone_continuation/control/progress.csv",
+      "sha256": "c67d33d04372e008f6700305043b63ae404b53a7ed240050d9822eee14004c1c"
+    },
+    {
+      "bytes": 20310,
+      "path": "experiment1_backbone_continuation/control/train_log.jsonl",
+      "sha256": "b006f1557cd916f150b5cd61ac708ab444009a8707b232f57f7b3b5b15ea5971"
+    },
+    {
+      "bytes": 6867,
+      "path": "experiment1_backbone_continuation/control/result.json",
+      "sha256": "5777f2c6e8387cc444887cc7bbf4ea407f87357cf1b1b9d97df9c0983b183ea8"
+    },
+    {
+      "bytes": 738,
+      "path": "experiment1_backbone_continuation/control/eval_step_00000/summary.json",
+      "sha256": "5dd21514cd45e9f347f85845be0f327e8fae64ca545b1efe70da369a86cc9bc8"
+    },
+    {
+      "bytes": 2944,
+      "path": "experiment1_backbone_continuation/control/eval_step_00000/diagnostics/by_horizon.csv",
+      "sha256": "3960bf67b92ebf5d24e1b2fcc9cdb77ba21544f5ffd9e5fa5ecd37235a7d608d"
+    },
+    {
+      "bytes": 3964,
+      "path": "experiment1_backbone_continuation/control/eval_step_00000/diagnostics/by_trajectory.csv",
+      "sha256": "cb73a612a640eb2a2c706e648375cd07f2aa8ea4e9538d5857ca8c2c19a99057"
+    },
+    {
+      "bytes": 1488058,
+      "path": "experiment1_backbone_continuation/control/eval_step_00000/diagnostics/by_trajectory_horizon.csv",
+      "sha256": "2bc8901a7e1b19d9329e5f69b9615fe1275f590b1c80efba31637fb121280666"
+    },
+    {
+      "bytes": 568,
+      "path": "experiment1_backbone_continuation/control/eval_step_00000/diagnostics/summary.json",
+      "sha256": "f255bd1769207e41db273da3950c3355d72e64524920ba282e13801b6e2da428"
+    },
+    {
+      "bytes": 738,
+      "path": "experiment1_backbone_continuation/control/eval_step_01000/summary.json",
+      "sha256": "2f6172d09026295176d55693184d1f7ddb9b23069dfc014d00be9dce861dd19b"
+    },
+    {
+      "bytes": 2944,
+      "path": "experiment1_backbone_continuation/control/eval_step_01000/diagnostics/by_horizon.csv",
+      "sha256": "c0f0c69dbda22cc99264cc14b57a588cd1d972c82f4816c8c59a8accda0cb1d3"
+    },
+    {
+      "bytes": 3945,
+      "path": "experiment1_backbone_continuation/control/eval_step_01000/diagnostics/by_trajectory.csv",
+      "sha256": "73c4e018f71e064332ef5b4a3b89a37e5d1de18e1e02e092361c338e9e1e74a4"
+    },
+    {
+      "bytes": 1488144,
+      "path": "experiment1_backbone_continuation/control/eval_step_01000/diagnostics/by_trajectory_horizon.csv",
+      "sha256": "ee4e3a5fd8ce1123b9dd0d8615810adbc2c6316362d422701f094957b1df662d"
+    },
+    {
+      "bytes": 566,
+      "path": "experiment1_backbone_continuation/control/eval_step_01000/diagnostics/summary.json",
+      "sha256": "5d1ee24cc7b72b8eaaa2cac911d81aa219a754b7b1b2298bd5fc917f9b6e5f4f"
+    },
+    {
+      "bytes": 740,
+      "path": "experiment1_backbone_continuation/control/eval_step_02000/summary.json",
+      "sha256": "65a8ad84ed2b1989e96dd391ed15b9b7b25fae4c247d49b491b74771e7ebbf42"
+    },
+    {
+      "bytes": 2933,
+      "path": "experiment1_backbone_continuation/control/eval_step_02000/diagnostics/by_horizon.csv",
+      "sha256": "0e0483a601f90e0c7188125eb3dad059110f0d588436892dc5a3964fb37cbc80"
+    },
+    {
+      "bytes": 3951,
+      "path": "experiment1_backbone_continuation/control/eval_step_02000/diagnostics/by_trajectory.csv",
+      "sha256": "2c68c055280aeda63cfdbaa4a10f8a2817545994d206e996c6d4037a1a320eb1"
+    },
+    {
+      "bytes": 1488172,
+      "path": "experiment1_backbone_continuation/control/eval_step_02000/diagnostics/by_trajectory_horizon.csv",
+      "sha256": "2c63329415db19ba722ae8c05e550642676d9029296e06ff4e652932c040565b"
+    },
+    {
+      "bytes": 567,
+      "path": "experiment1_backbone_continuation/control/eval_step_02000/diagnostics/summary.json",
+      "sha256": "7dd3ba1e860eac90cbb4482201ecaeaf86fff8b13de964262ebfa715f057d2b7"
+    },
+    {
+      "bytes": 733,
+      "path": "experiment1_backbone_continuation/control/eval_step_03000/summary.json",
+      "sha256": "e6580325e73672cdcd4db0cc4c71feda295364b0087af3bf9a386278ca7f79c5"
+    },
+    {
+      "bytes": 2940,
+      "path": "experiment1_backbone_continuation/control/eval_step_03000/diagnostics/by_horizon.csv",
+      "sha256": "c4e9a5b124a1c73ca7d399e52e10d8f06ef30b2e0aa6657c7508ae5d320ec863"
+    },
+    {
+      "bytes": 3951,
+      "path": "experiment1_backbone_continuation/control/eval_step_03000/diagnostics/by_trajectory.csv",
+      "sha256": "3c014a08c7d1d5210db03c25f6b373fb8d550160c892147871b0850f0007796c"
+    },
+    {
+      "bytes": 1488367,
+      "path": "experiment1_backbone_continuation/control/eval_step_03000/diagnostics/by_trajectory_horizon.csv",
+      "sha256": "fdff030eecc6d5ecc996f666044128dd1371d4b66596fc9ae716e4ebfd87ae0a"
+    },
+    {
+      "bytes": 568,
+      "path": "experiment1_backbone_continuation/control/eval_step_03000/diagnostics/summary.json",
+      "sha256": "9e626057f3b9d314f4d3fddfb036ac08a85fed71675411c07e4c7ab872e02016"
+    },
+    {
+      "bytes": 735,
+      "path": "experiment1_backbone_continuation/control/eval_step_04000/summary.json",
+      "sha256": "060f552a1d0653a9e171c6938d5e6affcfde9534daf2416240ad001f8c3a6b3d"
+    },
+    {
+      "bytes": 2943,
+      "path": "experiment1_backbone_continuation/control/eval_step_04000/diagnostics/by_horizon.csv",
+      "sha256": "ed86e38bf3fa63db57fba3fb1cf1439f566481f3189f72bfc1e7747cd825a0d6"
+    },
+    {
+      "bytes": 3969,
+      "path": "experiment1_backbone_continuation/control/eval_step_04000/diagnostics/by_trajectory.csv",
+      "sha256": "ade6f2aaf74b89c62f13ddb4a518004ce853dfb30c9e3d655f6e409718b6d10c"
+    },
+    {
+      "bytes": 1488381,
+      "path": "experiment1_backbone_continuation/control/eval_step_04000/diagnostics/by_trajectory_horizon.csv",
+      "sha256": "0f4f7815813563518adff51a3a993b41149641a665fabf92b17ad3cd950b7be8"
+    },
+    {
+      "bytes": 569,
+      "path": "experiment1_backbone_continuation/control/eval_step_04000/diagnostics/summary.json",
+      "sha256": "02d9044126f1caf6a9429f9a74f806904ac4f2f15f1bc6d6bb89c9ee5ada8a01"
+    },
+    {
+      "bytes": 740,
+      "path": "experiment1_backbone_continuation/control/eval_step_05000/summary.json",
+      "sha256": "39bc3f5c6e88b83cc64a85db88065315ae4e1fe38ab947df8bd0b7358e491c8e"
+    },
+    {
+      "bytes": 2950,
+      "path": "experiment1_backbone_continuation/control/eval_step_05000/diagnostics/by_horizon.csv",
+      "sha256": "ed3b16586027f59d7c80681ae501246693761d9d67ba045b3d5c4dba30359118"
+    },
+    {
+      "bytes": 3963,
+      "path": "experiment1_backbone_continuation/control/eval_step_05000/diagnostics/by_trajectory.csv",
+      "sha256": "d2f1b626f96e25daf8d6965c621239e9fbcc29b1e1f3c114359a2e4d22ae57ad"
+    },
+    {
+      "bytes": 1488623,
+      "path": "experiment1_backbone_continuation/control/eval_step_05000/diagnostics/by_trajectory_horizon.csv",
+      "sha256": "612900bf58bfac217cbfd0a50a87a91f63ea3975d46afda4041581785853caa0"
+    },
+    {
+      "bytes": 569,
+      "path": "experiment1_backbone_continuation/control/eval_step_05000/diagnostics/summary.json",
+      "sha256": "992840c1ef3c5cf69a9e44b4000a6c64308f3e23256955e40d192f8ff6026ef2"
+    },
+    {
+      "bytes": 1303,
+      "path": "experiment1_backbone_continuation/ramp/run_config.json",
+      "sha256": "7d7ad6536dcf83e8e34de91788bdb4980eafec21182531684f5818cb547e92ce"
+    },
+    {
+      "bytes": 3000,
+      "path": "experiment1_backbone_continuation/ramp/progress.csv",
+      "sha256": "4f9e7bfe0c5f9c946c7aa4c30bea3611b6260b84960e8691588e6607805705ee"
+    },
+    {
+      "bytes": 21110,
+      "path": "experiment1_backbone_continuation/ramp/train_log.jsonl",
+      "sha256": "ff830e3e9f4ee6167e901aa6aaa588fd4d25c93c9fc67aec5c238019ea3fa989"
+    },
+    {
+      "bytes": 6838,
+      "path": "experiment1_backbone_continuation/ramp/result.json",
+      "sha256": "43566201fb7f390c8bc01ac8e513703fdde294d1a1f3c8c4783af5786cbe8885"
+    },
+    {
+      "bytes": 735,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_00000/summary.json",
+      "sha256": "9255ace3b73245ade292041854424b95a6c9a6acf4dad7a7b5d0e669aedb6913"
+    },
+    {
+      "bytes": 2884,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_00000/diagnostics/by_horizon.csv",
+      "sha256": "c62c76b8762bab848c3053d5ac2b7ef01d8fe8882d97851c11fc3b4e1b77acee"
+    },
+    {
+      "bytes": 3916,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_00000/diagnostics/by_trajectory.csv",
+      "sha256": "b20d0effd081e0de9a3737e55d81765c879f5c07a80dbf66c7f9dd0a31e660cd"
+    },
+    {
+      "bytes": 1449658,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_00000/diagnostics/by_trajectory_horizon.csv",
+      "sha256": "e934639106a934e8776747a5bee430479ce4888e6ed322254c20cbd932aa56d7"
+    },
+    {
+      "bytes": 565,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_00000/diagnostics/summary.json",
+      "sha256": "3749d641c08dc1c39ce4fde0e830030bb52f9962aafd3f8b5a9ad697a9712c4b"
+    },
+    {
+      "bytes": 736,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_01000/summary.json",
+      "sha256": "e8a28e739738d6fc714fc1973caa273fd621a8311ecbce642b5fef22c1af0b72"
+    },
+    {
+      "bytes": 2883,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_01000/diagnostics/by_horizon.csv",
+      "sha256": "023a8f5f568c47e4c674a4182a2a73f013dd9b59b7ac0b1b9ad5d1436edd5071"
+    },
+    {
+      "bytes": 3911,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_01000/diagnostics/by_trajectory.csv",
+      "sha256": "781f1e1abee3236bf1aea02037173afa6ccea65a4f7adf2701a6b5930a3fe14a"
+    },
+    {
+      "bytes": 1449632,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_01000/diagnostics/by_trajectory_horizon.csv",
+      "sha256": "758e56cddda5438eddb77f9b82021f7aa6b935919e9c69b04ab100d829288d4e"
+    },
+    {
+      "bytes": 565,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_01000/diagnostics/summary.json",
+      "sha256": "d52255f052d875b56f7af163de4b0f99a1fd6e7929bf18f7097ae542df874d7c"
+    },
+    {
+      "bytes": 734,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_02000/summary.json",
+      "sha256": "6ac0f7b52c184520bb55d05145235eb03face15d0f3b4c6bcc1e67fb6f4e8f1c"
+    },
+    {
+      "bytes": 2887,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_02000/diagnostics/by_horizon.csv",
+      "sha256": "1af80c5d974ae3c50052633183f9bf7cc6a2075f83d336bdd67e830e6f8651e2"
+    },
+    {
+      "bytes": 3912,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_02000/diagnostics/by_trajectory.csv",
+      "sha256": "6f2051913813b1611355398fe757087036c3013c6dafb4dac7478d3e9257edc1"
+    },
+    {
+      "bytes": 1449826,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_02000/diagnostics/by_trajectory_horizon.csv",
+      "sha256": "0725d1ec7a64b9bafc5ae99255f1e7a42391495d437df5a8b56bf88dec356909"
+    },
+    {
+      "bytes": 563,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_02000/diagnostics/summary.json",
+      "sha256": "db9598f48aeb2b66d50b255d2b18606dfd8810b2760d43c498c471e5b9f21b83"
+    },
+    {
+      "bytes": 732,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_03000/summary.json",
+      "sha256": "16f92eb215e525c94bc66c512a05bb744973b2b9e3b103b98d239f35d5acf4e0"
+    },
+    {
+      "bytes": 2881,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_03000/diagnostics/by_horizon.csv",
+      "sha256": "85d642382049f738ef59d357f1a218a0a80264b80ff4b5e3721fba79ad4bd1ce"
+    },
+    {
+      "bytes": 3906,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_03000/diagnostics/by_trajectory.csv",
+      "sha256": "191429e0c65c2f4c82baa61dc259b6771af704ba553486eb7d33144e6852979f"
+    },
+    {
+      "bytes": 1449916,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_03000/diagnostics/by_trajectory_horizon.csv",
+      "sha256": "7af67e08e360b5091dfad52f957c62627da8660def6658b0077dacbeef1a84c4"
+    },
+    {
+      "bytes": 563,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_03000/diagnostics/summary.json",
+      "sha256": "861fe86a79e054deaf113dd8b3c1c12ba3903210ed915f6a610094fb7f6f40da"
+    },
+    {
+      "bytes": 734,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_04000/summary.json",
+      "sha256": "9c9612d50e3a2bdc60dc088629fd437df32ba161e5245665f400fcf783530a0e"
+    },
+    {
+      "bytes": 2892,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_04000/diagnostics/by_horizon.csv",
+      "sha256": "9492bb2e50a5d8f563b6e998d80bf81cd6a05ec22cd83efcdb19e8ca6152cf62"
+    },
+    {
+      "bytes": 3919,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_04000/diagnostics/by_trajectory.csv",
+      "sha256": "48b9add467313acd41411eef6450114e20cfbe0fc4cd79f863825122bff7a5f3"
+    },
+    {
+      "bytes": 1450031,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_04000/diagnostics/by_trajectory_horizon.csv",
+      "sha256": "203d97fca63276124bdc447a44835429fab3f48ade0f69892806bd44f4d88fa1"
+    },
+    {
+      "bytes": 563,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_04000/diagnostics/summary.json",
+      "sha256": "ee5008cf7810b64254d4ae8202668bcfe4fca09852fba6e117d18c81b4a00696"
+    },
+    {
+      "bytes": 735,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_05000/summary.json",
+      "sha256": "6275fc33c7deed7b20c653943ceac71476f75ca47ea8b2e0092f6f08906a2514"
+    },
+    {
+      "bytes": 2889,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_05000/diagnostics/by_horizon.csv",
+      "sha256": "efcfdbdb365a728d98556cae18ed928091b5b538064652bd31eade308dfef674"
+    },
+    {
+      "bytes": 3919,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_05000/diagnostics/by_trajectory.csv",
+      "sha256": "c48e94a24b37c7e632cf0b6fae2c35572d2b1cbc9178ca96b00966f7838015b3"
+    },
+    {
+      "bytes": 1450185,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_05000/diagnostics/by_trajectory_horizon.csv",
+      "sha256": "bb1022bf4f4c5a78a7ea9550dba589492e4338773e8c1fb21571a25232ef3772"
+    },
+    {
+      "bytes": 566,
+      "path": "experiment1_backbone_continuation/ramp/eval_step_05000/diagnostics/summary.json",
+      "sha256": "8d204b0cd50164792c4edf2894e14acce053ee99cdfc76b46346ea8289c6ba2f"
+    }
+  ],
+  "max_bytes": 33554432,
+  "source": "realpde_runs/late_horizon_backbone_campaign_20260923_v2"
+}

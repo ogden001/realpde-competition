@@ -1,0 +1,49 @@
+{
+  "accumulation_steps": 2,
+  "base_loss": {
+    "extra_rel": 0.027514,
+    "lambda_vort": 15.5385751724,
+    "n2": {
+      "mse": 1.0,
+      "mvpe": 0.009757,
+      "rel": 0.027514,
+      "tke": 0.05
+    }
+  },
+  "codabench_accessed": false,
+  "dense_windows": 66755,
+  "effective_batch": 8,
+  "eval_interval": 1000,
+  "eval_steps": [
+    0,
+    1000,
+    2000,
+    3000,
+    4000,
+    5000
+  ],
+  "horizon_ramp": {
+    "applied_to": "velocity MSE term only",
+    "enabled": false,
+    "end": 2.0,
+    "normalization": "divide by mean; mean weight == 1",
+    "start": 1.0
+  },
+  "locked_final_accessed": false,
+  "lr": 3e-06,
+  "micro_batch": 4,
+  "mode": "control",
+  "optimizer": "AdamW restored from checkpoint",
+  "residual_trained": false,
+  "sampler": "DenseAllWindowSampler reset identically at continuation epoch 0",
+  "sampler_prefix_sha256": "a3acc57e4cacba5a7e13ed79b92f823a34980649b089ce07d32625b1bc2fcaa2",
+  "samples_consumed": 40000,
+  "scientific_variable": "none; exact historical Stage-B objective",
+  "seed": 20260901,
+  "start_iteration": 53582,
+  "strong_backbone_sha256": "cc732555859cb00b3ea1af31415632c087af1fc60abd4f4056263e6f02ffa307",
+  "train_trajectories": 82,
+  "uncertainty_head_trained": false,
+  "updates": 5000,
+  "weight_decay": 0.01
+}

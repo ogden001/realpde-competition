@@ -1,0 +1,23 @@
+{
+  "experiment": "control_step_00000",
+  "horizons": 20,
+  "mean_fluctuation": {
+    "fluctuation_rel_l2": 0.9506246782880702,
+    "mean_field_rel_l2": 0.06189406486957233,
+    "pred_tke_mean": 0.00017549266128586566,
+    "target_tke_mean": 0.00021619014996167473,
+    "tke_energy_ratio": 0.8117514202981785,
+    "tke_field_rel_l2": 0.43120116389713303
+  },
+  "spatial_map_keys": [
+    "fluctuation_rmse",
+    "mean_field_rmse",
+    "target_tke_mean",
+    "tke_abs_error",
+    "u_rmse",
+    "v_rmse",
+    "velocity_rmse"
+  ],
+  "trajectories": 16,
+  "windows": 640
+}

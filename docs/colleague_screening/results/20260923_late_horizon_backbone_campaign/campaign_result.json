@@ -1,0 +1,150 @@
+{
+  "automatic_long_followup_started": false,
+  "codabench_accessed": false,
+  "continuation_comparison": {
+    "automatic_go_no_go": false,
+    "final_step": {
+      "control_f18_rel": 0.12185847484650451,
+      "control_f19_rel": 0.13884414553891847,
+      "control_f20_over_f18": 1.4632321384400724,
+      "control_f20_over_mean_f1_f17": 1.993512730190328,
+      "control_f20_rel": 0.17830723673669657,
+      "control_mvpe_raw": 0.07759760320186615,
+      "control_rel_l2_raw": 0.10138615220785141,
+      "control_tke_raw": 0.4188014566898346,
+      "ramp_f18_rel": 0.12169796707287991,
+      "ramp_f19_rel": 0.13842724458972633,
+      "ramp_f20_over_f18": 1.455752190336931,
+      "ramp_f20_over_mean_f1_f17": 1.978889274282476,
+      "ramp_f20_rel": 0.17716208212589665,
+      "ramp_mvpe_raw": 0.07762400060892105,
+      "ramp_rel_l2_raw": 0.1013006940484047,
+      "ramp_tke_raw": 0.4188970923423767,
+      "ramp_vs_control_f18_rel_pct": -0.13171654562948998,
+      "ramp_vs_control_f19_rel_pct": -0.30026541455814293,
+      "ramp_vs_control_f20_over_f18_pct": -0.5111935356419628,
+      "ramp_vs_control_f20_over_mean_f1_f17_pct": -0.7335521708183856,
+      "ramp_vs_control_f20_rel_pct": -0.6422367548048258,
+      "ramp_vs_control_mvpe_raw_pct": 0.03401832784220016,
+      "ramp_vs_control_rel_l2_raw_pct": -0.08428977487134892,
+      "ramp_vs_control_tke_raw_pct": 0.02283555871509524,
+      "step": 5000
+    },
+    "negative_percentage_is_error_improvement": true,
+    "primary_comparison": "Ramp@5000 vs Control@5000",
+    "review_questions": [
+      "Does Ramp selectively reduce F19/F20 and tail amplification?",
+      "Are aggregate Rel-L2 and MVPE protected?",
+      "Does TKE remain stable rather than trading amplitude for point accuracy?",
+      "Is the effect already visible by 1k-3k and sustained through 5k?"
+    ]
+  },
+  "fingerprint": {
+    "arm_b_vs_current80_tail_amplification_ratio": 1.1481258558844083,
+    "checkpoint_sha256": {
+      "arm_b_final": "fde7f3c20e1e42f93f616741a3c6e1a68d4e38c4dc002f3f4875f9f2c5b18762",
+      "colleague_base": "ff28aaf0114d57e320e5ea9cf9945d874a7482f22e3f0aeaed5ebbe286573f8a",
+      "current80_residual": "909fdc7f8a6a42335e4ea4ce7471fc9a507135e9a29a4927bc7b7318be9c85b2",
+      "strong_backbone": "cc732555859cb00b3ea1af31415632c087af1fc60abd4f4056263e6f02ffa307"
+    },
+    "models": {
+      "arm_b": {
+        "f17_rel": 0.09259392834866072,
+        "f18_rel": 0.0957660582945133,
+        "f19_over_f18": 1.0530808366100624,
+        "f19_rel": 0.10084940078763407,
+        "f20_over_f18": 1.2069345783916245,
+        "f20_over_mean_f1_f17": 1.5539964041219432,
+        "f20_rel": 0.11558336719191616,
+        "label": "arm_b",
+        "mean_fluctuation": {
+          "fluctuation_rel_l2": 0.7497393300531099,
+          "mean_field_rel_l2": 0.04369755898518406,
+          "pred_tke_mean": 0.0001527422429138973,
+          "target_tke_mean": 0.00021619014996167473,
+          "tke_energy_ratio": 0.7065180487685254,
+          "tke_field_rel_l2": 0.4332737425942465
+        },
+        "mvpe_raw": 0.06964518129825592,
+        "rel_l2_raw": 0.08103739470243454,
+        "tke_raw": 0.43327370285987854,
+        "trajectories": 16,
+        "windows": 640
+      },
+      "colleague_backbone": {
+        "f17_rel": 0.11009646199974377,
+        "f18_rel": 0.11308499102662592,
+        "f19_over_f18": 1.021970649158347,
+        "f19_rel": 0.11556954168954672,
+        "f20_over_f18": 1.0336350121731692,
+        "f20_over_mean_f1_f17": 1.2465216664611474,
+        "f20_rel": 0.1168886060764092,
+        "label": "colleague_backbone",
+        "mean_fluctuation": {
+          "fluctuation_rel_l2": 0.890756818000557,
+          "mean_field_rel_l2": 0.05679595599742421,
+          "pred_tke_mean": 9.795475944495013e-05,
+          "target_tke_mean": 0.00021619014996167473,
+          "tke_energy_ratio": 0.4530953859938352,
+          "tke_field_rel_l2": 0.7003257763840104
+        },
+        "mvpe_raw": 0.08762361109256744,
+        "rel_l2_raw": 0.0979706197977066,
+        "tke_raw": 0.7003257870674133,
+        "trajectories": 16,
+        "windows": 640
+      },
+      "current80": {
+        "f17_rel": 0.09317769152616773,
+        "f18_rel": 0.09521082316835498,
+        "f19_over_f18": 1.0249162344601275,
+        "f19_rel": 0.09758311836155945,
+        "f20_over_f18": 1.0512214947567011,
+        "f20_over_mean_f1_f17": 1.3301162077908242,
+        "f20_rel": 0.10008766384805408,
+        "label": "current80",
+        "mean_fluctuation": {
+          "fluctuation_rel_l2": 0.7444642544134853,
+          "mean_field_rel_l2": 0.04404965828226194,
+          "pred_tke_mean": 0.0001447202899558873,
+          "target_tke_mean": 0.00021619014996167473,
+          "tke_energy_ratio": 0.6694120429702404,
+          "tke_field_rel_l2": 0.44916229651307643
+        },
+        "mvpe_raw": 0.07111713290214539,
+        "rel_l2_raw": 0.08042024075984955,
+        "tke_raw": 0.4491623044013977,
+        "trajectories": 16,
+        "windows": 640
+      },
+      "strong_backbone": {
+        "f17_rel": 0.116277072021672,
+        "f18_rel": 0.12770868652420808,
+        "f19_over_f18": 1.1170632999057586,
+        "f19_rel": 0.14265868679536195,
+        "f20_over_f18": 1.4063666950379965,
+        "f20_over_mean_f1_f17": 1.884932601702172,
+        "f20_rel": 0.17960524339469405,
+        "label": "strong_backbone",
+        "mean_fluctuation": {
+          "fluctuation_rel_l2": 0.9506246782880702,
+          "mean_field_rel_l2": 0.06189406486957233,
+          "pred_tke_mean": 0.00017549266128586566,
+          "target_tke_mean": 0.00021619014996167473,
+          "tke_energy_ratio": 0.8117514202981785,
+          "tke_field_rel_l2": 0.43120116389713303
+        },
+        "mvpe_raw": 0.08538012206554413,
+        "rel_l2_raw": 0.10641368478536606,
+        "tke_raw": 0.43120115995407104,
+        "trajectories": 16,
+        "windows": 640
+      }
+    },
+    "status": "COMPLETE",
+    "strong_vs_colleague_tail_amplification_ratio": 1.3606028031898574,
+    "windows": 640
+  },
+  "locked_final_accessed": false,
+  "status": "REVIEW_REQUIRED"
+}

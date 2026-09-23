@@ -1,0 +1,38 @@
+{
+  "automatic_go_no_go": false,
+  "final_step": {
+    "control_f18_rel": 0.12185847484650451,
+    "control_f19_rel": 0.13884414553891847,
+    "control_f20_over_f18": 1.4632321384400724,
+    "control_f20_over_mean_f1_f17": 1.993512730190328,
+    "control_f20_rel": 0.17830723673669657,
+    "control_mvpe_raw": 0.07759760320186615,
+    "control_rel_l2_raw": 0.10138615220785141,
+    "control_tke_raw": 0.4188014566898346,
+    "ramp_f18_rel": 0.12169796707287991,
+    "ramp_f19_rel": 0.13842724458972633,
+    "ramp_f20_over_f18": 1.455752190336931,
+    "ramp_f20_over_mean_f1_f17": 1.978889274282476,
+    "ramp_f20_rel": 0.17716208212589665,
+    "ramp_mvpe_raw": 0.07762400060892105,
+    "ramp_rel_l2_raw": 0.1013006940484047,
+    "ramp_tke_raw": 0.4188970923423767,
+    "ramp_vs_control_f18_rel_pct": -0.13171654562948998,
+    "ramp_vs_control_f19_rel_pct": -0.30026541455814293,
+    "ramp_vs_control_f20_over_f18_pct": -0.5111935356419628,
+    "ramp_vs_control_f20_over_mean_f1_f17_pct": -0.7335521708183856,
+    "ramp_vs_control_f20_rel_pct": -0.6422367548048258,
+    "ramp_vs_control_mvpe_raw_pct": 0.03401832784220016,
+    "ramp_vs_control_rel_l2_raw_pct": -0.08428977487134892,
+    "ramp_vs_control_tke_raw_pct": 0.02283555871509524,
+    "step": 5000
+  },
+  "negative_percentage_is_error_improvement": true,
+  "primary_comparison": "Ramp@5000 vs Control@5000",
+  "review_questions": [
+    "Does Ramp selectively reduce F19/F20 and tail amplification?",
+    "Are aggregate Rel-L2 and MVPE protected?",
+    "Does TKE remain stable rather than trading amplitude for point accuracy?",
+    "Is the effect already visible by 1k-3k and sustained through 5k?"
+  ]
+}
