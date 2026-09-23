@@ -1,4 +1,4 @@
-# NEXT_ACTION — CLEAN PIV HELD-OUT AoA=10° BENCHMARK
+# NEXT_ACTION — CURRENT80 RESIDUAL DENSE-CONTINUATION SCREEN
 
 Status: `READY_FOR_EXECUTION / REVIEW_REQUIRED_AFTER_RUN`
 
@@ -6,225 +6,74 @@ Status: `READY_FOR_EXECUTION / REVIEW_REQUIRED_AFTER_RUN`
 
 验证：
 
-> 当真实 PIV 训练数据完全没有见过 10° 攻角时，攻角增强是否能提高对真实 10° PIV 的泛化能力？
+> 当前成熟的 colleague 80pt residual corrector 已经在 stride=20 上长训收敛后，再用真实 PIV 的 dense temporal starts（stride=1）继续训练，是否比同预算的 sparse stride=20 continuation 更有效？
 
-这是一个 **Control vs Augmentation** 的 clean benchmark。
+这是一个 **continuation curriculum（续训课程）** 实验，不是 dense-from-scratch 实验。
 
-注意其严格含义：
+### Existing evidence that MUST be respected
 
-- **真实 PIV 10° 完全 held out（留出）**；
-- 两条路线允许共享相同的官方 sim-pretrain CNO；
-- 因此测试的是 **Sim→Real 场景下的未见 PIV 攻角泛化**；
-- 不声称模型在 CFD/sim 阶段也从未见过 10°。
+同事 handoff 已明确记录：
 
----
+- **Residual stride=1 from scratch：-2.9%，NO-GO**
+- 历史上 dense 只有以 continuation 形式出现过正信号
+- 当前 80pt residual 的正式训练仍是 stride=20、38,400 updates、best@34,000
 
-## 2. Data split — HARD CONTRACT
+因此本任务禁止：
 
-数据源只允许使用 frozen 50 Train / 16 Dev。
+- 从 CNO 上重新初始化一个 stride=1 residual；
+- 重跑已经失败的 dense-from-scratch；
+- 把本任务解释成“stride=1 residual 从零训练”。
 
-冻结 manifest：
-
-`artifacts/loss_optimization_v9_20260901_run1/evidence/manifests/id_seed20260901.json`
-
-预期 SHA256：
-
-`42b710cb8f04e5ab020da2b69772980b563dcc3f3ad555c21508ab12ab10c347`
-
-若默认路径不存在，Codex 可以按 SHA / 内容寻找同一 manifest，但**不得重新随机划分**。
-
-构造：
-
-### Train
-
-Frozen Train50 中删除全部 `AoA=10°`。
-
-预期：
-
-- 40 trajectories
-- 不含任何真实 PIV 10°
-
-### Inner Dev
-
-Frozen Dev16 中删除全部 `AoA=10°`。
-
-预期：
-
-- 12 trajectories
-- 不含任何真实 PIV 10°
-- 仅用于 residual checkpoint selection 和训练诊断
-
-### Held-out Test
-
-Frozen Train50 + Dev16 中的全部真实 PIV `AoA=10°`。
-
-预期：
-
-- 14 trajectories
-- 训练时不可见
-- checkpoint selection 不可见
-- 两条路线全部训练完成之后才允许统一 evaluation
-
-### Locked-final
-
-**禁止访问。**
-
-本任务不读取 frozen locked-final 16 的文件名、metadata、Past20、Future20 或 prediction。
-
-Split builder：
-
-`tools/colleague_80pt/build_heldout_aoa_split.py`
-
-必须生成并归档：
-
-- `heldout_aoa_split_audit.json`
-- `train_innerdev_manifest.json`
-- `heldout_eval_manifest.json`
-
-任何以下情况均 BLOCKED：
-
-- Train != 40
-- Inner Dev != 12
-- Heldout != 14
-- Train / Inner Dev 中出现 AoA=10°
-- heldout 与 train/dev 有文件 overlap
-- frozen manifest membership / SHA 不匹配
-
----
-
-## 3. Common initialization
-
-Control 和 Aug 必须从**完全相同**的官方 sim-pretrain CNO 开始。
-
-checkpoint SHA256：
-
-`82e842928a25dbf5a74c4e336bdd28e89bcf40e68bb8cdd213547f1246af4f61`
-
-Codex 可以自行定位 GPU 上该 checkpoint 的实际路径，但 SHA 必须严格匹配。
-
-禁止使用：
-
-- 当前 80 分 residual checkpoint
-- colleague all81 CNO
-- 任何已经 fine-tune 过真实 PIV 10° 的 checkpoint
-
----
-
-## 4. Two arms
-
-### Arm A — Control（无攻角增强）
-
-训练数据：
-
-- Train40 only
-- 不做任何 AoA augmentation
-
-流程：
+本任务唯一的新问题是：
 
 ```text
-official sim-pretrain CNO
-→ CNO PIV fine-tune on Train40
-→ residual corrector on Train40
-→ checkpoint selection on InnerDev12
-→ after all training: evaluate Heldout10°14
+mature current80 residual
+        ↓
+short dense stride=1 continuation
 ```
-
-### Arm B — Aug（攻角增强）
-
-与 Control 完全相同，唯一科研变量是训练期 AoA augmentation。
-
-因为 10° 被完全拿掉，训练可见角度在 10° 周围形成：
-
-```text
-5°          15°
-●───────────●
-      ↑
-     10° held out
-```
-
-Aug 只做：
-
-**5° ↔ 15° same-Re bridge（相同 Reynolds 数下的 5°/15° 跨缺口均值场插值）**
-
-对同 Re 的真实 5° 与 15°：
-
-```text
-delta_mean_uv =
-    mean_t(Past20_neighbor)
-  - mean_t(Past20_anchor)
-
-Past20_aug =
-    Past20_anchor + lambda * delta_mean_uv
-
-Future20_aug =
-    Future20_anchor + lambda * delta_mean_uv
-```
-
-固定：
-
-- bridge pair = `5° ↔ 15°`
-- same Re required
-- x/y coordinate grid compatible
-- augmentation probability = `0.5`
-- lambda = uniform `[0.35, 0.65]`
-- max gap = `10.1°`
-- only Past20 used to construct mean-field shift
-- Future20 never used to construct input transformation
-- AoA/Re never become model inputs
-- inference 不需要 AoA/Re
-
-真实 10° trajectory **绝对不能作为 augmentation neighbor**。
-
-Augmentation code：
-
-`tools/colleague_80pt/aoa_meanfield_augmentation.py`
-
-必须有至少：
-
-- 4 eligible 5°/15° source trajectories
-- 2 unique Re groups
-
-否则返回 BLOCKED。
 
 ---
 
-## 5. Training budget
+## 2. Frozen baseline
 
-两条 arm 完全 matched。
+### Stage-1 frozen CNO
 
-### Stage 1 — CNO Real-PIV fine-tune
+SHA256：
 
-代码：
+`ff28aaf0114d57e320e5ea9cf9945d874a7482f22e3f0aeaed5ebbe286573f8a`
 
-`tools/colleague_80pt/train_cno_heldout_aoa.py`
+### Current 80pt residual start checkpoint
 
-固定：
+SHA256：
 
-- updates = `8723`
-- stride = `1`
-- batch = `8`
-- lr = `1e-4`
-- seed = `41`
-- colleague Stage1 wake/ramp mean+fluctuation loss
-- `0.05*TKE + 0.01*pzero`
-- cosine LR schedule
+`909fdc7f8a6a42335e4ea4ce7471fc9a507135e9a29a4927bc7b7318be9c85b2`
 
-Control：无增强。
+Unified offline current80:
 
-Aug：启用 5°↔15° bridge augmentation。
+- Rel-L2: `0.0804204195737838`
+- TKE: `0.4491582512855530`
+- MVPE: `0.0711169168353080`
 
-### Stage 2 — Residual corrector
+---
 
-代码：
+## 3. Historical matched sparse control — DO NOT RERUN
 
-`tools/colleague_80pt/residual_multi.py`
+We already have an exact same-budget sparse continuation control from 2026-09-21 R0.
 
-固定：
+Evidence:
 
-- 从各自 Stage1 CNO 开始
-- **不使用任何旧 residual checkpoint**
-- updates = `20,000`
-- eval interval = `2,500`
+`docs/colleague_screening/results/20260921`
+
+Historical execution commit:
+
+`ef9c54f621efcb82703cb2de40ce979c40df3c6a`
+
+R0 semantics:
+
+- same base CNO
+- same current80 residual start checkpoint
+- updates = `5000`
+- eval interval = `1000`
 - batch = `8`
 - lr = `2e-4`
 - weight decay = `1e-5`
@@ -232,244 +81,347 @@ Aug：启用 5°↔15° bridge augmentation。
 - blocks = `2`
 - max_delta = `0.04`
 - TKE weight = `0.06`
-- fixed temporal windows
 - seed = `41`
+- optimizer/scheduler reset for continuation
+- train window mode = fixed
+- **stride = 20**
 
-Control：无增强。
+R0 @5k:
 
-Aug：继续使用完全相同的 5°↔15° bridge augmentation。
+- Rel-L2 = `0.0802410691976547`
+- TKE = `0.4503658413887024`
+- MVPE = `0.0710276663303375`
 
-Stage2 checkpoint selection **只能使用 InnerDev12**。
+This historical R0 is the matched control. Do not waste GPU reproducing it unless its provenance validation fails.
 
 ---
 
-## 6. Heldout evaluation timing
+## 4. New candidate — Dense continuation
 
-这是硬约束。
-
-执行顺序必须是：
+Only one scientific change relative to historical R0:
 
 ```text
-1. build split
-2. train Control CNO
-3. train Aug CNO
-4. train Control residual
-5. train Aug residual
-6. finish all checkpoint selection using InnerDev12
-7. only now load heldout_eval_manifest
-8. evaluate real PIV 10° heldout
+stride: 20 → 1
 ```
 
-Heldout10° 不得用于：
+Everything else remains matched.
 
-- early stop
-- best checkpoint selection
-- learning-rate decisions
-- augmentation parameter selection
-- retry / rerun selection
+Fixed:
 
-本轮不允许看到 heldout 分数后自动调参数重跑。
+- resume from current80 residual SHA above
+- frozen all81 CNO SHA above
+- updates = `5000`
+- eval every = `1000`
+- batch = `8`
+- lr = `2e-4`
+- weight decay = `1e-5`
+- hidden = `96`
+- blocks = `2`
+- max_delta = `0.04`
+- TKE = `0.06`
+- point/MSE/temporal/grad/residual/delta losses unchanged
+- train alpha = `1.0`
+- fixed window mode
+- stride = **1**
+- seed = `41`
+- no AoA augmentation
+- no rotation augmentation
+- no random-phase sampler semantics beyond stride=1 dense starts
+- no architecture change
+- no loss change
+
+The experiment is intentionally short. Do not automatically extend beyond 5k.
 
 ---
 
-## 7. Required evaluation
+## 5. Data protocol
 
-对 InnerDev12 和 Heldout10°14 各统一 replay：
+Use the exact colleague competition-oriented all81 / Dev16-overlap protocol used by historical R0.
 
-1. `control_cno`
-   - Control residual 的 model_init
-   - 表示 Control Stage1 CNO
+Expected split manifest SHA256:
 
-2. `control_best`
-   - Control residual best selected by InnerDev12
+`d127e851f3f5eefb011313b1b0b1d79e65db6d99c0754d264119ff12046a83a2`
 
-3. `control_final`
-   - Control residual @20k
+Expected data manifest SHA256:
 
-4. `aug_cno`
-   - Aug residual 的 model_init
-   - 表示 Aug Stage1 CNO
+`3612185c939f6c4cd4890afd3968d160a44e88d3e6f7733b8cb9ce71501d532c`
 
-5. `aug_best`
-   - Aug residual best selected by InnerDev12
+Semantics:
 
-6. `aug_final`
-   - Aug residual @20k
+- train = all 81 usable released PIV trajectories
+- Dev16 overlaps train by the frozen colleague protocol
+- this is a **competition-oriented matched screen**, not a clean generalization estimate
+- locked-final/private data forbidden
 
-必须输出：
+Do not substitute another split.
 
-- Rel-L2 / TKE / MVPE
-- Future1..20
-- by-trajectory
-- trajectory × horizon
-- mean field / fluctuation
-- TKE energy ratio
-- spatial maps
-- residual correction help/hurt
-- comparison summary
+---
 
-分析重点最终是：
+## 6. Why this experiment is worth running
+
+Current Stage 2 sparse residual:
+
+- ~3,341 stride=20 windows
+- 38.4k long training updates
+- repeatedly revisits a relatively small set of temporal phases
+
+Stage 1 CNO already saw dense stride=1 starts.
+
+The candidate asks whether, after the residual has already learned a stable correction from sparse windows, a short dense continuation can expose it to more **real temporal phases** without forcing it to learn the residual from scratch.
+
+This is not synthetic augmentation. Every dense window is a real PIV Past20→Future20 pair.
+
+---
+
+## 7. Required runner
+
+Use:
+
+`tools/colleague_80pt/run_dense_residual_continuation_screen.py`
+
+The runner must:
+
+1. verify base CNO SHA;
+2. verify current80 residual SHA;
+3. verify exact historical split/data-manifest SHA;
+4. verify all81 data;
+5. run one stride=1 continuation arm for 5k;
+6. eval at 1k/2k/3k/4k/5k;
+7. build deterministic training review log;
+8. build `training_progress.csv`;
+9. build `comparison_at_5k.csv` containing:
+   - frozen current80
+   - historical sparse-5k R0
+   - new dense-5k
+10. replay:
+   - current80
+   - dense_best
+   - dense_final
+11. write standard horizon/trajectory/mean/fluctuation/energy diagnostics;
+12. stop at REVIEW_REQUIRED.
+
+No automatic scientific verdict is allowed in the runner.
+
+---
+
+## 8. Review criteria for Sol
+
+Primary comparison:
 
 ```text
-Aug vs Control on Heldout10°
+dense-5k vs historical sparse-5k R0
 ```
 
-不是与当前 80 分 baseline 比。
+Secondary comparison:
 
----
+```text
+dense-5k vs frozen current80
+```
 
-## 8. Required training evidence
+Interpretation guidance:
 
-Control 和 Aug 都必须有：
+### Strong positive signal
 
-### CNO
+Dense continuation is worth a longer follow-up only if the improvement is not a one-metric tradeoff. Prefer:
 
-- training config
-- deterministic training review log
-- loss progression
+- at least 2/3 of Rel-L2, TKE, MVPE improve versus sparse R0;
+- no primary metric has a material regression;
+- horizon/trajectory evidence is broad rather than driven by a few cases.
 
-Aug 额外：
+### Weak / no signal
 
-- CNO AoA augmentation audit
-- eligible source trajectory count
-- eligible Re group count
-- actual augmentation use
+If gains are tiny, mixed, or mostly a TKE↔Rel tradeoff, stop. Do not start 20k/38.4k automatically.
 
-### Residual
-
-- run_config
-- step 0 / 2500 / 5000 / 7500 / 10000 / 12500 / 15000 / 17500 / 20000 eval
-- training review log
-- final diagnostics
-- model_init / best / final SHA recorded in run evidence
+Sol makes the final decision after Git evidence acceptance.
 
 ---
 
 ## 9. Environment autonomy
 
-科研语义硬约束，运行环境软约束。
+Scientific semantics are hard constraints; runtime environment is soft.
 
-Codex 可自行修改：
+Codex may autonomously repair:
 
-- Git remote / tracking ref
-- path discovery
-- venv / Python executable
-- CUDA_VISIBLE_DEVICES
+- Git tracking/detached checkout
+- Python/venv/CUDA
+- paths
 - DataLoader workers
-- launcher / PID / logs
-- output-root version number
-- archive / permissions / line endings
-- 纯工程兼容代码
+- launcher/PID/log paths
+- output-root versioning
+- whitelist archive
+- file permissions
+- non-semantic compatibility issues
 
-不得修改：
+Codex may NOT change:
 
-- frozen 50/16 membership
-- heldout AoA=10°
-- Train40 / InnerDev12 / Heldout14 逻辑
-- sim-pretrain SHA
-- Control/Aug 唯一变量原则
-- 5°↔15° bridge semantics
-- augmentation probability / lambda
-- CNO / residual training budgets
-- model / loss / loss weights
-- seed
-- heldout evaluation timing
-- locked-final/Codabench 边界
+- base/start checkpoint identities
+- split/data manifest identities
+- 5k budget
+- stride=1 candidate semantics
+- lr/batch/seed
+- architecture
+- feature set
+- loss or loss weights
+- optimizer/scheduler semantics
+- locked-final/private/Codabench boundary
 
 ---
 
-## 10. Tests
+## 10. Preflight
 
-先拉最新 main，然后运行：
+Pull latest main and record actual execution HEAD.
+
+Run:
 
 ```bash
 python -m pytest -q \
-  tests/test_colleague_next_two_experiments.py \
+  tests/test_dense_residual_continuation_screen.py \
   tests/test_colleague_incremental_screen.py \
   tests/test_post_train_diagnostics.py
 ```
 
-纯工程错误允许 Codex 最小修复、补测试并继续。
+Pure environment/integration failures may be repaired and committed.
+
+Any required scientific-semantic change must BLOCK.
 
 ---
 
 ## 11. Execute
 
-主 runner：
-
-`tools/colleague_80pt/run_heldout_aoa_benchmark.py`
-
-参考命令：
+Reference command:
 
 ```bash
-python -u -B tools/colleague_80pt/run_heldout_aoa_benchmark.py \
+python -u -B tools/colleague_80pt/run_dense_residual_continuation_screen.py \
   --real-root /hy-tmp/realpde_data/train_real \
-  --frozen-50-16-manifest artifacts/loss_optimization_v9_20260901_run1/evidence/manifests/id_seed20260901.json \
-  --data-manifest /hy-tmp/realpde_data/data_manifest.tsv \
-  --sim-pretrain-checkpoint <LOCATE_BY_SHA_82e842...> \
+  --base-checkpoint /hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/cno_final_all81.pt \
+  --start-checkpoint /hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/residual_model_best.pth \
   --model-root tools/colleague_80pt/submission \
-  --out-root /hy-tmp/realpde_runs/heldout_aoa10_20260922_v1 \
+  --data-manifest /hy-tmp/realpde_data/data_manifest.tsv \
+  --split-manifest /hy-tmp/realpde_runs/colleague_incremental_screen_20260921/colleague_dev16_manifest.json \
+  --out-root /hy-tmp/realpde_runs/dense_residual_continuation_20260923_v1 \
   --workers 4
 ```
 
-若 manifest 默认路径不存在：
+If output root exists, use v2/v3. Do not delete prior runs.
 
-- 按 SHA256 查找冻结 50/16 manifest；
-- 不得创建新 split 替代。
-
-若 output root 已存在：
-
-- 使用 v2/v3...
-- 不删除旧 run。
+Expected runtime is roughly one 5k residual continuation plus diagnostics, not a 20k or 38.4k campaign.
 
 ---
 
-## 12. Archive
+## 12. Required evidence
 
-训练完成后：
+Must include:
+
+### Provenance
+
+- campaign manifest
+- exact execution commit
+- base/start checkpoint SHA
+- split/data manifest SHA and copies
+- GPU/runtime identity
+- command log
+
+### Training
+
+- step 0
+- step 1000
+- step 2000
+- step 3000
+- step 4000
+- step 5000
+- learning rate
+- loss components
+- training review log
+- best iteration
+
+### Matched comparison
+
+`dense_stride1_5k/comparison_at_5k.csv`
+
+with:
+
+- current80
+- historical sparse5k
+- dense5k
+- percentage deltas versus current80
+- dense percentage deltas versus sparse5k
+
+### Diagnostics
+
+For:
+
+- current80
+- dense_best
+- dense_final
+
+Must include:
+
+- overall Rel/TKE/MVPE
+- Future1..20
+- by trajectory
+- trajectory × horizon
+- mean field
+- fluctuation
+- TKE energy ratio
+- correction help/hurt
+- spatial maps
+
+---
+
+## 13. Archive
+
+After completion:
 
 ```bash
-python -u -B tools/colleague_80pt/archive_heldout_aoa_benchmark.py \
+python -u -B tools/colleague_80pt/archive_dense_residual_continuation_screen.py \
   --run-root <ACTUAL_RUN_ROOT> \
-  --dest docs/colleague_screening/results/20260922_heldout_aoa10
+  --dest docs/colleague_screening/results/20260923_dense_residual_continuation
 ```
 
-若 destination 已存在，加序号，不覆盖。
+If destination exists, append v2/v3. Do not overwrite.
 
-然后：
+Then:
 
 ```bash
 git diff --check
-git add docs/colleague_screening/results/20260922_heldout_aoa10*
-git commit -m "Archive clean heldout AoA10 benchmark"
+git add docs/colleague_screening/results/20260923_dense_residual_continuation*
+git commit -m "Archive dense residual continuation screen"
 git pull --rebase origin main
 git push origin main
 ```
 
-禁止提交：
+Do not commit:
 
-- model checkpoint
+- checkpoints
 - H5
-- raw prediction cache
-- raw full training logs
+- raw full training log
+- prediction caches
 
 ---
 
-## 13. Stop
+## 14. Stop conditions
 
-不要：
+After archive + push, stop.
 
-- 根据 Heldout10° 结果自动调参
-- 自动 rerun
-- 自动 full train
-- 自动 package
-- 自动 Codabench
-- 访问 locked-final
+Do NOT:
 
-完成后只返回：
+- automatically extend training
+- rerun with another stride
+- tune LR
+- tune loss
+- add EMA
+- add checkpoint averaging
+- full refit
+- package
+- Codabench submit
+- access locked-final/private
+
+EMA / late-checkpoint averaging is deliberately deferred. First isolate whether dense continuation itself has value.
+
+Final response format:
 
 ```text
-REALPDE CLEAN HELDOUT AOA10 BENCHMARK
+REALPDE DENSE RESIDUAL CONTINUATION SCREEN
 
 Status:
 REVIEW_REQUIRED / BLOCKED
@@ -480,56 +432,39 @@ Execution commit:
 Results commit:
 ...
 
-Frozen split:
+Historical sparse control provenance:
 PASS / FAIL
 
-Derived split:
-Train:
-Inner Dev:
-Heldout10:
-
-PIV 10° leakage:
+Base/start checkpoint SHA:
 PASS / FAIL
 
-Locked-final accessed:
-NO
-
-Control CNO:
-COMPLETE / BLOCKED
-
-Aug CNO:
-COMPLETE / BLOCKED
-
-Control residual 20k:
-COMPLETE / BLOCKED
-
-Aug residual 20k:
-COMPLETE / BLOCKED
-
-Bridge audit:
+Split/data manifest:
 PASS / FAIL
-Eligible trajectories:
-...
-Unique Re groups:
+
+Dense stride1 5k:
+COMPLETE / BLOCKED
+
+Training review log:
+PASS / FAIL
+
+Matched 5k comparison:
+PASS / FAIL
+
+Standard diagnostics:
+PASS / FAIL
+
+Best dense iteration:
 ...
 
-Inner-dev diagnostics:
-PASS / FAIL
-
-Heldout10 diagnostics:
-PASS / FAIL
-
-Training review logs:
-PASS / FAIL
-
-New full training started:
+Long follow-up started:
 NO
 
 Codabench accessed:
 NO
 
+Locked-final accessed:
+NO
+
 Missing items:
 NONE / ...
 ```
-
-Codex 不做最终科研判断。Sol 在 Git Evidence Acceptance 通过后再 review。
