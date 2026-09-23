@@ -22,7 +22,7 @@ from run_incremental_screen import (
     sha256,
     verify_allowed_data,
 )
-from run_v2_campaign import EXPECTED_STRONG_BACKBONE_SHA256
+from run_v2_campaign import APPROVED_STRONG_BACKBONE_SHA256
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
@@ -232,10 +232,10 @@ def preflight(
         raise RuntimeError("colleague base checkpoint SHA mismatch")
     if sha256(args.colleague_residual_checkpoint) != EXPECTED_START_SHA256:
         raise RuntimeError("colleague residual checkpoint SHA mismatch")
-    if "B_strong_backbone" in arms and sha256(
-        args.strong_backbone_checkpoint
-    ) != EXPECTED_STRONG_BACKBONE_SHA256:
-        raise RuntimeError("strong SOTA-V2 checkpoint SHA mismatch")
+    if "B_strong_backbone" in arms:
+        strong_sha = sha256(args.strong_backbone_checkpoint)
+        if strong_sha not in APPROVED_STRONG_BACKBONE_SHA256:
+            raise RuntimeError("strong SOTA-V2 checkpoint SHA is not approved")
 
     return {
         "execution_commit": require_clean_main_checkout(REPO_ROOT),
