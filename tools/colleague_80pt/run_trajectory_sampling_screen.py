@@ -296,7 +296,7 @@ def main() -> None:
         "execution_commit": execution_commit,
         "scientific_question": (
             "With identical all81 data, frozen CNO, zero-init residual, optimizer, "
-            "loss and 5k sample budget, does baseline-weight-matched trajectory-"
+            "loss and ~5k matched-update budget, does baseline-weight-matched trajectory-"
             "stratified random-start sampling outperform fixed stride20 sampling?"
         ),
         "scientific_variable": "training_sampling_policy_only",
@@ -438,8 +438,21 @@ def main() -> None:
         )
         final_row = progress[-1]
 
-        control_sampling = sampling_summary(control_dir / "sampling_audit.json")
-        candidate_sampling = sampling_summary(candidate_dir / "sampling_audit.json")
+        control_sampling_path = control_dir / "sampling_audit.json"
+        candidate_sampling_path = candidate_dir / "sampling_audit.json"
+        control_sampling_full = json.loads(control_sampling_path.read_text(encoding="utf-8"))
+        candidate_sampling_full = json.loads(candidate_sampling_path.read_text(encoding="utf-8"))
+        control_sampling = sampling_summary(control_sampling_path)
+        candidate_sampling = sampling_summary(candidate_sampling_path)
+        control_draws = {
+            row["trajectory"]: int(row["draws"])
+            for row in control_sampling_full["per_trajectory"]
+        }
+        candidate_draws = {
+            row["trajectory"]: int(row["draws"])
+            for row in candidate_sampling_full["per_trajectory"]
+        }
+        per_trajectory_draws_matched = control_draws == candidate_draws
         sampling_comparison = {
             "control": control_sampling,
             "candidate": candidate_sampling,
@@ -450,6 +463,11 @@ def main() -> None:
             "candidate_batch_trajectory_duplicates": int(
                 candidate_sampling["duplicate_trajectory_batches"]
             ),
+            "per_trajectory_draws_matched": per_trajectory_draws_matched,
+            "candidate_unique_window_gain": (
+                int(candidate_sampling["unique_windows_consumed"])
+                - int(control_sampling["unique_windows_consumed"])
+            ),
         }
         (args.out_root / "sampling_comparison.json").write_text(
             json.dumps(sampling_comparison, indent=2, sort_keys=True) + "\n",
@@ -459,6 +477,10 @@ def main() -> None:
             raise RuntimeError("A/B consumed sample counts are not matched")
         if sampling_comparison["candidate_batch_trajectory_duplicates"] != 0:
             raise RuntimeError("candidate sampler produced duplicate trajectories in a batch")
+        if not per_trajectory_draws_matched:
+            raise RuntimeError("A/B per-trajectory sample exposure is not exactly matched")
+        if int(sampling_comparison["candidate_unique_window_gain"]) <= 0:
+            raise RuntimeError("candidate sampler failed to increase unique temporal starts")
 
         comparison_dir = args.out_root / "checkpoint_comparison"
         run(
@@ -485,8 +507,8 @@ def main() -> None:
         )
 
         decision_input = {
-            "primary_comparison": "candidate_final_vs_control_final_at_5k",
-            "step_5000": final_row,
+            "primary_comparison": "candidate_final_vs_control_final_at_5004",
+            "step_5004": final_row,
             "sampling_exposure": sampling_comparison,
             "initialization_parity": init_parity,
             "note": (
