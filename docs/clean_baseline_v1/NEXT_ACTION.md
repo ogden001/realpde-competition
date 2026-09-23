@@ -52,7 +52,7 @@ Do NOT change any of the following:
 - Stage1 loss.
 - Stage2 residual architecture.
 - Stage2 loss weights.
-- Stage1 or Stage2 batch size = 8.
+- Stage1 or Stage2 baseline batch size = 8. Disposable runtime profiling may benchmark batch=16, but must never apply it to this baseline.
 - train stride = 1.
 - eval stride = 20.
 - Past20 / Future20.
@@ -92,6 +92,7 @@ Allowed examples:
 - set `PYTHONUNBUFFERED=1`;
 - set `PYTHONHASHSEED=41`;
 - use `tmux`, or `nohup + setsid` if tmux is unavailable;
+- run the built-in disposable b8/b16 runtime profiler and record its recommendation; the recommendation must not change this baseline;
 - choose another local output directory with enough free disk;
 - create runtime-only logs/PID/health files outside tracked Git files;
 - reduce DataLoader `--workers` from 4 -> 2 -> 0 if and only if worker/process/HDF5 I/O issues occur;
@@ -229,6 +230,8 @@ Run:
 ```bash
 python -m pytest -q \
   tests/test_clean_baseline_v1.py \
+  tests/test_clean_runtime_profiles.py \
+  tests/test_h5_ram_preload.py \
   tests/test_colleague_incremental_screen.py
 ```
 
@@ -318,6 +321,7 @@ tmux new-session -d -s realpde_clean_baseline_v1 \
    export PYTHONHASHSEED=41 && \
    export CUDA_VISIBLE_DEVICES=<GPU_ID> && \
    python -u -B tools/colleague_80pt/run_clean_baseline_v1.py \
+     --runtime-profile \
      --real-root <REAL_PIV_ROOT> \
      --sim-pretrain-checkpoint <SIM_REAL_CNO_PT> \
      --model-root <REALPDEBENCH_MODEL_ROOT> \
@@ -697,3 +701,37 @@ NO
 Do not interpret the experiment beyond a short factual summary.
 
 ChatGPT/Sol will review learning curves and decide the next experiment.
+
+
+# K. 24G GPU RUNTIME PROFILE
+
+This overnight task must use `--runtime-profile`.
+
+It performs disposable Stage1 and Stage2 batch=8 versus batch=16 benchmarks using RAM-preloaded Train51 / Seen-Dev12 data.
+
+Rules:
+
+- no Holdout18 access;
+- no validation metric may influence profile choice;
+- only samples/sec and VRAM headroom are used;
+- benchmark outputs are not scientific experiment arms;
+- batch16 failure is allowed and should fall back to a b8 recommendation;
+- the actual REALPDE_CLEAN_BASELINE_V1 training remains batch=8 regardless of the recommendation.
+
+Report for both Stage1 and Stage2:
+
+```text
+b8 samples/sec:
+b8 peak allocated:
+b8 peak reserved:
+
+b16 success:
+b16 samples/sec:
+b16 peak allocated:
+b16 peak reserved:
+
+throughput gain:
+recommended future profile:
+```
+
+These recommendations are for later 3090 / 3090 Ti 24G experiment families only.
