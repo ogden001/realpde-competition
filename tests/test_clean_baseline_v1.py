@@ -95,3 +95,27 @@ def test_point_only_checkpoint_selection_ignores_sps_and_time() -> None:
     }
     assert checkpoint_selection_score(summary, "point_score") == (90.0 + 75.0 + 93.0) / 3.0
     assert checkpoint_selection_score(summary, "final_est") == 10.0
+
+
+def test_clean_commands_enable_ram_preload() -> None:
+    stage1 = build_stage1_command(
+        python=sys.executable,
+        real_root=Path("/data/real"),
+        train_manifest=Path("/tmp/train_dev.json"),
+        sim_pretrain=Path("/data/sim_real_cno.pth"),
+        model_root=Path("/repo/model"),
+        out_dir=Path("/tmp/stage1"),
+        workers=4,
+    )
+    stage2 = build_stage2_command(
+        python=sys.executable,
+        real_root=Path("/data/real"),
+        train_manifest=Path("/tmp/train_dev.json"),
+        cno_checkpoint=Path("/tmp/stage1/model_best.pth"),
+        model_root=Path("/repo/model"),
+        out_dir=Path("/tmp/stage2"),
+        workers=4,
+    )
+    for command in (stage1, stage2):
+        assert "--preload-to-ram" in command
+        assert command[command.index("--prefetch-factor") + 1] == "4"
