@@ -436,7 +436,10 @@ def load_cno_class(realpdebench_root: Path):
     try:
         from realpdebench.model.cno import CNO3d
     except ModuleNotFoundError:
-        from rpde_baselines.cno import CNO3d
+        try:
+            from rpde_baselines.cno import CNO3d
+        except ModuleNotFoundError:
+            from rpde_baselines.model.cno import CNO3d
 
     return CNO3d
 

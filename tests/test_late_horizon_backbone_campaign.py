@@ -15,6 +15,7 @@ from late_horizon_backbone_campaign import (  # noqa: E402
     normalized_linear_horizon_weights,
     tail_fingerprint,
 )
+from realpde_h5_feature_adapter_train import load_cno_class  # noqa: E402
 
 
 def test_horizon_ramp_is_positive_mean_one_and_two_to_one_endpoints() -> None:
@@ -76,3 +77,28 @@ def test_tail_fingerprint_requires_all_20_horizons() -> None:
         assert "1..20" in str(error)
     else:
         raise AssertionError("expected missing horizon to fail")
+
+
+def test_load_cno_class_supports_official_kit_module_layout(
+    tmp_path: Path, monkeypatch
+) -> None:
+    package = tmp_path / "rpde_baselines"
+    model_package = package / "model"
+    model_package.mkdir(parents=True)
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    (model_package / "__init__.py").write_text("", encoding="utf-8")
+    (model_package / "cno.py").write_text(
+        "class CNO3d:\n    pass\n", encoding="utf-8"
+    )
+
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    for module_name in tuple(sys.modules):
+        if module_name == "rpde_baselines" or module_name.startswith(
+            "rpde_baselines."
+        ):
+            monkeypatch.delitem(sys.modules, module_name)
+
+    cno_class = load_cno_class(tmp_path)
+
+    assert cno_class.__module__ == "rpde_baselines.model.cno"
+    assert isinstance(cno_class(), cno_class)
