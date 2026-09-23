@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import json
 import sys
 from pathlib import Path
@@ -16,6 +17,7 @@ from run_dense_residual_continuation_screen import (  # noqa: E402
     EVAL_INTERVAL,
     build_matched_comparison,
     build_progress,
+    main,
 )
 
 
@@ -64,3 +66,10 @@ def test_progress_and_comparison_use_alpha_one_eval(tmp_path: Path) -> None:
     assert comparison[1]["role"] == "matched_control_stride20"
     assert comparison[2]["role"] == "candidate_stride1"
     assert "delta_rel_l2_raw_pct_vs_sparse5k" in comparison[2]
+
+
+
+def test_dense_runner_preserves_historical_eval_stride() -> None:
+    source = inspect.getsource(main)
+    assert '"--stride", "1"' in source
+    assert '"--eval-stride", "20"' in source
