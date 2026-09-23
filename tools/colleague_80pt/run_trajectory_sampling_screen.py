@@ -78,9 +78,15 @@ def alpha_one_metrics(path: Path) -> dict[str, float]:
     for row in rows:
         if abs(float(row["alpha"]) - 1.0) < 1e-12:
             return {
-                "rel_l2_raw": float(row.get("rel_l2_raw", row["rel_l2"])),
-                "tke_raw": float(row.get("tke_raw", row["tke"])),
-                "mvpe_raw": float(row.get("mvpe_raw", row["mvpe"])),
+                "rel_l2_raw": float(
+                    row["rel_l2_raw"] if "rel_l2_raw" in row else row["rel_l2"]
+                ),
+                "tke_raw": float(
+                    row["tke_raw"] if "tke_raw" in row else row["tke"]
+                ),
+                "mvpe_raw": float(
+                    row["mvpe_raw"] if "mvpe_raw" in row else row["mvpe"]
+                ),
                 "final_est": float(row["best_final_est"]),
             }
     raise RuntimeError(f"alpha=1.0 missing from {path}")
