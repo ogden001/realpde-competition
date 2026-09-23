@@ -425,9 +425,26 @@ def evaluate_alphas(
         summary["best_final_est"] = summary["best_bounds"][0]["final_est"]
         summary["best_bound_abs"] = summary["best_bounds"][0]["abs"]
         summary["best_bound_rel"] = summary["best_bounds"][0]["rel"]
+        summary["point_score"] = float(np.mean([
+            summary["rel_l2_score"],
+            summary["tke_score"],
+            summary["mvpe_score"],
+        ]))
         summaries.append(summary)
     summaries.sort(key=lambda row: float(row["best_final_est"]), reverse=True)
     return summaries
+
+
+def checkpoint_selection_score(summary: dict[str, object], metric: str) -> float:
+    if metric == "point_score":
+        return float(np.mean([
+            float(summary["rel_l2_score"]),
+            float(summary["tke_score"]),
+            float(summary["mvpe_score"]),
+        ]))
+    if metric == "final_est":
+        return float(summary["best_final_est"])
+    raise ValueError(f"unsupported checkpoint selection metric: {metric}")
 
 
 @torch.no_grad()
@@ -758,6 +775,16 @@ def main() -> None:
     parser.add_argument("--residual-mse", type=float, default=0.25)
     parser.add_argument("--delta-penalty", type=float, default=0.02)
     parser.add_argument(
+        "--selection-metric",
+        choices=("final_est", "point_score"),
+        default="final_est",
+        help=(
+            "Checkpoint selection rule. final_est preserves the historical colleague "
+            "behavior including SPS/time. point_score uses only the mean of official-v9 "
+            "Rel-L2/TKE/MVPE subscores and is the frozen clean-baseline rule."
+        ),
+    )
+    parser.add_argument(
         "--gradient-mode",
         choices=("scalar", "project_tke"),
         default="scalar",
@@ -936,6 +963,11 @@ def main() -> None:
     alphas = parse_float_list(args.eval_alphas)
     abs_widths = parse_float_list(args.bound_abs)
     rel_widths = parse_float_list(args.bound_rel)
+    if args.selection_metric == "point_score" and len(alphas) != 1:
+        raise ValueError(
+            "--selection-metric point_score requires exactly one --eval-alphas value "
+            "so correction alpha cannot be tuned on the dev set"
+        )
 
     run_config = {
         "real_root": str(args.real_root),
@@ -1012,6 +1044,9 @@ def main() -> None:
         "abs_widths": abs_widths,
         "rel_widths": rel_widths,
         "loss_weights": weights,
+        "selection_metric": args.selection_metric,
+        "sps_used_for_checkpoint_selection": args.selection_metric == "final_est",
+        "runtime_used_for_checkpoint_selection": args.selection_metric == "final_est",
         "gradient_mode": args.gradient_mode,
         "gradient_projection": (
             "project weighted TKE gradient orthogonal to primary residual gradient "
@@ -1045,7 +1080,7 @@ def main() -> None:
     top = summaries[0]
     top["iteration"] = 0
     eval_log.append({"iteration": 0, "summaries": summaries[:5]})
-    best_score = float(top["best_final_est"])
+    best_score = checkpoint_selection_score(top, args.selection_metric)
     best_iter = 0
     best_alpha = float(top["alpha"])
     best_bound_abs = float(top["best_bound_abs"])
@@ -1276,8 +1311,12 @@ def main() -> None:
             top = summaries[0]
             top["iteration"] = step
             eval_log.append({"iteration": step, "summaries": summaries[:5]})
-            current_score = float(top["best_final_est"])
-            print("EVAL_TOP " + json.dumps(top, sort_keys=True), flush=True)
+            current_score = checkpoint_selection_score(top, args.selection_metric)
+            print("EVAL_TOP " + json.dumps({
+                **top,
+                "selection_metric": args.selection_metric,
+                "selection_score": current_score,
+            }, sort_keys=True), flush=True)
             (args.out_dir / f"eval_step_{step:05d}.json").write_text(
                 json.dumps(summaries, indent=2, default=str) + "\n",
                 encoding="utf-8",
@@ -1317,7 +1356,7 @@ def main() -> None:
                     scheduler=scheduler,
                 )
                 print(
-                    f"BEST iteration={best_iter} final_est={best_score:.6f} "
+                    f"BEST iteration={best_iter} {args.selection_metric}={best_score:.6f} "
                     f"alpha={best_alpha} abs={best_bound_abs} rel={best_bound_rel}",
                     flush=True,
                 )
