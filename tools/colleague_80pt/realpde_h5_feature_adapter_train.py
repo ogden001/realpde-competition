@@ -233,6 +233,10 @@ class RandomPhaseWindowSampler(Sampler[int]):
         shuffle_rng.shuffle(selected)
         self._selected_indices = selected
 
+    @property
+    def selected_indices(self) -> list[int]:
+        return list(self._selected_indices)
+
     def __iter__(self):
         return iter(self._selected_indices)
 
