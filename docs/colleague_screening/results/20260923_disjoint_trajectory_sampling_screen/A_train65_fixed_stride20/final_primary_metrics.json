@@ -1,0 +1,15 @@
+{
+  "alpha": 1.0,
+  "base_mvpe_raw": 0.08762361109256744,
+  "base_rel_l2_raw": 0.0979706197977066,
+  "base_tke_raw": 0.7003257870674133,
+  "experiment": "A_train65_fixed_stride20",
+  "mvpe_improvement_vs_base": 0.11159992218017578,
+  "mvpe_raw": 0.07784482091665268,
+  "rel_l2_improvement_vs_base": 0.1300145983695984,
+  "rel_l2_raw": 0.08523301035165787,
+  "tke_improvement_vs_base": 0.2939608693122864,
+  "tke_raw": 0.4944573938846588,
+  "trajectories": 16,
+  "windows": 640
+}

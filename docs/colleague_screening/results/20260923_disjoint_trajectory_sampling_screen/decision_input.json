@@ -1,0 +1,63 @@
+{
+  "end_to_end_clean_holdout": false,
+  "initialization_parity": {
+    "exact": true,
+    "max_abs_difference": 0.0,
+    "mismatch_keys": [],
+    "state_keys": 256
+  },
+  "note": "No automatic scientific verdict and no automatic extension. This is a residual-stage differential generalization test only.",
+  "primary_comparison": "candidate_final_vs_control_final_at_5055",
+  "residual_stage_train_dev_disjoint": true,
+  "sampling_exposure": {
+    "candidate": {
+      "candidate_legal_windows": 53299,
+      "duplicate_trajectory_batches": 0,
+      "samples_consumed": 40440,
+      "sampling_policy": "baseline_weight_matched_trajectory_stratified_random_start",
+      "trajectory_draw_max": 630,
+      "trajectory_draw_median": 629.0,
+      "trajectory_draw_min": 194,
+      "unique_start_fraction_median": 0.758745476477684,
+      "unique_start_max": 630,
+      "unique_start_median": 629.0,
+      "unique_start_min": 194,
+      "unique_window_fraction": 0.7587384378693784,
+      "unique_windows_consumed": 40440
+    },
+    "candidate_batch_trajectory_duplicates": 0,
+    "candidate_unique_window_gain": 37739,
+    "control": {
+      "candidate_legal_windows": 53299,
+      "duplicate_trajectory_batches": 1818,
+      "samples_consumed": 40440,
+      "sampling_policy": "baseline_fixed_stride_global_shuffle",
+      "trajectory_draw_max": 630,
+      "trajectory_draw_median": 629.0,
+      "trajectory_draw_min": 194,
+      "unique_start_fraction_median": 0.05066344993968637,
+      "unique_start_max": 42,
+      "unique_start_median": 42.0,
+      "unique_start_min": 13,
+      "unique_window_fraction": 0.05067637291506407,
+      "unique_windows_consumed": 2701
+    },
+    "per_trajectory_draws_matched": true,
+    "same_samples_consumed": true
+  },
+  "stage1_cno_saw_dev16": true,
+  "step_5055": {
+    "candidate_final_est": 81.18637282148931,
+    "candidate_mvpe_raw": 0.077619051001966,
+    "candidate_rel_l2_raw": 0.08482468985021115,
+    "candidate_tke_raw": 0.4959333136677742,
+    "control_final_est": 81.1816400787425,
+    "control_mvpe_raw": 0.07784482501447201,
+    "control_rel_l2_raw": 0.0852330069988966,
+    "control_tke_raw": 0.49445741027593615,
+    "delta_mvpe_pct_candidate_vs_control": -0.2900308562117454,
+    "delta_rel_l2_pct_candidate_vs_control": -0.47905988895914936,
+    "delta_tke_pct_candidate_vs_control": 0.2984894879044127,
+    "step": 5055
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "arms": [
+    "A_train65_fixed_stride20",
+    "B_train65_stratified_random_start"
+  ],
+  "checkpoints_copied": false,
+  "destination": "docs/colleague_screening/results/20260923_disjoint_trajectory_sampling_screen",
+  "end_to_end_clean_holdout": false,
+  "h5_copied": false,
+  "locked_final_copied": false,
+  "prediction_caches_copied": false,
+  "raw_training_logs_copied": false,
+  "residual_stage_train_dev_disjoint": true,
+  "scientific_variable": "residual Train65 sampling policy only",
+  "source_run_root": "/hy-tmp/realpde_runs/disjoint_trajectory_sampling_screen_20260923_v1",
+  "stage1_cno_trained_on_all81": true
+}

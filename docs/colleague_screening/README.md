@@ -89,3 +89,30 @@ the full horizon, per-trajectory, and matched-comparison evidence for Sol's
 review; these figures are not a GO/NO-GO determination. No >5k continuation,
 residual or uncertainty training, Codabench, or locked-final/private access
 was performed.
+
+## 2026-09-23 residual-disjoint Train65→Dev16 sampling screen
+
+Status: `REVIEW_REQUIRED`; Codex makes no GO/NO-GO decision.
+
+Evidence: `docs/colleague_screening/results/20260923_disjoint_trajectory_sampling_screen`.
+Execution commit: `c2e08c5ec880681dedd84be1a0fc23d757b679c4`.
+
+The runner derived residual Train65 as frozen all81 minus frozen Dev16 (65/16,
+empty intersection). The frozen Stage1 CNO (`ff28aaf0114d57e320e5ea9cf9945d874a7482f22e3f0aeaed5ebbe286573f8a`)
+historically saw all81, so this is a residual-stage differential test, not an
+end-to-end clean holdout. Both arms used the same fresh residual initialization
+(256 state entries bitwise equal), frozen CNO, FP32, seed 41, batch 8,
+lr `2e-4`, weight decay `1e-5`, and 5,055 updates (15 full matched epochs).
+
+Arm A reproduced 2,701 fixed-stride-20 windows, 337 batches and 2,696 consumed
+samples per epoch. Both arms consumed 40,440 samples with identical per-trajectory
+draws. Arm B had zero duplicate-trajectory batches and 40,440 unique temporal
+starts versus 2,701 for A. No locked-final/private data or Codabench was accessed;
+no follow-up training was started.
+
+Raw residual-unseen Dev16 metrics at update 5,055 (for Sol review, not a verdict):
+
+| arm | Rel-L2 | TKE | MVPE |
+|---|---:|---:|---:|
+| A Train65 fixed stride-20 | 0.08523301 | 0.49445741 | 0.07784483 |
+| B Train65 stratified random-start | 0.08482469 | 0.49593331 | 0.07761905 |

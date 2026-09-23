@@ -1,0 +1,16 @@
+{
+  "automatic_long_training_started": false,
+  "candidate_best_iteration": 5000,
+  "candidate_sampling_audit": "PASS",
+  "codabench_accessed": false,
+  "control_best_iteration": 5000,
+  "control_sampling_audit": "PASS",
+  "derived_train65_dev16_disjoint": "PASS",
+  "execution_commit": "c2e08c5ec880681dedd84be1a0fc23d757b679c4",
+  "full_matched_epochs": 15,
+  "initialization_parity": "PASS",
+  "locked_final_accessed": false,
+  "matched_progress_rows": 7,
+  "samples_per_epoch": 2696,
+  "train65_fixed_windows": 2701
+}

@@ -1,0 +1,539 @@
+{
+  "batch_size": 8,
+  "candidate_legal_windows": 53299,
+  "duplicate_trajectory_batches": 1818,
+  "per_trajectory": [
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "10125_10.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 628,
+      "legal_starts": 829,
+      "repeated_draws": 586,
+      "trajectory": "10125_20.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 628,
+      "legal_starts": 829,
+      "repeated_draws": 586,
+      "trajectory": "10125_5.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 628,
+      "legal_starts": 829,
+      "repeated_draws": 586,
+      "trajectory": "11400_0.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 628,
+      "legal_starts": 829,
+      "repeated_draws": 586,
+      "trajectory": "11400_10.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "11400_15.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 628,
+      "legal_starts": 829,
+      "repeated_draws": 586,
+      "trajectory": "11400_20.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "12675_0.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "12675_10.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 626,
+      "legal_starts": 829,
+      "repeated_draws": 584,
+      "trajectory": "12675_15.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "12675_20.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "12675_5.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 627,
+      "legal_starts": 829,
+      "repeated_draws": 585,
+      "trajectory": "13950_0.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "13950_10.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 627,
+      "legal_starts": 829,
+      "repeated_draws": 585,
+      "trajectory": "13950_15.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "13950_20.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "13950_5.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "16500_0.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 628,
+      "legal_starts": 829,
+      "repeated_draws": 586,
+      "trajectory": "16500_10.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "16500_15.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "16500_20.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "16500_5.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 628,
+      "legal_starts": 829,
+      "repeated_draws": 586,
+      "trajectory": "17775_10.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "17775_15.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "17775_20.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "17775_5.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "19050_10.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "19050_15.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "19050_20.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "19050_5.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 628,
+      "legal_starts": 829,
+      "repeated_draws": 586,
+      "trajectory": "20325_0.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "20325_15.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 628,
+      "legal_starts": 829,
+      "repeated_draws": 586,
+      "trajectory": "20325_5.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "21600_0.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "21600_10.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 628,
+      "legal_starts": 829,
+      "repeated_draws": 586,
+      "trajectory": "21600_20.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "22875_0.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 627,
+      "legal_starts": 829,
+      "repeated_draws": 585,
+      "trajectory": "22875_10.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "24150_0.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "24150_10.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "24150_15.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 194,
+      "legal_starts": 243,
+      "repeated_draws": 181,
+      "trajectory": "24150_20.h5",
+      "unique_start_fraction": 0.053497942386831275,
+      "unique_starts": 13
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "25425_0.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 627,
+      "legal_starts": 829,
+      "repeated_draws": 585,
+      "trajectory": "25425_10.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "25425_15.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "26700_0.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "26700_15.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 627,
+      "legal_starts": 829,
+      "repeated_draws": 585,
+      "trajectory": "3750_10.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 628,
+      "legal_starts": 829,
+      "repeated_draws": 586,
+      "trajectory": "3750_20.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "3750_5.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 628,
+      "legal_starts": 829,
+      "repeated_draws": 586,
+      "trajectory": "5025_0.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 628,
+      "legal_starts": 829,
+      "repeated_draws": 586,
+      "trajectory": "5025_10.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "5025_15.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 628,
+      "legal_starts": 829,
+      "repeated_draws": 586,
+      "trajectory": "5025_20.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "5025_5.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "6300_10.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 626,
+      "legal_starts": 829,
+      "repeated_draws": 584,
+      "trajectory": "6300_15.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 628,
+      "legal_starts": 829,
+      "repeated_draws": 586,
+      "trajectory": "6300_5.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "7575_10.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "7575_15.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "7575_5.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 630,
+      "legal_starts": 829,
+      "repeated_draws": 588,
+      "trajectory": "8850_0.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "8850_10.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 628,
+      "legal_starts": 829,
+      "repeated_draws": 586,
+      "trajectory": "8850_15.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    },
+    {
+      "draws": 629,
+      "legal_starts": 829,
+      "repeated_draws": 587,
+      "trajectory": "8850_5.h5",
+      "unique_start_fraction": 0.05066344993968637,
+      "unique_starts": 42
+    }
+  ],
+  "samples_consumed": 40440,
+  "sampling_policy": "baseline_fixed_stride_global_shuffle",
+  "trajectory_draw_max": 630,
+  "trajectory_draw_median": 629.0,
+  "trajectory_draw_min": 194,
+  "unique_start_fraction_median": 0.05066344993968637,
+  "unique_start_max": 42,
+  "unique_start_median": 42.0,
+  "unique_start_min": 13,
+  "unique_window_fraction": 0.05067637291506407,
+  "unique_windows_consumed": 2701,
+  "updates": 5055
+}

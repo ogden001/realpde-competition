@@ -1,0 +1,28 @@
+{
+  "baseline_label": "control_final",
+  "dev_trajectories": 16,
+  "dev_windows": 640,
+  "diagnostics_version": 1,
+  "models": [
+    {
+      "checkpoint": "/hy-tmp/realpde_runs/disjoint_trajectory_sampling_screen_20260923_v1/A_train65_fixed_stride20/model_init.pth",
+      "label": "init"
+    },
+    {
+      "checkpoint": "/hy-tmp/realpde_runs/disjoint_trajectory_sampling_screen_20260923_v1/A_train65_fixed_stride20/model_best.pth",
+      "label": "control_best"
+    },
+    {
+      "checkpoint": "/hy-tmp/realpde_runs/disjoint_trajectory_sampling_screen_20260923_v1/A_train65_fixed_stride20/model_final.pth",
+      "label": "control_final"
+    },
+    {
+      "checkpoint": "/hy-tmp/realpde_runs/disjoint_trajectory_sampling_screen_20260923_v1/B_train65_stratified_random_start/model_best.pth",
+      "label": "candidate_best"
+    },
+    {
+      "checkpoint": "/hy-tmp/realpde_runs/disjoint_trajectory_sampling_screen_20260923_v1/B_train65_stratified_random_start/model_final.pth",
+      "label": "candidate_final"
+    }
+  ]
+}
