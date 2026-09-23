@@ -1,139 +1,231 @@
-# NEXT_ACTION — Run now, do not globally block
+# NEXT_ACTION — Arm B only: benchmark then formal residual training
 
-Status: `READY_FOR_EXECUTION / RUN_NOW / REVIEW_REQUIRED`
+Status: `READY_FOR_EXECUTION / ARM_B_ONLY / REVIEW_REQUIRED`
 
-ChatGPT/Sol is relaxing the previous over-strict orchestration. The priority is
-to get useful GPU work running immediately. Codex may make bounded engineering
-and environment changes needed to execute the frozen experiments.
+The SOTA-V2 full-data strong backbone has been successfully reconstructed on
+the current GPU host. Do **not** rerun A or C.
 
-## Core rule
+## Approved strong backbone
 
-**Missing Arm B strong-backbone checkpoint must NOT block Arm A or Arm C.**
+Historical checkpoint SHA256:
 
-Run tests first. Then benchmark/train A and C immediately. Resolve B
-independently.
+`f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce8`
 
-## Allowed Codex autonomy
+Audited 2026-09-23 reconstruction SHA256:
 
-Codex may, without asking for another prompt:
+`cc732555859cb00b3ea1af31415632c087af1fc60abd4f4056263e6f02ffa307`
 
-- fix paths, environment variables, imports, Python paths, DataLoader workers,
-  launcher wiring and checkpoint discovery;
-- add a small `--arms` / `--skip-arm` style option if useful;
-- split the unified launcher into per-arm execution if that is simpler;
-- use shell scripts / tmux / nohup / detached runners;
-- search local disks, OSS and existing assets;
-- recover or reconstruct the documented strong-backbone asset;
-- make bounded integration fixes required to run on this 3090 Ti host.
+The reconstruction is approved for Arm B. It is not bitwise identical to the
+historical checkpoint and must be recorded as `audited_rebuild_20260923`.
 
-Do not change the scientific definition of Arm A, B or C without recording it
-explicitly as a deviation.
+At update 53582 the reconstruction versus historical run differs only by about:
 
-## Step 1 — tests
+- MSE: +0.033%
+- TKE: +0.129%
+- Rel: +0.069%
+- MVPE: +0.092%
+- vorticity: -0.189%
 
-Run the focused test suite immediately. The missing Arm B checkpoint is not a
-reason to skip tests.
+Do not retrain the backbone again.
 
-## Step 2 — A/C batch benchmark
+## Step 1 — sync and focused tests
 
-Benchmark Arm A and Arm C at b8 and b16 using the existing benchmark logic:
+```bash
+git pull --rebase origin main
+git status --short
+pytest -q \
+  tests/test_colleague_v2_campaign.py \
+  tests/test_colleague_incremental_screen.py \
+  tests/test_post_train_diagnostics.py
+```
 
-- 200 steps per profile;
-- b16 uses lr 2.8e-4;
-- b8 uses lr 2e-4;
-- select b16 only if throughput gain >= 20% and VRAM guard passes;
-- selection uses no validation quality metric.
+Engineering/environment fixes are allowed. Do not wait for another prompt for
+path/import/launcher issues.
 
-If the current benchmark script requires Arm B preflight, patch it so A/C can
-run independently. This is an allowed engineering fix.
+## Step 2 — locate the reconstructed checkpoint
 
-## Step 3 — immediately start formal Arm A and Arm C
+Locate the existing checkpoint with SHA256 exactly:
 
-After each A/C profile is selected, start its frozen formal training without
-waiting for Arm B:
+`cc732555859cb00b3ea1af31415632c087af1fc60abd4f4056263e6f02ffa307`
 
-### Arm A
-- mature colleague 80pt residual start;
-- Pareto-TKE projection semantics unchanged;
-- lambda_TKE = 0.12;
-- b8 profile: batch8, lr2e-4, 12k updates, eval2k;
-- b16 profile: batch16, lr2.8e-4, 6k updates, eval1k;
-- equal sample exposure.
+Expected artifact name:
 
-### Arm C
-- mature colleague 80pt residual start;
-- adjacent-AoA mean-field semantics unchanged;
-- b8 profile: batch8, lr2e-4, 20k updates, eval2.5k;
-- b16 profile: batch16, lr2.8e-4, 10k updates, eval1.25k;
-- equal sample exposure;
-- historical b8 step5000 maps to b16 step2500.
+`model_update_53582.pth`
 
-A and C may run sequentially on the single GPU. Prefer the order that minimizes
-idle time; do not wait for additional approval.
+Use the existing file. Do not copy it into Git.
 
-## Step 4 — resolve Arm B independently
+## Step 3 — Arm B batch benchmark only
 
-The historical strong-backbone evidence is:
+Run the existing benchmark with:
 
-- run: `docs/sota迭代/reviews/sota_v2_full_20260916/`
-- update: `53582`
-- exact historical checkpoint:
-  `/home/chyfuture/realpde_runs/sota_v2_full_20260916/run/checkpoints/model_update_53582.pth`
-- correct SHA256:
-  `f808fbd39adec37f499be05a7224c440e15e998c137b53c797f2733d9e5765ce8`
+`--arms B_strong_backbone`
 
-If the binary cannot be recovered, Codex is allowed to reconstruct the **same
-documented SOTA-V2 full-data refit** from repository code/evidence, provided the
-recipe is preserved and all deviations are logged. Do not substitute an
-arbitrary "similar" checkpoint silently.
+Benchmark exactly 200 updates at b8 and b16.
 
-Arm B must not hold A/C hostage.
+Selection rule remains:
 
-Once B asset is available:
-- benchmark b8/b16;
-- select profile by the same throughput/VRAM rule;
-- train fresh h96/b2 residual with the frozen original colleague scalar
-  residual objective;
-- no joint backbone fine-tuning.
+- b16 throughput >= 1.20 × b8;
+- peak allocated <= 92%;
+- peak reserved <= 96%;
+- no OOM;
+- do not use validation quality to choose batch.
 
-## Hard scientific constraints
+Frozen profiles:
 
-Still forbidden:
+- b8: batch=8, lr=2e-4, updates=38400, eval=4800
+- b16: batch=16, lr=2.8e-4, updates=19200, eval=2400
 
-- locked-final/private access;
-- Codabench submission;
-- automatic Combo;
-- changing A/B/C scientific mechanisms;
-- parameter sweeps disguised as environment fixes.
+If b16 does not clearly win, use b8. Do not try batch24/32.
 
-## Evidence
+## Step 4 — immediately run formal Arm B
 
-Keep lightweight Git evidence and remote checkpoints/logs. Record:
+Do not wait for Sol review after the 200-step benchmark.
 
-- exact execution commit;
-- any engineering fixes;
-- selected batch profile per arm;
-- throughput and peak VRAM;
-- training progress and standard diagnostics;
-- checkpoint paths and SHA256;
-- whether B was recovered or reconstructed.
+Arm B scientific definition:
+
+- base = frozen reconstructed SOTA-V2 P0-A/MF-CNO full-data checkpoint;
+- base weights frozen;
+- fresh zero-initialized colleague `ResidualCorrector3D`;
+- hidden=96;
+- blocks=2;
+- max_delta=0.04;
+- dropout=0;
+- alpha=1;
+- NO continuation from colleague residual checkpoint;
+- scalar colleague residual objective;
+- optimizer AdamW;
+- weight_decay=1e-5;
+- seed=41.
+
+Loss weights:
+
+- point = 1.0
+- mse = 0.05
+- tke = 0.06
+- temporal = 0.03
+- grad = 0.015
+- p_zero = 0.01
+- residual_mse = 0.25
+- delta_penalty = 0.02
+
+Use the selected b8/b16 profile exactly.
+
+The trainer must record both:
+
+1. frozen strong-backbone metrics before residual correction;
+2. final/best corrected metrics after residual training.
+
+This is required because the key scientific question is whether the colleague
+residual adds value on top of the stronger backbone or destroys its signal.
+
+## Step 5 — evidence and diagnostics
+
+Run standard post-train diagnostics and build the compact training review log.
+
+Archive lightweight evidence only under:
+
+`docs/colleague_v2_campaign/results/20260923_formal_b_training/`
+
+Include:
+
+- benchmark_results.json / selected profile
+- run_config.json
+- final_primary_metrics.json
+- summary.json
+- eval milestones
+- training review log + meta
+- standard trajectory/horizon diagnostics
+- checkpoint SHA manifest
+- explicit backbone provenance = `audited_rebuild_20260923`
+
+Do not commit checkpoint binaries.
+
+## Mechanical review gate
+
+Relative to current colleague80 baseline:
+
+- TKE improvement >= 3%
+- Rel degradation <= 1%
+- MVPE degradation <= 1%
+
+This gate is for review only. Do not automatically start Combo or another
+experiment.
+
+## Hard constraints
+
+- A rerun: NO
+- C rerun: NO
+- backbone retrain: NO
+- locked-final/private: NO
+- Codabench: NO
+- automatic Combo: NO
+- automatic SOTA merge: NO
+- parameter sweep: NO
 
 ## Final handoff
 
 Return:
 
-`REALPDE COLLEAGUE80 V2 RUN`
+```text
+REALPDE ARM B STRONG BACKBONE
 
-with:
+Status:
+REVIEW_REQUIRED / BLOCKED
 
-- Status: REVIEW_REQUIRED / PARTIAL / BLOCKED
-- Tests PASS/FAIL
-- Arm A benchmark profile + training completion + metrics
-- Arm C benchmark profile + training completion + metrics
-- Arm B asset status + benchmark/training status
-- engineering fixes made
-- Codabench accessed: NO
-- locked-final accessed: NO
-- automatic Combo started: NO
+Execution commit:
+...
 
-Do not stop merely because Arm B is missing if A or C can still run.
+Tests:
+PASS / FAIL
+
+Strong backbone:
+provenance: audited_rebuild_20260923
+sha256: cc732555...
+
+Batch benchmark:
+b8 samples/s:
+b16 samples/s:
+throughput gain:
+selected profile:
+
+Base before residual:
+Rel-L2:
+TKE:
+MVPE:
+
+Best corrected:
+step:
+Rel-L2:
+TKE:
+MVPE:
+
+Final corrected:
+Rel-L2:
+TKE:
+MVPE:
+
+Change vs strong base:
+Rel-L2:
+TKE:
+MVPE:
+
+Mechanical gate:
+PASS / FAIL
+
+Standard diagnostics:
+PASS / FAIL
+
+Results commit:
+...
+
+Automatic Combo started:
+NO
+
+Codabench accessed:
+NO
+
+Locked-final accessed:
+NO
+```
+
+Then stop for Sol review.
