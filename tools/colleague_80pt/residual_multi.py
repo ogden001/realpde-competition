@@ -594,6 +594,16 @@ def main() -> None:
     parser.add_argument("--in-steps", type=int, default=20)
     parser.add_argument("--out-steps", type=int, default=20)
     parser.add_argument("--stride", type=int, default=20)
+    parser.add_argument(
+        "--eval-stride",
+        type=int,
+        default=None,
+        help=(
+            "Validation/evaluation stride. Defaults to --stride for backward compatibility. "
+            "Use this only when an experiment changes training-window density while preserving "
+            "the historical evaluation protocol."
+        ),
+    )
     parser.add_argument("--train-window-mode", choices=("fixed", "random_phase"), default="fixed")
     parser.add_argument(
         "--angle-aug-max-deg",
@@ -718,11 +728,15 @@ def main() -> None:
             json.dumps(aoa_aug_dataset.audit(), indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
+    eval_stride = args.stride if args.eval_stride is None else int(args.eval_stride)
+    if eval_stride < 1:
+        raise ValueError("--eval-stride must be positive")
+
     val_dataset = H5WindowDataset(
         val_paths,
         in_steps=args.in_steps,
         out_steps=args.out_steps,
-        stride=args.stride,
+        stride=eval_stride,
         sub_sample=args.sub_sample,
         max_windows_per_trajectory=args.max_windows_per_trajectory,
         include_pressure=args.include_pressure_data,
@@ -796,6 +810,8 @@ def main() -> None:
         "val_trajectories": len(val_paths),
         "train_windows": len(train_sampler),
         "val_windows": len(val_dataset),
+        "train_stride": int(args.stride),
+        "eval_stride": int(eval_stride),
         "train_window_mode": args.train_window_mode,
         "angle_augmentation": {
             "kind": "global_uv_component_rotation",
