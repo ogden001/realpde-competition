@@ -40,6 +40,7 @@ CNO_UPDATES = 8723
 RESIDUAL_UPDATES = 38400
 EVAL_INTERVAL = 1000
 BATCH_SIZE = 8
+PREFETCH_FACTOR = 4
 
 
 def write_json(path: Path, payload: object) -> None:
@@ -176,6 +177,8 @@ def build_stage1_command(
         "--batch-size", str(BATCH_SIZE),
         "--test-batch-size", "32",
         "--workers", str(workers),
+        "--preload-to-ram",
+        "--prefetch-factor", str(PREFETCH_FACTOR),
         "--lr", "0.0001",
         "--seed", str(SEED),
     ]
@@ -204,6 +207,8 @@ def build_stage2_command(
         "--batch-size", str(BATCH_SIZE),
         "--test-batch-size", "32",
         "--workers", str(workers),
+        "--preload-to-ram",
+        "--prefetch-factor", str(PREFETCH_FACTOR),
         "--lr", "0.0002",
         "--weight-decay", "0.00001",
         "--hidden", "96",
@@ -247,6 +252,14 @@ def main() -> None:
     parser.add_argument("--model-root", type=Path, required=True)
     parser.add_argument("--out-root", type=Path, required=True)
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument(
+        "--runtime-profile",
+        action="store_true",
+        help=(
+            "Run disposable b8/b16 throughput+VRAM benchmarks for Stage1 and Stage2. "
+            "The current baseline remains fixed at batch=8 regardless of recommendation."
+        ),
+    )
     args = parser.parse_args()
 
     if args.out_root.exists():
@@ -293,6 +306,11 @@ def main() -> None:
             "selection_metric": "mean official-v9 Rel-L2/TKE/MVPE subscores",
             "sps_in_training_or_selection": False,
             "runtime_in_training_or_selection": False,
+            "ram_preload": True,
+            "persistent_workers": True,
+            "prefetch_factor": PREFETCH_FACTOR,
+            "runtime_profile_requested": bool(args.runtime_profile),
+            "runtime_profile_can_override_baseline": False,
         },
         "budgets": {
             "stage1_cno_updates": CNO_UPDATES,
@@ -313,6 +331,21 @@ def main() -> None:
     write_json(args.out_root / "campaign_manifest.json", campaign_manifest)
 
     try:
+        if args.runtime_profile:
+            profile_root = args.out_root / "runtime_profile_stage1"
+            profile_cmd = [
+                sys.executable, "-u", "-B",
+                str(SCRIPT_DIR / "benchmark_clean_runtime_profiles.py"),
+                "--stage", "cno",
+                "--real-root", str(args.real_root),
+                "--split-manifest", str(train_manifest),
+                "--checkpoint", str(args.sim_pretrain_checkpoint),
+                "--model-root", str(args.model_root),
+                "--out-root", str(profile_root),
+                "--workers", str(args.workers),
+            ]
+            run(profile_cmd, args.out_root / "runtime_profile_stage1.log", command_log)
+
         stage1 = args.out_root / "stage1_cno"
         cmd = build_stage1_command(
             python=sys.executable,
@@ -326,6 +359,21 @@ def main() -> None:
         raw_log = args.out_root / "stage1_cno.log"
         run(cmd, raw_log, command_log)
         build_review(raw_log, args.out_root / "stage1_cno.train.review.log", command_log)
+
+        if args.runtime_profile:
+            profile_root = args.out_root / "runtime_profile_stage2"
+            profile_cmd = [
+                sys.executable, "-u", "-B",
+                str(SCRIPT_DIR / "benchmark_clean_runtime_profiles.py"),
+                "--stage", "residual",
+                "--real-root", str(args.real_root),
+                "--split-manifest", str(train_manifest),
+                "--checkpoint", str(stage1 / "model_best.pth"),
+                "--model-root", str(args.model_root),
+                "--out-root", str(profile_root),
+                "--workers", str(args.workers),
+            ]
+            run(profile_cmd, args.out_root / "runtime_profile_stage2.log", command_log)
 
         stage2 = args.out_root / "stage2_residual"
         cmd = build_stage2_command(
