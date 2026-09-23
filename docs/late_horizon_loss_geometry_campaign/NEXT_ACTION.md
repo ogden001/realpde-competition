@@ -100,6 +100,24 @@ Required outputs:
 - diagnosis/diagnosis_result.json
 - diagnosis/DIAGNOSIS_DONE
 
+Archive Phase-A evidence before review. Use a fresh destination and do not
+overwrite prior evidence:
+
+~~~bash
+DEST=docs/colleague_screening/results/20260923_tail_loss_geometry_diagnosis
+# If DEST exists, use a v2/v3 suffix.
+python tools/colleague_80pt/archive_v2_campaign.py   --run-root "$OUT"   --dest "$DEST"
+
+git add "$DEST"
+git diff --check
+git commit -m "Archive tail loss-geometry diagnosis"
+git pull --rebase
+git push
+~~~
+
+The archive must exclude checkpoints and raw data. Record the pushed results
+commit in the report.
+
 After Phase A, STOP. Do not invoke train. This is the mandatory REVIEW_REQUIRED
 boundary.
 
@@ -158,6 +176,9 @@ NO
 
 Locked-final accessed:
 NO
+
+Results commit:
+<sha>
 ~~~
 
 Do not give an automatic GO/NO-GO. Sol reviews the mechanism evidence.
