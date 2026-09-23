@@ -81,7 +81,7 @@ def main() -> None:
         src = args.run_root / arm
         dst = args.dest / arm
         copy_required(src, dst, ARM_FILES)
-        for step in range(0, 5001, 1000):
+        for step in (0, 1000, 2000, 3000, 4000, 5000, 5004):
             copy_required(src, dst, [f"eval_step_{step:05d}.json"])
 
     comparison_src = args.run_root / "checkpoint_comparison"
