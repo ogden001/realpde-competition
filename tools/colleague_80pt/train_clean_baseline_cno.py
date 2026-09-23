@@ -13,6 +13,7 @@ import argparse
 import json
 import random
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -167,6 +168,10 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--seed", type=int, default=41)
+    parser.add_argument("--preload-to-ram", action="store_true")
+    parser.add_argument("--prefetch-factor", type=int, default=4)
+    parser.add_argument("--benchmark-mode", action="store_true")
+    parser.add_argument("--benchmark-warmup", type=int, default=20)
     args = parser.parse_args()
 
     if args.out_dir.exists():
@@ -184,6 +189,7 @@ def main() -> None:
         sub_sample=2,
         include_pressure=False,
         window_mode="fixed",
+        preload_to_ram=args.preload_to_ram,
     )
     dev_dataset = H5WindowDataset(
         dev_paths,
@@ -193,9 +199,16 @@ def main() -> None:
         sub_sample=2,
         include_pressure=False,
         window_mode="fixed",
+        preload_to_ram=args.preload_to_ram,
     )
     generator = torch.Generator()
     generator.manual_seed(args.seed)
+    worker_kwargs: dict[str, object] = {}
+    if args.workers > 0:
+        worker_kwargs = {
+            "persistent_workers": True,
+            "prefetch_factor": args.prefetch_factor,
+        }
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
@@ -204,6 +217,7 @@ def main() -> None:
         num_workers=args.workers,
         pin_memory=device.type == "cuda",
         drop_last=True,
+        **worker_kwargs,
     )
     dev_loader = DataLoader(
         dev_dataset,
@@ -211,6 +225,7 @@ def main() -> None:
         shuffle=False,
         num_workers=args.workers,
         pin_memory=device.type == "cuda",
+        **worker_kwargs,
     )
 
     model = build_cno(args.realpdebench_root, device)
@@ -238,6 +253,13 @@ def main() -> None:
         "test_batch_size": args.test_batch_size,
         "candidate_train_windows": len(train_dataset),
         "dev_windows": len(dev_dataset),
+        "preload_to_ram": bool(args.preload_to_ram),
+        "train_ram_cache": train_dataset.cache_summary(),
+        "dev_ram_cache": dev_dataset.cache_summary(),
+        "workers": args.workers,
+        "persistent_workers": bool(args.workers > 0),
+        "prefetch_factor": args.prefetch_factor if args.workers > 0 else None,
+        "benchmark_mode": bool(args.benchmark_mode),
         "updates": args.updates,
         "eval_interval": args.eval_interval,
         "lr": args.lr,
@@ -251,6 +273,70 @@ def main() -> None:
     (args.out_dir / "run_config.json").write_text(
         json.dumps(run_config, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+
+    if args.benchmark_mode:
+        if device.type != "cuda":
+            raise RuntimeError("--benchmark-mode requires CUDA")
+        if args.benchmark_warmup < 0 or args.benchmark_warmup >= args.updates:
+            raise ValueError("--benchmark-warmup must be in [0, updates)")
+        torch.cuda.reset_peak_memory_stats(device)
+        iterator = iter(train_loader)
+        epoch = 0
+        measured_seconds = 0.0
+        measured_updates = 0
+        for step in range(1, args.updates + 1):
+            torch.cuda.synchronize(device)
+            started = time.perf_counter()
+            try:
+                x, y = next(iterator)
+            except StopIteration:
+                epoch += 1
+                iterator = iter(train_loader)
+                x, y = next(iterator)
+            x = x.to(device, non_blocking=True)
+            y = y.to(device, non_blocking=True)
+            optimizer.zero_grad(set_to_none=True)
+            pred = model(x)
+            loss, _ = colleague_stage1_loss(pred, y, w=w, wk=wk)
+            loss.backward()
+            optimizer.step()
+            scheduler.step()
+            torch.cuda.synchronize(device)
+            if step > args.benchmark_warmup:
+                measured_seconds += time.perf_counter() - started
+                measured_updates += 1
+        total_memory = int(torch.cuda.get_device_properties(device).total_memory)
+        runtime = {
+            "benchmark_mode": True,
+            "batch_size": int(args.batch_size),
+            "updates": int(args.updates),
+            "warmup_updates": int(args.benchmark_warmup),
+            "measured_updates": int(measured_updates),
+            "measured_seconds": float(measured_seconds),
+            "samples_per_second": float(
+                measured_updates * args.batch_size / max(measured_seconds, 1e-12)
+            ),
+            "peak_gpu_memory_allocated": int(torch.cuda.max_memory_allocated(device)),
+            "peak_gpu_memory_reserved": int(torch.cuda.max_memory_reserved(device)),
+            "gpu_total_memory": total_memory,
+            "peak_allocated_fraction": float(
+                torch.cuda.max_memory_allocated(device) / total_memory
+            ),
+            "peak_reserved_fraction": float(
+                torch.cuda.max_memory_reserved(device) / total_memory
+            ),
+            "train_ram_cache": train_dataset.cache_summary(),
+            "dev_ram_cache": dev_dataset.cache_summary(),
+            "workers": args.workers,
+            "prefetch_factor": args.prefetch_factor if args.workers > 0 else None,
+        }
+        (args.out_dir / "runtime.json").write_text(
+            json.dumps(runtime, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        (args.out_dir / "DONE").touch()
+        print(json.dumps(runtime, indent=2, sort_keys=True), flush=True)
+        return
 
     train_log: list[dict[str, float]] = []
     eval_log: list[dict[str, object]] = []
