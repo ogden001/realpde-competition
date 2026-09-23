@@ -411,6 +411,8 @@ def main() -> None:
         candidate_config = json.loads(
             (candidate_dir / "run_config.json").read_text(encoding="utf-8")
         )
+        if int(control_config["train_windows"]) != 3341:
+            raise RuntimeError("control train_windows does not reproduce original 3341-window Stage-2 baseline")
         for label, config in (
             ("control", control_config),
             ("candidate", candidate_config),
