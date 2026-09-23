@@ -21,6 +21,7 @@ from torch.utils.data import DataLoader
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
+sys.path.insert(0, str(SCRIPT_DIR.parent))
 
 from dw01_by_horizon import aggregate_by_horizon, compute_window_horizon_metrics, write_csv  # noqa: E402
 from realpde_h5_feature_adapter_train import (  # noqa: E402
