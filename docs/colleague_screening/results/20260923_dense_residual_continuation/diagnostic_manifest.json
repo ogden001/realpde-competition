@@ -1,0 +1,12 @@
+{
+  "automatic_long_training_started": false,
+  "candidate_best_checkpoint_sha256": "81b81b53ac4b729db442cabf766c20ca6f83c9b249bda4eefacb9175f5488e1d",
+  "candidate_best_iteration": 0,
+  "candidate_final_checkpoint_sha256": "bb60de92b318f1a9c232c805edbc0c73135a93fc76896ca8fd67888dda8c1bbe",
+  "codabench_accessed": false,
+  "execution_commit": "bb282a0ff0ebd37f77c8edfb0af2c39076052926",
+  "historical_control_evidence_path": "docs/colleague_screening/results/20260921",
+  "historical_control_execution_commit": "ef9c54f621efcb82703cb2de40ce979c40df3c6a",
+  "locked_final_accessed": false,
+  "training_progress_rows": 6
+}

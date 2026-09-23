@@ -1,0 +1,11 @@
+{
+  "checkpoints_copied": false,
+  "destination": "docs/colleague_screening/results/20260923_dense_residual_continuation",
+  "h5_copied": false,
+  "historical_sparse_control_path": "docs/colleague_screening/results/20260921",
+  "historical_sparse_control_reused": true,
+  "locked_final_copied": false,
+  "raw_training_log_copied": false,
+  "scientific_variable": "residual continuation stride 20 -> 1",
+  "source_run_root": "/hy-tmp/realpde_runs/dense_residual_continuation_20260923_v1"
+}

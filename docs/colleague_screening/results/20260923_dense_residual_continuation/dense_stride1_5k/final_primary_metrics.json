@@ -1,0 +1,15 @@
+{
+  "alpha": 1.0,
+  "base_mvpe_raw": 0.08762361109256744,
+  "base_rel_l2_raw": 0.0979706197977066,
+  "base_tke_raw": 0.7003257870674133,
+  "experiment": "dense_stride1_5k",
+  "mvpe_improvement_vs_base": 0.17858725786209106,
+  "mvpe_raw": 0.07197514921426773,
+  "rel_l2_improvement_vs_base": 0.17654836177825928,
+  "rel_l2_raw": 0.08067406713962555,
+  "tke_improvement_vs_base": 0.33815842866897583,
+  "tke_raw": 0.46350470185279846,
+  "trajectories": 16,
+  "windows": 640
+}

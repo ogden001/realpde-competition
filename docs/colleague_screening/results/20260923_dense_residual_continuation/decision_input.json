@@ -1,0 +1,23 @@
+{
+  "current80": {
+    "mvpe_raw": 0.071116916835308,
+    "rel_l2_raw": 0.0804204195737838,
+    "tke_raw": 0.449158251285553
+  },
+  "dense_5k": {
+    "mvpe_raw": 0.07197514604777097,
+    "rel_l2_raw": 0.08067406117916107,
+    "tke_raw": 0.4635047256946564
+  },
+  "dense_vs_sparse_pct": {
+    "mvpe_raw": 1.3339586760839208,
+    "rel_l2_raw": 0.539613923189131,
+    "tke_raw": 2.917380293638672
+  },
+  "historical_sparse_5k": {
+    "mvpe_raw": 0.0710276663303375,
+    "rel_l2_raw": 0.0802410691976547,
+    "tke_raw": 0.4503658413887024
+  },
+  "note": "No automatic GO/NO-GO. Sol reviews evidence after Git archive."
+}
