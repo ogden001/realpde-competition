@@ -1,4 +1,4 @@
-# NEXT_ACTION — MATCHED RESIDUAL TRAJECTORY-SAMPLING SCREEN
+# NEXT_ACTION — RESIDUAL TRAIN65→DEV16 DISJOINT SAMPLING SCREEN
 
 Status: `READY_FOR_EXECUTION / REVIEW_REQUIRED_AFTER_RUN`
 
@@ -6,267 +6,251 @@ Status: `READY_FOR_EXECUTION / REVIEW_REQUIRED_AFTER_RUN`
 
 验证：
 
-> 在完全相同的 released PIV trajectory、frozen CNO、fresh residual 初始化、模型、loss、optimizer 和训练 sample budget 下，只改变 residual 的训练采样策略，能否通过更充分地利用每条真实 trajectory 的 temporal starts 提高学习效果？
+> 在 Residual 层面，把 frozen all81 CNO 固定住后，只用 Train65 训练 fresh residual，并在 residual 从未训练过的 Dev16 trajectories 上评估时，trajectory-stratified random-start sampling 是否比 fixed stride20 sampling 更有泛化价值？
 
-本实验不是：
+本实验只研究：
+
+**Residual sampling policy（残差模型训练采样策略）**
+
+不是：
 
 - 数据增强；
-- AoA 实验；
-- CFD 实验；
+- AoA；
+- CFD；
 - current80 continuation；
-- stride=1 flattened dataset 重跑；
+- dense flattened stride1；
+- 模型结构实验；
+- loss 实验；
 - 长训。
 
-本实验只比较 **sampling policy（采样策略）**。
+---
+
+## 2. Scope / interpretation boundary
+
+必须明确：
+
+- Stage1 CNO checkpoint 历史上已经用 all81 训练；
+- 因此 Dev16 对 frozen CNO **不是端到端未见 trajectory**；
+- 本实验只保证：
+  - Residual Arm A 训练只看 Train65；
+  - Residual Arm B 训练只看同一个 Train65；
+  - Dev16 不进入任一 residual 的训练 sampler。
+
+所以这是：
+
+> **Residual-stage differential generalization test**
+
+不是：
+
+> end-to-end clean holdout generalization。
+
+任何结果描述都不得越过这个边界。
 
 ---
 
-## 2. Why this experiment exists
+## 3. Frozen source split
 
-已知事实：
+Source manifest 必须是 frozen colleague all81 / Dev16 manifest。
 
-1. 原始 80pt Stage2 residual：
-   - all81 released PIV
-   - fixed stride=20
-   - **3341 windows**
-   - h96/b2
-   - 38400 updates
-   - best@34000
-
-2. `dense stride=1 from scratch` 在同事历史记录中曾失败，但当时没有严格的 trajectory-stratified sampler 对照。
-
-3. 2026-09-23 的 current80 dense continuation 也失败，但它回答的是：
-   - 一个已经被 stride20 长训到成熟状态的 residual，
-   - 突然切换 sampling distribution 后短程 continuation 是否有效。
-   
-   它**不能回答** fresh residual 从训练开始就使用更合理 random-start sampler 是否更好。
-
-4. 因此这次必须从相同的 fresh residual 开始做 matched A/B，避免 continuation history bias。
-
----
-
-## 3. Frozen data / model baseline
-
-### Released PIV data
-
-严格使用 historical colleague protocol：
-
-- train: all 81 usable released PIV trajectories
-- dev: frozen Dev16，按历史 colleague protocol 与 all81 overlap
-- locked-final/private: 禁止访问
-
-Frozen split manifest SHA256：
+SHA256：
 
 `d127e851f3f5eefb011313b1b0b1d79e65db6d99c0754d264119ff12046a83a2`
 
-Frozen data manifest SHA256：
+Data manifest SHA256：
 
 `3612185c939f6c4cd4890afd3968d160a44e88d3e6f7733b8cb9ce71501d532c`
 
-不得重新划分，不得换 trajectory。
+Runner 自动派生：
 
-### Frozen Stage1 CNO
+```text
+Train65 = source all81 - frozen Dev16
+Dev16   = frozen Dev16
+```
 
-使用 colleague all81 CNO：
+必须验证：
+
+- Train65 = 65 trajectories
+- Dev16 = 16 trajectories
+- Train65 ∩ Dev16 = ∅
+- residual `allow_train_dev_overlap = false`
+- 不使用 `--train-on-all`
+
+派生 manifest：
+
+`residual_train65_dev16_manifest.json`
+
+必须归档进 Git evidence。
+
+---
+
+## 4. Frozen backbone
+
+Stage1 all81 CNO：
 
 SHA256：
 
 `ff28aaf0114d57e320e5ea9cf9945d874a7482f22e3f0aeaed5ebbe286573f8a`
 
-两个 arm 使用完全相同 checkpoint。
+两个 arm 使用完全相同 frozen checkpoint。
 
-### Residual initialization
+禁止重新训练 CNO。
+
+---
+
+## 5. Fresh residual initialization
 
 两个 arm 都：
 
-- fresh `ResidualCorrector3D`
-- hidden=96
-- blocks=2
-- max_delta=0.04
-- output layer zero-init
-- seed=41
-- **禁止 resume 任何 residual checkpoint**
+- `ResidualCorrector3D`
+- hidden = 96
+- blocks = 2
+- dropout = 0
+- include_pressure = true
+- max_delta = 0.04
+- final Conv3d zero-init
+- seed = 41
+- no resume checkpoint
 
-runner 必须在训练完成后比较两个 `model_init.pth` 的 `model_state_dict`：
+必须生成并比较两个：
 
-- key 完全相同
-- tensor 完全 bitwise equal
-- max absolute difference = 0
+`model_init.pth`
 
-否则：`BLOCKED`。
+要求：
 
----
+- state_dict keys 完全相同
+- every tensor bitwise equal
+- max_abs_difference = 0
 
-## 4. Exact original Stage2 sampling baseline
+否则：
 
-原始 handoff 的真实 Stage2 evidence：
-
-`docs/colleague_80pt_handoff/evidence/run_config.json`
-
-明确记录：
-
-`train_windows = 3341`
-
-因此本实验 Control 必须复刻：
-
-- stride=20
-- starts = 0,20,40,...
-- all 81 trajectories
-- **3341 candidate windows**
-- batch=8
-- DataLoader drop-last
-
-3341 / 8：
-
-- 每完整 epoch = 417 batches
-- 实际 consumed samples = 3336
-- 5 windows 被 drop-last
-
-为了消除最后 partial epoch 的 trajectory exposure 偏差，本实验固定：
-
-`5004 updates = 417 × 12`
-
-即：
-
-> **恰好 12 个完整 matched epochs**
-
-这仍然是约 5k update screen，只比 5000 多 4 steps。
-
-### Important compatibility rule
-
-当前重构版 runner 曾加入 phase-count equalization。
-
-本任务必须：
-
-`--disable-phase-count-equalization`
-
-并强制验证：
-
-- `reference_fixed_stride_windows == 3341`
-- `train_samples_per_epoch == 3336`
-- `phase_counts_equalized == false`
-
-任何一项不满足：`BLOCKED`。
+`BLOCKED`
 
 ---
 
-## 5. Arm A — Baseline Control
+## 6. Exact Train65 window count
+
+Frozen source all81 fixed stride20 一共：
+
+`3341 windows`
+
+Frozen Dev16 fixed stride20：
+
+`640 windows`
+
+因此 residual Train65：
+
+```text
+3341 - 640 = 2701 fixed-stride20 windows
+```
+
+Control 必须验证：
+
+`reference_fixed_stride_windows == 2701`
+
+batch=8，drop-last：
+
+```text
+2701 windows
+→ 337 full batches
+→ 2696 consumed samples / epoch
+```
+
+本 screen 使用：
+
+```text
+5055 updates
+= 337 batches × 15 complete epochs
+```
+
+目的：
+
+> 保证 A/B 都在完整 matched epoch 边界结束，不引入 partial-epoch trajectory exposure 偏差。
+
+---
+
+## 7. Arm A — Train65 fixed stride20
 
 名称：
 
-`A_fixed_stride20`
+`A_train65_fixed_stride20`
 
 Sampling：
 
 ```text
-all81 trajectories
-        ↓
-fixed start = 0,20,40,...
-        ↓
-3341 windows
-        ↓
+Train65 only
+      ↓
+fixed starts = 0,20,40,...
+      ↓
+2701 windows
+      ↓
 global shuffle
-        ↓
-batch=8, drop-last
+      ↓
+batch=8 / drop-last
 ```
 
-保持原始 residual Stage2 的 fixed-stride sampling semantics。
+每 epoch：
+
+- 337 batches
+- 2696 consumed samples
 
 ---
 
-## 6. Arm B — Trajectory-Stratified Random-Start
+## 8. Arm B — Train65 trajectory-stratified random-start
 
 名称：
 
-`B_stratified_random_start`
+`B_train65_stratified_random_start`
 
-数据集 membership 与 A **完全相同**。
+Dataset membership：
 
-每个 epoch 先读取 Arm A 在该 epoch、drop-last 后的实际 trajectory sample quota。
+**与 Arm A 完全相同 Train65。**
 
-例如某 trajectory 在 A 这一 epoch 实际出现 41 次，那么 B 也必须出现 **恰好 41 次**。
+每个 epoch：
 
-因此 B 不得：
+1. 先重建 Arm A 当 epoch 在 drop-last 后的实际 per-trajectory draw quota；
+2. Arm B 对每条 trajectory 使用完全相同的 draw count；
+3. batch 内 8 条 trajectory 必须互不重复；
+4. 每条 trajectory 从该 trajectory 所有合法 Past20→Future20 start 中取样；
+5. 使用 deterministic shuffled-start bag；
+6. 合法 starts 没耗尽前不得重复。
 
-- 均匀重权重 short trajectory；
-- 增加或减少任何 trajectory 的 epoch exposure；
-- 改变总 sample 数。
+因此 B 只改变：
 
-B 只改变如何选择 temporal start 与 batch composition：
+> **temporal-start coverage + batch trajectory composition**
 
-```text
-Arm A 的每-trajectory quota
-        ↓
-按相同 quota 选择 trajectory
-        ↓
-一个 batch 内 8 条 trajectory 必须互不重复
-        ↓
-每条 trajectory 从全部合法 start 中取一个 start
-        ↓
-per-trajectory shuffled-start bag
-        ↓
-该 trajectory 的合法 start 未遍历完之前尽量不重复
-```
+不得改变：
 
-### Hard sampler requirements
-
-必须满足：
-
-1. 每个完整 epoch：
-   - A/B total consumed samples 相同；
-   - A/B 每条 trajectory draw count 完全相同。
-
-2. B：
-   - batch 内 duplicate trajectory 数 = 0；
-   - candidate 使用所有合法 Past20→Future20 starts 作为 start pool；
-   - start selection deterministic under seed=41；
-   - shuffled bag 在合法 starts 耗尽前不重复。
-
-3. 5004 updates 完成后：
-   - A/B total consumed samples 完全相同；
-   - A/B per-trajectory draw counts 完全相同；
-   - B 的 unique windows / unique starts 必须明显高于 A。
-   
-若 B 没有实际提升 unique-start exposure，说明 sampler 实现错误，返回 `BLOCKED`。
+- trajectory membership
+- trajectory weighting
+- total sample count
 
 ---
 
-## 7. Common training semantics — HARD CONTRACT
+## 9. Hard matched contract
 
 两个 arm 完全相同：
 
-- frozen CNO SHA above
-- fresh residual
-- hidden=96
-- blocks=2
-- dropout=0
-- include pressure feature=true
-- max_delta=0.04
-- train alpha=1.0
-- updates=`5004`
-- eval steps:
-  - 0
-  - 1000
-  - 2000
-  - 3000
-  - 4000
-  - 5000
-  - 5004
-- batch=8
-- test batch=32
-- lr=`2e-4`
-- weight decay=`1e-5`
+- Train65 membership
+- Dev16
+- frozen CNO
+- fresh residual architecture
+- initialization seed
+- updates = `5055`
+- batch = 8
+- test batch = 32
+- lr = `2e-4`
+- weight decay = `1e-5`
 - AdamW
-- cosine scheduler T_max=5004
-- seed=41
+- cosine scheduler T_max=5055
 - fp32
-- grad clip=1.0
-- eval stride=20
-- same Dev16
+- grad clip = 1.0
+- train alpha = 1.0
+- eval stride = 20
 - same alpha scan
 - same fixed-time proxy
+- no phase-count equalization
 
-Loss 必须保持 colleague Stage2：
+Loss 固定为 colleague Stage2：
 
 ```text
 point          = 1.0
@@ -283,73 +267,77 @@ delta_penalty  = 0.02
 
 - 改 LR
 - 改 batch
+- 改 seed
 - 改 loss
 - 改 TKE weight
-- 改 residual capacity
+- 改 residual architecture
 - AMP / bf16
 - augmentation
 - AoA transform
-- random rotation
 - CFD
 - EMA
 - checkpoint averaging
+- `--train-on-all`
+- `--allow-train-dev-overlap`
 
-本轮**唯一科研变量 = training sampling policy**。
+本轮唯一科研变量：
+
+> **Residual training sampling policy**
 
 ---
 
-## 8. Required implementation
+## 10. Required code
+
+Main runner：
+
+`tools/colleague_80pt/run_disjoint_trajectory_sampling_screen.py`
 
 Sampler：
 
 `TrajectoryStratifiedRandomStartBatchSampler`
 
-位于：
-
-`tools/colleague_80pt/realpde_h5_feature_adapter_train.py`
-
-Residual runner 已支持：
-
-`--train-window-mode trajectory_stratified_random_start`
-
-主 campaign runner：
-
-`tools/colleague_80pt/run_trajectory_sampling_screen.py`
-
 Archive：
 
-`tools/colleague_80pt/archive_trajectory_sampling_screen.py`
+`tools/colleague_80pt/archive_disjoint_trajectory_sampling_screen.py`
+
+Tests：
+
+`tests/test_disjoint_trajectory_sampling_screen.py`
 
 ---
 
-## 9. Required evidence
+## 11. Eval milestones
 
-### A. Provenance
+两个 arm 都必须：
 
-必须归档：
+- step 0
+- 1000
+- 2000
+- 3000
+- 4000
+- 5000
+- 5055 final
 
-- execution commit
-- data manifest + SHA
-- split manifest + SHA
-- base CNO SHA
-- GPU / VRAM
-- Python / PyTorch / CUDA
-- environment variables explicitly changed
-- commands
+全部使用完整 Dev16：
 
-### B. Initialization parity
+- 16 trajectories
+- 640 fixed stride20 windows
 
-`initialization_parity.json`
+Primary comparison：
 
-必须：
+```text
+candidate_final@5055
+vs
+control_final@5055
+```
 
-`exact = true`
+Best checkpoint only secondary evidence。
 
-否则 BLOCKED。
+---
 
-### C. Sampling audit
+## 12. Required sampling audit
 
-两个 arm 都必须输出：
+每个 arm：
 
 `sampling_audit.json`
 
@@ -360,46 +348,30 @@ Archive：
 - candidate_legal_windows
 - unique_window_fraction
 - duplicate_trajectory_batches
-- 每条 trajectory:
+- per trajectory:
   - draws
   - unique_starts
   - legal_starts
   - repeated_draws
 
-Campaign 必须输出：
+Campaign：
 
 `sampling_comparison.json`
 
-强制验证：
+必须强制：
 
-- A/B samples consumed equal
+- A/B total consumed samples exact equal
 - A/B per-trajectory draws exact equal
-- B batch duplicate trajectory = 0
-- B unique window count > A
+- B duplicate-trajectory batches = 0
+- B unique-window count > A
 
-### D. Training curve
+否则：
 
-`matched_progress.csv`
+`BLOCKED`
 
-必须包含：
+---
 
-- step0
-- 1k
-- 2k
-- 3k
-- 4k
-- 5k
-- 5004 final
-
-每一步 A/B：
-
-- Rel-L2
-- TKE
-- MVPE
-- percentage delta B vs A
-- fixed-time final estimate
-
-### E. Standard diagnostics
+## 13. Required diagnostics
 
 对：
 
@@ -409,68 +381,60 @@ Campaign 必须输出：
 - candidate_best
 - candidate_final
 
-统一输出：
+输出：
 
-- aggregate Rel/TKE/MVPE
+- Rel-L2
+- TKE
+- MVPE
 - Future1..20
 - by trajectory
 - trajectory × horizon
-- mean field
+- mean-field
 - fluctuation
 - TKE energy ratio
-- correction help/hurt
+- correction help/hurt fraction
 - delta RMS
 - spatial maps
 
+同时生成：
+
+`matched_progress.csv`
+
+记录 0 / 1k / 2k / 3k / 4k / 5k / 5055 的 A/B matched curve。
+
 ---
 
-## 10. Scientific review rule
+## 14. Scientific review logic
 
-Primary comparison：
-
-```text
-candidate_final@5004
-vs
-control_final@5004
-```
-
-Best checkpoint 只作为 secondary evidence。
-
-原因：
-
-> 这轮首先研究同预算 sampler learning behavior，不允许用不同 early-stop iteration 掩盖 sampler 差异。
-
-### What counts as positive signal
-
-不预注册一个机械单数字阈值。
+Codex 不做 GO/NO-GO。
 
 Sol review 时重点看：
 
-1. 至少 2/3 primary metrics 是否改善；
-2. 是否存在明显 TKE↔Rel/MVPE tradeoff；
-3. trajectory-level 改善是否广泛；
-4. horizon-level 改善是否广泛；
-5. B 是否真的获得大幅更多 unique-start exposure；
-6. 是否出现系统性 energy-ratio / late-horizon 退化；
-7. 学习曲线到 5004 时是在拉开、持平还是反转。
+1. candidate 在 Residual-unseen Dev16 上是否至少 2/3 primary metrics 改善；
+2. 是否存在 TKE 与 Rel/MVPE 的系统 tradeoff；
+3. trajectory-level win/loss 是否广泛；
+4. horizon-level 是否广泛；
+5. candidate unique-start exposure 实际提高多少；
+6. TKE energy ratio 是否改善或恶化；
+7. candidate 学习曲线到 5055 是继续拉开、平台还是反转。
 
-只有出现**清晰、机制一致的正信号**，才讨论 20k matched follow-up。
+只有出现明确正信号，才讨论后续更长 matched training。
 
-不得由 Codex 自动判 GO，也不得自动长训。
+本 runner 禁止自动长训。
 
 ---
 
-## 11. Environment autonomy
+## 15. Environment autonomy
 
-这是新配置 GPU 环境。
+当前为新配置 GPU 环境。
 
-科研语义是硬约束，运行环境是软约束。
+**科研语义是硬约束，运行环境是软约束。**
 
-Codex 可以自主处理：
+Codex 可自主处理：
 
 - CUDA / driver / PyTorch compatibility
 - Python / venv
-- missing dependencies
+- missing packages
 - `CUDA_VISIBLE_DEVICES`
 - `PYTORCH_CUDA_ALLOC_CONF`
 - OMP / MKL / OPENBLAS / NUMEXPR thread vars
@@ -481,145 +445,148 @@ Codex 可以自主处理：
 - `PYTHONPATH`
 - `HDF5_USE_FILE_LOCKING`
 - DataLoader workers
-- cache/temp paths
+- cache/temp path
 - Git tracking / detached checkout
-- path discovery
-- file permissions
+- file/path discovery
+- permissions
 - launcher / nohup / tmux / PID / logs
-- output-root v2/v3 naming
-- pure compatibility fixes
-- tests for compatibility fixes
-- pure infrastructure failure retry
+- output-root v2/v3
+- pure compatibility patch
+- infrastructure failure retry
 
-无需人工确认。
+不需要人工确认。
 
-但不得改变：
+但不得改变第 9 节任何科研语义。
 
-- dataset membership
-- split
-- base checkpoint
-- 5004 update budget
-- batch
-- lr / wd
-- seed
-- model
-- loss
-- sampler scientific semantics
-- fp32
-- eval protocol
-- locked-final/private/Codabench boundary
+若环境修复必须改变科研语义：
 
-如果环境修复必须触碰这些科研语义，返回 BLOCKED。
+`BLOCKED`
 
 ---
 
-## 12. Preflight tests
+## 16. Preflight
 
-拉取最新 main，记录实际 execution HEAD。
-
-至少运行：
+先：
 
 ```bash
-python -m pytest -q \
-  tests/test_trajectory_sampling_screen.py \
-  tests/test_colleague_incremental_screen.py \
-  tests/test_post_train_diagnostics.py
+git pull --rebase origin main
+git status --short
 ```
 
-另外建议：
+记录实际 execution HEAD。
+
+至少执行：
 
 ```bash
 python -m py_compile \
   tools/colleague_80pt/realpde_h5_feature_adapter_train.py \
   tools/colleague_80pt/residual_multi.py \
-  tools/colleague_80pt/run_trajectory_sampling_screen.py \
-  tools/colleague_80pt/archive_trajectory_sampling_screen.py
+  tools/colleague_80pt/run_disjoint_trajectory_sampling_screen.py \
+  tools/colleague_80pt/archive_disjoint_trajectory_sampling_screen.py
+
+python -m pytest -q \
+  tests/test_disjoint_trajectory_sampling_screen.py \
+  tests/test_trajectory_sampling_screen.py \
+  tests/test_colleague_incremental_screen.py \
+  tests/test_post_train_diagnostics.py
 ```
 
-测试失败：
+工程/environment bug：
 
-- 纯环境 / integration issue：Codex 最小修复 + 补测试 + 继续；
-- 科研语义问题：BLOCK。
+- 最小修复
+- 补测试
+- commit
+- 继续
+
+科研语义问题：
+
+- STOP / BLOCKED
 
 ---
 
-## 13. Execute
+## 17. Execute
 
 参考：
 
 ```bash
-python -u -B tools/colleague_80pt/run_trajectory_sampling_screen.py \
+python -u -B tools/colleague_80pt/run_disjoint_trajectory_sampling_screen.py \
   --real-root /hy-tmp/realpde_data/train_real \
   --base-checkpoint /hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/cno_final_all81.pt \
   --model-root tools/colleague_80pt/submission \
   --data-manifest /hy-tmp/realpde_data/data_manifest.tsv \
-  --split-manifest /hy-tmp/realpde_runs/colleague_incremental_screen_20260921/colleague_dev16_manifest.json \
-  --out-root /hy-tmp/realpde_runs/trajectory_sampling_screen_20260923_v1 \
+  --source-split-manifest /hy-tmp/realpde_runs/colleague_incremental_screen_20260921/colleague_dev16_manifest.json \
+  --out-root /hy-tmp/realpde_runs/disjoint_trajectory_sampling_screen_20260923_v1 \
   --workers 4
 ```
 
-workers 可根据新 GPU 环境自行调整。
+workers 可根据环境调整。
 
-如果 output root 已存在：
+若 output root 已存在：
 
-- 用 v2/v3
-- 不覆盖、不删除旧 run
+- 使用 v2/v3
+- 不覆盖旧结果
 
 ---
 
-## 14. Archive
+## 18. Archive
 
-训练完成且所有 audit PASS：
+完成且 audit 全 PASS：
 
 ```bash
-python -u -B tools/colleague_80pt/archive_trajectory_sampling_screen.py \
+python -u -B tools/colleague_80pt/archive_disjoint_trajectory_sampling_screen.py \
   --run-root <ACTUAL_RUN_ROOT> \
-  --dest docs/colleague_screening/results/20260923_trajectory_sampling_screen
+  --dest docs/colleague_screening/results/20260923_disjoint_trajectory_sampling_screen
 ```
 
-若 destination 已存在，使用 v2/v3。
+如果 destination 已存在：
+
+- 使用 v2/v3
 
 然后：
 
 ```bash
 git diff --check
-git add docs/colleague_screening/results/20260923_trajectory_sampling_screen*
-git commit -m "Archive matched trajectory sampling screen"
+git add docs/colleague_screening/results/20260923_disjoint_trajectory_sampling_screen*
+git commit -m "Archive residual-disjoint trajectory sampling screen"
 git pull --rebase origin main
 git push origin main
 ```
 
 禁止提交：
 
-- checkpoint
+- checkpoints
 - H5
-- raw full training log
-- prediction cache
+- raw full logs
+- prediction caches
 
 ---
 
-## 15. Stop
+## 19. Stop conditions
 
-完成归档并 push 后停止。
+完成 archive + push 后停止。
 
 禁止自动：
 
-- 20k / 38.4k continuation
+- 20k / 38.4k
 - sampler sweep
 - LR sweep
 - batch sweep
 - loss tweak
 - EMA
 - ensemble
-- full refit
+- full-data refit
 - package
 - Codabench
 - locked-final/private access
 
+---
+
+## 20. Final handoff
+
 返回：
 
 ```text
-REALPDE MATCHED TRAJECTORY SAMPLING SCREEN
+REALPDE RESIDUAL-DISJOINT TRAJECTORY SAMPLING SCREEN
 
 Status:
 REVIEW_REQUIRED / BLOCKED
@@ -633,19 +600,28 @@ Results commit:
 Base CNO SHA:
 PASS / FAIL
 
-Split/data manifest:
+Source split/data manifest:
 PASS / FAIL
 
-Original 3341-window baseline:
+Derived Train65 / Dev16:
 PASS / FAIL
+
+Residual Train65∩Dev16:
+EMPTY / FAIL
+
+Train65 fixed stride20 windows:
+2701 / ...
+
+Samples per epoch:
+2696 / ...
 
 A/B initialization parity:
 PASS / FAIL
 
-Arm A fixed stride20:
+Arm A Train65 fixed stride20:
 COMPLETE / BLOCKED
 
-Arm B stratified random-start:
+Arm B Train65 stratified random-start:
 COMPLETE / BLOCKED
 
 A/B samples consumed:
@@ -688,4 +664,4 @@ Missing items:
 NONE / ...
 ```
 
-Codex 不做最终科研判断。Sol 在 Git Evidence Acceptance 后 review。
+Codex 不做最终科研结论。Sol 在 Git Evidence Acceptance 后 review。
