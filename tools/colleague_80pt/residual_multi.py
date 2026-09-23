@@ -44,6 +44,7 @@ from realpde_h5_feature_adapter_train import (  # noqa: E402
     BAD_TRAIN_FILES,
     H5WindowDataset,
     RandomPhaseWindowSampler,
+    TrajectoryStratifiedRandomStartBatchSampler,
     finalize_scores,
     init_sps_candidates,
     list_h5,
@@ -563,6 +564,101 @@ def save_checkpoint(
     torch.save(payload, path)
 
 
+
+def full_batch_indices(indices: Sequence[int], batch_size: int) -> list[int]:
+    usable = (len(indices) // int(batch_size)) * int(batch_size)
+    return [int(index) for index in indices[:usable]]
+
+
+def trajectory_quotas_from_indices(
+    dataset: H5WindowDataset,
+    indices: Sequence[int],
+) -> dict[str, int]:
+    quotas = {path.name: 0 for path in dataset.paths}
+    for index in indices:
+        quotas[dataset.refs[int(index)].path.name] += 1
+    return quotas
+
+
+def summarize_sampling_exposure(
+    dataset: H5WindowDataset,
+    epoch_plans: Sequence[Sequence[int]],
+    *,
+    updates: int,
+    batch_size: int,
+    sampling_policy: str,
+) -> dict[str, object]:
+    required = int(updates) * int(batch_size)
+    consumed: list[int] = []
+    for plan in epoch_plans:
+        if len(consumed) >= required:
+            break
+        remaining = required - len(consumed)
+        consumed.extend(int(index) for index in plan[:remaining])
+    if len(consumed) != required:
+        raise RuntimeError(
+            f"sampling audit has {len(consumed)} samples but expected {required}"
+        )
+
+    legal_by_trajectory: dict[str, set[int]] = {path.name: set() for path in dataset.paths}
+    consumed_by_trajectory: dict[str, list[int]] = {path.name: [] for path in dataset.paths}
+    for ref in dataset.refs:
+        legal_by_trajectory[ref.path.name].add(int(ref.start))
+    for index in consumed:
+        ref = dataset.refs[int(index)]
+        consumed_by_trajectory[ref.path.name].append(int(ref.start))
+
+    duplicate_trajectory_batches = 0
+    for offset in range(0, len(consumed), int(batch_size)):
+        batch = consumed[offset : offset + int(batch_size)]
+        names = [dataset.refs[index].path.name for index in batch]
+        if len(set(names)) != len(names):
+            duplicate_trajectory_batches += 1
+
+    per_trajectory: list[dict[str, object]] = []
+    unique_counts: list[int] = []
+    unique_fractions: list[float] = []
+    draw_counts: list[int] = []
+    for path in dataset.paths:
+        name = path.name
+        starts = consumed_by_trajectory[name]
+        unique = len(set(starts))
+        legal = len(legal_by_trajectory[name])
+        draw_counts.append(len(starts))
+        unique_counts.append(unique)
+        fraction = unique / max(legal, 1)
+        unique_fractions.append(fraction)
+        per_trajectory.append(
+            {
+                "trajectory": name,
+                "draws": len(starts),
+                "unique_starts": unique,
+                "legal_starts": legal,
+                "unique_start_fraction": fraction,
+                "repeated_draws": len(starts) - unique,
+            }
+        )
+
+    return {
+        "sampling_policy": sampling_policy,
+        "updates": int(updates),
+        "batch_size": int(batch_size),
+        "samples_consumed": len(consumed),
+        "unique_windows_consumed": len(set(consumed)),
+        "candidate_legal_windows": len(dataset.refs),
+        "unique_window_fraction": len(set(consumed)) / max(len(dataset.refs), 1),
+        "duplicate_trajectory_batches": duplicate_trajectory_batches,
+        "trajectory_draw_min": min(draw_counts),
+        "trajectory_draw_median": float(np.median(draw_counts)),
+        "trajectory_draw_max": max(draw_counts),
+        "unique_start_min": min(unique_counts),
+        "unique_start_median": float(np.median(unique_counts)),
+        "unique_start_max": max(unique_counts),
+        "unique_start_fraction_median": float(np.median(unique_fractions)),
+        "per_trajectory": per_trajectory,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--real-root", type=Path, required=True)
@@ -604,7 +700,11 @@ def main() -> None:
             "the historical evaluation protocol."
         ),
     )
-    parser.add_argument("--train-window-mode", choices=("fixed", "random_phase"), default="fixed")
+    parser.add_argument(
+        "--train-window-mode",
+        choices=("fixed", "random_phase", "trajectory_stratified_random_start"),
+        default="fixed",
+    )
     parser.add_argument(
         "--angle-aug-max-deg",
         type=float,
@@ -741,24 +841,57 @@ def main() -> None:
         max_windows_per_trajectory=args.max_windows_per_trajectory,
         include_pressure=args.include_pressure_data,
     )
-    train_sampler = RandomPhaseWindowSampler(
+    control_reference_sampler = RandomPhaseWindowSampler(
         base_train_dataset,
         seed=args.seed,
         equalize_phase_counts=True,
     )
     fixed_phases = {path.name: 0 for path in fit_paths}
-    train_sampler.set_epoch(
-        0,
-        phases=fixed_phases if args.train_window_mode == "fixed" else None,
-    )
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=args.batch_size,
-        sampler=train_sampler,
-        num_workers=args.workers,
-        pin_memory=device.type == "cuda",
-        drop_last=True,
-    )
+    train_sampler: RandomPhaseWindowSampler | None = None
+    train_batch_sampler: TrajectoryStratifiedRandomStartBatchSampler | None = None
+
+    if args.train_window_mode == "trajectory_stratified_random_start":
+        control_reference_sampler.set_epoch(0, phases=fixed_phases)
+        reference_indices = full_batch_indices(
+            control_reference_sampler.selected_indices,
+            args.batch_size,
+        )
+        train_batch_sampler = TrajectoryStratifiedRandomStartBatchSampler(
+            base_train_dataset,
+            batch_size=args.batch_size,
+            seed=args.seed,
+        )
+        train_batch_sampler.set_epoch(
+            0,
+            trajectory_quotas=trajectory_quotas_from_indices(
+                base_train_dataset,
+                reference_indices,
+            ),
+        )
+        train_loader = DataLoader(
+            train_dataset,
+            batch_sampler=train_batch_sampler,
+            num_workers=args.workers,
+            pin_memory=device.type == "cuda",
+        )
+        train_samples_per_epoch = len(reference_indices)
+    else:
+        train_sampler = control_reference_sampler
+        train_sampler.set_epoch(
+            0,
+            phases=fixed_phases if args.train_window_mode == "fixed" else None,
+        )
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=args.batch_size,
+            sampler=train_sampler,
+            num_workers=args.workers,
+            pin_memory=device.type == "cuda",
+            drop_last=True,
+        )
+        train_samples_per_epoch = (
+            len(train_sampler) // args.batch_size
+        ) * args.batch_size
     val_loader = DataLoader(
         val_dataset,
         batch_size=args.test_batch_size,
@@ -808,11 +941,25 @@ def main() -> None:
         "train_trajectories": len(train_paths),
         "fit_trajectories": len(fit_paths),
         "val_trajectories": len(val_paths),
-        "train_windows": len(train_sampler),
+        "train_windows": len(base_train_dataset),
+        "train_samples_per_epoch": int(train_samples_per_epoch),
+        "reference_fixed_stride_windows": len(control_reference_sampler),
         "val_windows": len(val_dataset),
         "train_stride": int(args.stride),
         "eval_stride": int(eval_stride),
         "train_window_mode": args.train_window_mode,
+        "sampling_policy": (
+            "baseline_fixed_stride_global_shuffle"
+            if args.train_window_mode == "fixed"
+            else (
+                "epoch_random_phase_global_shuffle"
+                if args.train_window_mode == "random_phase"
+                else "baseline_weight_matched_trajectory_stratified_random_start"
+            )
+        ),
+        "batch_unique_trajectory_required": bool(
+            args.train_window_mode == "trajectory_stratified_random_start"
+        ),
         "angle_augmentation": {
             "kind": "global_uv_component_rotation",
             "max_abs_degrees": float(args.angle_aug_max_deg),
@@ -924,12 +1071,41 @@ def main() -> None:
 
     train_iter = iter(train_loader)
     sampler_epoch = 0
+    sampling_epoch_plans: list[list[int]] = []
     benchmark_step_seconds = 0.0
     if args.benchmark_mode and device.type == "cuda":
         torch.cuda.reset_peak_memory_stats(device)
     audit_path = args.out_dir / "window_audit.jsonl"
+
+    def current_sampling_plan() -> list[int]:
+        if train_batch_sampler is not None:
+            return [
+                int(index)
+                for batch_indices in train_batch_sampler.current_plan
+                for index in batch_indices
+            ]
+        assert train_sampler is not None
+        return full_batch_indices(train_sampler.selected_indices, args.batch_size)
+
+    def current_sampling_epoch_record() -> dict[str, object]:
+        if train_batch_sampler is not None:
+            return {
+                "epoch": sampler_epoch,
+                "policy": "trajectory_stratified_random_start",
+                "trajectory_quotas": train_batch_sampler.trajectory_quotas,
+                "batches": len(train_batch_sampler),
+            }
+        assert train_sampler is not None
+        return {
+            "epoch": sampler_epoch,
+            "policy": args.train_window_mode,
+            "phases": train_sampler.phases,
+            "samples": len(current_sampling_plan()),
+        }
+
+    sampling_epoch_plans.append(current_sampling_plan())
     with audit_path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps({"epoch": sampler_epoch, "phases": train_sampler.phases}) + "\n")
+        handle.write(json.dumps(current_sampling_epoch_record(), sort_keys=True) + "\n")
     accum: dict[str, list[float]] = {}
     angle_rng = np.random.default_rng(np.random.SeedSequence([args.seed, 20260922]))
     for step in range(1, args.updates + 1):
@@ -942,14 +1118,33 @@ def main() -> None:
             batch = next(train_iter)
         except StopIteration:
             sampler_epoch += 1
-            train_sampler.set_epoch(
-                sampler_epoch,
-                phases=fixed_phases if args.train_window_mode == "fixed" else None,
-            )
+            if train_batch_sampler is not None:
+                control_reference_sampler.set_epoch(
+                    sampler_epoch,
+                    phases=fixed_phases,
+                )
+                reference_indices = full_batch_indices(
+                    control_reference_sampler.selected_indices,
+                    args.batch_size,
+                )
+                train_batch_sampler.set_epoch(
+                    sampler_epoch,
+                    trajectory_quotas=trajectory_quotas_from_indices(
+                        base_train_dataset,
+                        reference_indices,
+                    ),
+                )
+            else:
+                assert train_sampler is not None
+                train_sampler.set_epoch(
+                    sampler_epoch,
+                    phases=fixed_phases if args.train_window_mode == "fixed" else None,
+                )
             if aoa_aug_dataset is not None:
                 aoa_aug_dataset.set_epoch(sampler_epoch)
+            sampling_epoch_plans.append(current_sampling_plan())
             with audit_path.open("a", encoding="utf-8") as handle:
-                handle.write(json.dumps({"epoch": sampler_epoch, "phases": train_sampler.phases}) + "\n")
+                handle.write(json.dumps(current_sampling_epoch_record(), sort_keys=True) + "\n")
             train_iter = iter(train_loader)
             batch = next(train_iter)
         if len(batch) == 3:
@@ -1138,6 +1333,18 @@ def main() -> None:
         optimizer=optimizer,
         scheduler=scheduler,
     )
+    sampling_audit = summarize_sampling_exposure(
+        base_train_dataset,
+        sampling_epoch_plans,
+        updates=args.updates,
+        batch_size=args.batch_size,
+        sampling_policy=str(run_config["sampling_policy"]),
+    )
+    (args.out_dir / "sampling_audit.json").write_text(
+        json.dumps(sampling_audit, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
     if args.benchmark_mode:
         total_memory = int(torch.cuda.get_device_properties(device).total_memory)
         runtime = {
