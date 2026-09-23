@@ -1037,6 +1037,10 @@ def main() -> None:
     best_bound_abs = float(top["best_bound_abs"])
     best_bound_rel = float(top["best_bound_rel"])
     print("EVAL_TOP " + json.dumps(top, sort_keys=True), flush=True)
+    (args.out_dir / "eval_step_00000.json").write_text(
+        json.dumps(summaries, indent=2, default=str) + "\n",
+        encoding="utf-8",
+    )
     save_checkpoint(
         args.out_dir / "model_best.pth",
         model,
