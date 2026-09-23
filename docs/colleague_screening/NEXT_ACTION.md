@@ -122,7 +122,8 @@ Fixed:
 - point/MSE/temporal/grad/residual/delta losses unchanged
 - train alpha = `1.0`
 - fixed window mode
-- stride = **1**
+- **training stride = 1**
+- **evaluation stride = 20**，必须保持与 historical R0 完全相同的评估口径
 - seed = `41`
 - no AoA augmentation
 - no rotation augmentation
@@ -185,20 +186,21 @@ The runner must:
 2. verify current80 residual SHA;
 3. verify exact historical split/data-manifest SHA;
 4. verify all81 data;
-5. run one stride=1 continuation arm for 5k;
-6. eval at 1k/2k/3k/4k/5k;
-7. build deterministic training review log;
-8. build `training_progress.csv`;
-9. build `comparison_at_5k.csv` containing:
+5. run one train-stride=1 continuation arm for 5k;
+6. keep validation/evaluation stride fixed at 20;
+7. eval at 1k/2k/3k/4k/5k;
+8. build deterministic training review log;
+9. build `training_progress.csv`;
+10. build `comparison_at_5k.csv` containing:
    - frozen current80
    - historical sparse-5k R0
    - new dense-5k
-10. replay:
+11. replay:
    - current80
    - dense_best
    - dense_final
-11. write standard horizon/trajectory/mean/fluctuation/energy diagnostics;
-12. stop at REVIEW_REQUIRED.
+12. write standard horizon/trajectory/mean/fluctuation/energy diagnostics;
+13. stop at REVIEW_REQUIRED.
 
 No automatic scientific verdict is allowed in the runner.
 
@@ -257,7 +259,7 @@ Codex may NOT change:
 - base/start checkpoint identities
 - split/data manifest identities
 - 5k budget
-- stride=1 candidate semantics
+- train stride=1 / eval stride=20 candidate semantics
 - lr/batch/seed
 - architecture
 - feature set
