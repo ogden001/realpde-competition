@@ -59,3 +59,11 @@ def test_no_submission_or_locked_final_execution_codepaths_in_campaign_source():
     assert "locked_final_accessed" in text
     assert "package_submission" not in text
     assert "submission.py" not in text
+
+
+def test_sps_holdout_is_gated_by_seen_dev():
+    text = (ROOT / "tools/train_clean_residual_aware_sps.py").read_text(encoding="utf-8")
+    gate_pos = text.index('if gate["status"] == "GO":')
+    holdout_collect_pos = text.index("collect(model, head, holdout_paths")
+    assert gate_pos < holdout_collect_pos
+    assert '"holdout_accessed": False' in text
