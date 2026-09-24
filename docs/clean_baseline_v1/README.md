@@ -138,6 +138,35 @@ The runner writes:
 - SHA256 evidence
 - REVIEW_REQUIRED status
 
+## Baseline status after the 2026-09-24 run
+
+The first full `REALPDE_CLEAN_BASELINE_V1` run completed successfully on 2026-09-24 and is now the **frozen predictive-research anchor** for subsequent experiments.
+
+Key Seen-Dev12 results:
+
+- Stage1 CNO best @8000: Rel-L2 `0.099606`, TKE `0.778031`, MVPE `0.080290`, point_score `87.7966`.
+- Stage2 residual best @37000: Rel-L2 `0.078363`, TKE `0.507732`, MVPE `0.064408`, point_score `90.9543`.
+
+Unseen AoA10 Holdout18:
+
+- Stage2 step0: Rel-L2 `0.096635`, TKE `0.714621`, MVPE `0.100787`.
+- Stage2 best: Rel-L2 `0.085567`, TKE `0.523197`, MVPE `0.101422`.
+
+The residual therefore generalizes strongly for Rel-L2/TKE to a fully unseen AoA, while MVPE is essentially flat/slightly worse. Per-horizon evidence shows that residual correction is much stronger at early horizons than at F15-F20; the current "tail lift" is treated as a long-horizon correction-imbalance problem rather than an unexplained tail-frame bug.
+
+Detailed interpretation and the mandatory future-comparison policy are frozen in:
+
+`docs/clean_baseline_v1/BASELINE_ANALYSIS_20260924.md`
+
+### Mandatory comparison rule
+
+From this run onward:
+
+- every new predictive-modeling idea uses `REALPDE_CLEAN_BASELINE_V1` as the default research control;
+- experiments from the previous several days that used all81/all82, overlapping Dev trajectories, or another non-matched protocol remain historical mechanism evidence only;
+- any such direction must be re-tested against this clean baseline before being promoted into the research conclusion or SOTA merge;
+- the clean research anchor and the online Codabench anchor are separate coordinate systems and must not be conflated.
+
 ## Completed run evidence
 
 - 2026-09-24 overnight run report and compact review evidence: [`results/20260924_run1/RUN_REPORT.md`](results/20260924_run1/RUN_REPORT.md).
