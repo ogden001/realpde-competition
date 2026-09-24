@@ -201,9 +201,6 @@ def main() -> None:
     dev_candidate = adaptive_score(pred_after, target_after, sigma_after, selected["floor"], selected["mult_u"], selected["mult_v"], selected["rel"])
     dev_gain = dev_candidate["sps"] - static_best["sps"]
 
-    _, pred_h, _, sigma_h, target_h = collect(model, head, holdout_paths, device, args.workers)
-    hold_candidate = adaptive_score(pred_h, target_h, sigma_h, selected["floor"], selected["mult_u"], selected["mult_v"], selected["rel"])
-    hold_static = static_score(pred_h, target_h, static_best["abs"], static_best["rel"])
     gate = {
         "status": "GO" if dev_gain >= 1.0 and dev_candidate["mean_width_uv"] <= 1.20 * static_best["mean_width_uv"] else "NO_GO",
         "dev_sps_gain_vs_static": dev_gain,
@@ -211,23 +208,32 @@ def main() -> None:
         "dev_width_ratio": dev_candidate["mean_width_uv"] / max(static_best["mean_width_uv"], 1e-12),
         "max_dev_width_ratio": 1.20,
         "point_prediction_parity_max_abs": parity,
-        "holdout_sps_delta_vs_static": hold_candidate["sps"] - hold_static["sps"],
-        "holdout_coverage_delta_vs_static": hold_candidate["coverage"] - hold_static["coverage"],
     }
 
-    torch.save({"head_state_dict": best_state, "head_config": cfg.__dict__, "selected_step": best["step"], "calibration": selected}, args.out_dir / "head_best.pth")
-    dump(args.out_dir / "training_progress.json", {"losses": losses, "evals": evals})
-    dump(args.out_dir / "summary.json", {
+    summary = {
         "status": "REVIEW_REQUIRED",
         "recipe": "colleague80 residual-aware SPS: h64/b2/logmae/base-pre-residual features/final-error target",
         "train_stride": 5, "dev_stride": 20, "updates": UPDATES,
         "selected_step": best["step"], "selected_calibration": selected,
         "static_dev": static_best, "candidate_dev": dev_candidate,
-        "static_holdout_aoa10": hold_static, "candidate_holdout_aoa10": hold_candidate,
         "gate": gate, "point_prediction_parity_max_abs": parity,
         "training_wall_seconds": time.monotonic() - started,
-        "holdout_used_for_selection": False, "codabench_accessed": False, "locked_final_accessed": False,
-    })
+        "holdout_accessed": False, "holdout_used_for_selection": False,
+        "codabench_accessed": False, "locked_final_accessed": False,
+    }
+    if gate["status"] == "GO":
+        _, pred_h, _, sigma_h, target_h = collect(model, head, holdout_paths, device, args.workers)
+        hold_candidate = adaptive_score(pred_h, target_h, sigma_h, selected["floor"], selected["mult_u"], selected["mult_v"], selected["rel"])
+        hold_static = static_score(pred_h, target_h, static_best["abs"], static_best["rel"])
+        gate["holdout_sps_delta_vs_static"] = hold_candidate["sps"] - hold_static["sps"]
+        gate["holdout_coverage_delta_vs_static"] = hold_candidate["coverage"] - hold_static["coverage"]
+        summary["static_holdout_aoa10"] = hold_static
+        summary["candidate_holdout_aoa10"] = hold_candidate
+        summary["holdout_accessed"] = True
+
+    torch.save({"head_state_dict": best_state, "head_config": cfg.__dict__, "selected_step": best["step"], "calibration": selected}, args.out_dir / "head_best.pth")
+    dump(args.out_dir / "training_progress.json", {"losses": losses, "evals": evals})
+    dump(args.out_dir / "summary.json", summary)
     (args.out_dir / "DONE").touch()
 
 
