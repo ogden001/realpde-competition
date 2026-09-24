@@ -53,9 +53,9 @@ def test_strong_recipe_uses_full_historical_schedule():
     assert STRONG.SEED == 41
 
 
-def test_no_submission_or_locked_final_codepaths_in_campaign_source():
+def test_no_submission_or_locked_final_execution_codepaths_in_campaign_source():
     text = (ROOT / "tools/clean_baseline_final_campaign.py").read_text(encoding="utf-8").lower()
-    assert "codabench" in text
-    assert "submission packaging" not in text
-    assert "locked-final" in text
-    assert "package build" not in text
+    assert "codabench_accessed" in text
+    assert "locked_final_accessed" in text
+    assert "package_submission" not in text
+    assert "submission.py" not in text
