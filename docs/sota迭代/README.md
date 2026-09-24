@@ -1,5 +1,30 @@
 # 线上 SOTA 迭代
 
+## 0. Research / Submission 双锚点规则
+
+从 2026-09-24 起，SOTA merge 不再直接继承旧的 overlap-Dev / all81/all82 离线结论。
+
+Predictive research 的默认 control 是：
+
+`REALPDE_CLEAN_BASELINE_V1`
+
+对应：
+
+- `docs/clean_baseline_v1/README.md`
+- `docs/clean_baseline_v1/BASELINE_ANALYSIS_20260924.md`
+
+线上 SOTA 仍然是独立的 submission anchor，用于判断 full-data refit、SPS、runtime、package 和 Codabench 是否值得做。
+
+任何候选要进入新的 SOTA merge，必须满足至少一种情况：
+
+1. 已在 `REALPDE_CLEAN_BASELINE_V1` 或其严格 matched clean derivative 上验证；
+2. 是纯 submission-layer 改动，例如 SPS/runtime，且不改变 point prediction；
+3. 属于明确的组合 merge，无法单独归因，但必须清楚标记“组合验证”，不得把旧 overlap 结果写成 clean causal evidence。
+
+过去几天的 late-horizon、phase/sampling、AoA augmentation、stronger backbone、residual objective、joint fine-tune 等结果，若来自 all81/all82 或 overlapping Dev，只保留为候选机制线索。它们在进入下一轮 merge 前应重新对比 clean baseline。
+
+---
+
 ## 1. 目标
 
 本目录用于 RealPDE Track 1 的**线上 SOTA 收口与提交**。
@@ -234,7 +259,7 @@ KEEP / ROLLBACK
 2026-09-17/18 两次 teammate SPS 提交已经把纯 uncertainty-head recipe 调整的收益空间基本跑清。下一轮不再继续 SPS-only 微调，重点转为完整 SOTA merge：
 
 1. **Residual + SPS 联合结构**：研究 teammate 的 `base → residual corrector → final` 与 `uncertainty(x, base) → final-error scale` 联合机制，避免继续把 uncertainty head 当作孤立后处理器。
-2. **已验证主链路增量合并**：AoA/数据增强、Stage-B、残差修正等只按已有证据进入完整 merge，不重新铺大规模消融。
+2. **主链路增量重新过 clean gate**：AoA/数据增强、Stage-B、残差修正等若其关键证据来自旧 50/16、all81/all82 或 overlap Dev，只能作为优先级线索；进入新的完整 merge 前必须先在 `REALPDE_CLEAN_BASELINE_V1` 上做 matched comparison。
 3. **TKE protection**：Residual corrector 若进入 merge，必须继续保护 TKE，不能只追 Rel-L2/MVPE。
 4. **Late horizon / stronger backbone**：保留为后续大台阶方向，不为本轮 SPS 问题额外扩散实验。
 
