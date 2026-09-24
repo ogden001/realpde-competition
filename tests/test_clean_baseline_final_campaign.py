@@ -13,6 +13,9 @@ def load_module(name: str, path: str):
 
 
 ROOT = Path(__file__).resolve().parents[1]
+import sys
+sys.path.insert(0, str(ROOT / "tools"))
+sys.path.insert(0, str(ROOT / "tools" / "colleague_80pt"))
 CAMPAIGN = load_module("cbfc", str(ROOT / "tools/clean_baseline_final_campaign.py"))
 STRONG = load_module("cbfc_strong", str(ROOT / "tools/train_clean_strong_backbone.py"))
 
