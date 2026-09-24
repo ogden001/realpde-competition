@@ -4,6 +4,43 @@
 >
 > 这里记录的是**可比较性协议和已完成的参考结果**，不是 Codabench leaderboard，也不授权使用 locked final 或 private test 选模型。
 
+## 0. 2026-09-24 Research Baseline Override
+
+The historical registry below is preserved for provenance, but its original 50/16/16 default protocol is no longer the default control for new predictive research.
+
+From 2026-09-24 onward, the default research reference is:
+
+### `T1-CLEAN-BASELINE-V1-20260924` — COMPLETED / FROZEN RESEARCH ANCHOR
+
+- Protocol: `REALPDE_CLEAN_BASELINE_V1`.
+- Data: 81 usable released real-PIV trajectories, excluding `7575_0.h5`.
+- Split: Train51 / Seen-Dev12 / unseen-AoA10 Holdout18, trajectory-disjoint.
+- Training sampling: Past20→Future20, P00/sub_sample2, all legal stride=1 starts, deterministic global shuffle seed41, batch8.
+- Eval: Seen Dev / Holdout stride20, start0.
+- Stage1: colleague-80 CNO architecture/loss, best@8000.
+- Stage1 Seen Dev: Rel-L2 `0.099606201`, TKE `0.778031290`, MVPE `0.080289602`, point_score `87.796616`.
+- Stage2: frozen Stage1 best + ResidualCorrector3D h96/b2/max_delta0.04, alpha1.
+- Stage2 best@37000 Seen Dev: Rel-L2 `0.078363446`, TKE `0.507731898`, MVPE `0.064407949`, point_score `90.954326`.
+- AoA10 Holdout at Stage2 best: Rel-L2 `0.085566938`, TKE `0.523196816`, MVPE `0.101421528`.
+- Stage1 best SHA256: `6aec4edb5e42746080e19baaafa2d6b719bb57befb1ff9035ece7889ec280036`.
+- Stage2 best SHA256: `1536fe02e11fc0dc991a38cb1489d0be0752ec8149be7b9f1542a4cb81c2f975`.
+- Full report: `docs/clean_baseline_v1/results/20260924_run1/RUN_REPORT.md`.
+- Analysis / future comparison rule: `docs/clean_baseline_v1/BASELINE_ANALYSIS_20260924.md`.
+
+### Override rule
+
+For any predictive experiment designed after this date:
+
+1. reference `T1-CLEAN-BASELINE-V1-20260924` unless there is an explicitly justified matched derivative baseline;
+2. keep split/sampling/evaluation fixed unless that item is the sole experimental variable;
+3. compare new candidate against a matched clean control at the same training budget;
+4. old all81/all82, overlap-Dev, legacy 50/16, or other unmatched results may be cited only as historical evidence / hypothesis generators;
+5. a historical direction must be re-tested on this clean baseline before it can be promoted into the new research conclusion or SOTA merge.
+
+The original sections below remain historically valid records. They are not deleted and must not be retroactively rewritten as if they used the new protocol.
+
+---
+
 ## 1. 不可变的 ID 实验协议
 
 除非实验明确写为 OOD 或正式 Codabench，本注册表定义的 Track 1 ID 实验一律使用下列协议：
