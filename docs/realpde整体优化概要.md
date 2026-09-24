@@ -11,18 +11,70 @@
 
 ---
 
+## 0. 2026-09-24：科研基线重置
+
+从 2026-09-24 起，项目明确分成两套 anchor：
+
+### A. Predictive Research Anchor
+
+统一使用：
+
+`REALPDE_CLEAN_BASELINE_V1`
+
+核心协议：
+
+- 81 usable released real-PIV trajectories；
+- Train51 / Seen-Dev12 / unseen-AoA10 Holdout18；
+- Train/Dev/Holdout trajectory-level disjoint；
+- Train stride=1，枚举所有合法 Past20→Future20 temporal windows；
+- Dev/Holdout stride=20；
+- Stage1 = colleague-80 CNO recipe；
+- Stage2 = frozen-backbone ResidualCorrector3D h96/b2；
+- checkpoint selection 只看 Rel-L2/TKE/MVPE 的 point score；
+- SPS/runtime 不参与科研选模；
+- AoA10 Holdout 只在方案训练完成后做诊断。
+
+首个完整 run：
+
+- Stage1 best@8000：Rel-L2 `0.099606` / TKE `0.778031` / MVPE `0.080290` / point_score `87.7966`；
+- Stage2 best@37000：Rel-L2 `0.078363` / TKE `0.507732` / MVPE `0.064408` / point_score `90.9543`；
+- unseen AoA10：Residual 将 Rel-L2 `0.096635 → 0.085567`、TKE `0.714621 → 0.523197`，MVPE `0.100787 → 0.101422`。
+
+详细分析：
+
+`docs/clean_baseline_v1/BASELINE_ANALYSIS_20260924.md`
+
+### B. Online Submission Anchor
+
+线上 SOTA / Codabench 结果继续独立维护，用于最终 merge、full-data refit、SPS、runtime 和 submission 判断。
+
+**两套 anchor 不可混用。**
+
+过去几天在 all81/all82、train/dev overlap 或其他非 matched protocol 下完成的实验：
+
+- 结果保留；
+- 仍可作为机制线索和方向优先级依据；
+- 不再作为 clean generalization 结论；
+- 若要进入后续主线，必须重新对比 `REALPDE_CLEAN_BASELINE_V1`。
+
+因此从本节开始，本文旧的 50/16、SOTA-V2 等离线数字应理解为历史/competition evidence，不再是默认科研 control。
+
+---
+
 ## 1. 默认阅读顺序
 
 新开一级研究会话时先读：
 
 1. `docs/realpde整体优化概要.md`
-2. `docs/sota迭代/README.md`
+2. `docs/clean_baseline_v1/README.md`
+3. `docs/clean_baseline_v1/BASELINE_ANALYSIS_20260924.md`
+4. `docs/sota迭代/README.md`
 3. `docs/submission_log.md`
 4. `docs/sota迭代/reviews/sota_v2_adaptive_20260916/README.md`
 5. 对应方向 `*概要.md` / closeout
 6. `docs/track1_experiment_registry.md` 与相关 coordination handoff
 
-当前默认线上锚点已经升级为 SOTA-V2；后续实验不能继续把 full@43260 / Final `76.694784` 当成默认 SOTA baseline。
+默认科研对照已经切换为 `REALPDE_CLEAN_BASELINE_V1`；线上提交仍使用最新 Codabench SOTA 作为 submission anchor。任何后续实验必须先声明自己是在 Research 轨还是 Submission 轨。
 
 ---
 
@@ -128,6 +180,8 @@ Codabench：
 ---
 
 ## 5. 下一轮主要问题
+
+> 本节中的研究优先级必须以 `REALPDE_CLEAN_BASELINE_V1` 为默认 control。旧协议的结果只能决定“值不值得重新验证”，不能直接证明在新 baseline 上有效。
 
 下一轮先复盘而不是立即 full train：
 
