@@ -1,0 +1,20 @@
+{
+  "baseline_label": "stage2_init",
+  "dev_trajectories": 18,
+  "dev_windows": 756,
+  "diagnostics_version": 1,
+  "models": [
+    {
+      "checkpoint": "/hy-tmp/runs/realpde_clean_baseline_v1_20260924/stage2_residual/model_init.pth",
+      "label": "stage2_init"
+    },
+    {
+      "checkpoint": "/hy-tmp/runs/realpde_clean_baseline_v1_20260924/stage2_residual/model_best.pth",
+      "label": "stage2_best"
+    },
+    {
+      "checkpoint": "/hy-tmp/runs/realpde_clean_baseline_v1_20260924/stage2_residual/model_final.pth",
+      "label": "stage2_final"
+    }
+  ]
+}

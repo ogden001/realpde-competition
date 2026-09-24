@@ -1,0 +1,57 @@
+{
+  "automatic_full_data_refit_started": false,
+  "budgets": {
+    "batch_size": 8,
+    "eval_interval": 1000,
+    "stage1_cno_updates": 8723,
+    "stage2_residual_updates": 38400
+  },
+  "canonical_split_manifest": "/hy-tmp/realpde_clean_baseline_v1_20260924/code/configs/clean_baseline_v1_split.json",
+  "canonical_split_manifest_sha256": "1a0935dd7fbc4860b0d2ca5d49e410dfe03191cf8177d9f8ced336cd69736e2a",
+  "codabench_accessed": false,
+  "created_at": "2026-09-23T17:25:07.140695+00:00",
+  "environment": {
+    "CUDA_VISIBLE_DEVICES": "0"
+  },
+  "execution_commit": "65e4f0f1d029eea47c6ba96364ce889e22d437d8",
+  "gpu": {
+    "cuda_runtime": "12.1",
+    "gpu": "NVIDIA GeForce RTX 3090 Ti",
+    "gpu_memory_bytes": 25425608704,
+    "torch": "2.4.0+cu121"
+  },
+  "locked_final_accessed": false,
+  "protocol": "REALPDE_CLEAN_BASELINE_V1",
+  "scientific_protocol": {
+    "eval_start": 0,
+    "eval_stride": 20,
+    "holdout_for_checkpoint_selection": false,
+    "runtime_in_training_or_selection": false,
+    "seen_dev_for_checkpoint_selection": true,
+    "selection_metric": "mean official-v9 Rel-L2/TKE/MVPE subscores",
+    "sps_in_training_or_selection": false,
+    "stage1_architecture_loss": "colleague80_exact",
+    "stage2_architecture_loss": "colleague80_exact",
+    "train_sampling": "all legal stride1 windows, deterministic global shuffle, without replacement per epoch",
+    "train_stride": 1
+  },
+  "sim_pretrain_checkpoint": "/hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/sim_real_cno.pth",
+  "sim_pretrain_sha256": "82e842928a25dbf5a74c4e336bdd28e89bcf40e68bb8cdd213547f1246af4f61",
+  "split_audit": {
+    "all_10deg_held_out": true,
+    "dev_aoa_counts": {
+      "0": 3,
+      "5": 3,
+      "15": 3,
+      "20": 3
+    },
+    "dev_trajectories": 12,
+    "holdout_aoa": 10,
+    "holdout_trajectories": 18,
+    "train_dev_holdout_overlap": false,
+    "train_trajectories": 51,
+    "usable_trajectories": 81
+  },
+  "status": "REVIEW_REQUIRED",
+  "submission_packaging_started": false
+}

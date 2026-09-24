@@ -1,0 +1,19 @@
+{
+  "best_iteration": 8000,
+  "best_point_score": 87.79661595416252,
+  "latest_iteration": 8723,
+  "latest_metrics": {
+    "fluctuation_rel_l2": 0.998391330242157,
+    "mean_field_rel_l2": 0.059864625334739685,
+    "mvpe_raw": 0.08029961585998535,
+    "mvpe_score": 96.139997563438,
+    "point_score": 87.66374072929197,
+    "rel_l2_raw": 0.09993229806423187,
+    "rel_l2_score": 95.24116571965907,
+    "tke_raw": 0.79290372133255,
+    "tke_score": 71.61005890477887,
+    "trajectories": 12,
+    "windows": 491
+  },
+  "status": "REVIEW_REQUIRED"
+}

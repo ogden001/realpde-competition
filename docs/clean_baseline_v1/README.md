@@ -138,6 +138,10 @@ The runner writes:
 - SHA256 evidence
 - REVIEW_REQUIRED status
 
+## Completed run evidence
+
+- 2026-09-24 overnight run report and compact review evidence: [`results/20260924_run1/RUN_REPORT.md`](results/20260924_run1/RUN_REPORT.md).
+
 It does not train SPS, refit all released data, package a submission, access locked-final/private data, or access Codabench.
 
 

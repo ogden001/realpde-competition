@@ -1,0 +1,8 @@
+{
+  "candidate_legal_windows": 41317,
+  "samples_consumed": 69784,
+  "samples_per_complete_epoch_after_drop_last": 41312,
+  "sampling_policy": "all_legal_stride1_windows_global_shuffle_without_replacement_per_epoch",
+  "seed": 41,
+  "updates": 8723
+}

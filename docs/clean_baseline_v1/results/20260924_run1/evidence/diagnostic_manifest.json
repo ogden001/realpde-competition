@@ -1,0 +1,15 @@
+{
+  "automatic_full_data_refit_started": false,
+  "codabench_accessed": false,
+  "execution_commit": "65e4f0f1d029eea47c6ba96364ce889e22d437d8",
+  "holdout_evaluated_only_after_stage2_training": true,
+  "locked_final_accessed": false,
+  "split_manifest_sha256": "1a0935dd7fbc4860b0d2ca5d49e410dfe03191cf8177d9f8ced336cd69736e2a",
+  "stage1_best_sha256": "6aec4edb5e42746080e19baaafa2d6b719bb57befb1ff9035ece7889ec280036",
+  "stage1_final_sha256": "4ffa498a9f9db682362f4f04ea090bc074e79d44f2439fe8a2658be96bcba858",
+  "stage2_best_sha256": "1536fe02e11fc0dc991a38cb1489d0be0752ec8149be7b9f1542a4cb81c2f975",
+  "stage2_final_sha256": "f5b9352a7a7a1c939afa28fcee4c27df93c0cb508bbfea6dec1bbba2e54a4881",
+  "stage2_init_sha256": "a66cee1003f544ab392f8371b22a5c0022674f8bbf3a37141d19c85853cdb8ca",
+  "status": "REVIEW_REQUIRED",
+  "submission_packaging_started": false
+}
