@@ -27,6 +27,27 @@ From 2026-09-24 onward, the default research reference is:
 - Full report: `docs/clean_baseline_v1/results/20260924_run1/RUN_REPORT.md`.
 - Analysis / future comparison rule: `docs/clean_baseline_v1/BASELINE_ANALYSIS_20260924.md`.
 
+### `T1-CLEAN-SPS-EXP3-20260925` — COMPLETED / SCIENTIFIC GO / REVIEW_REQUIRED
+
+- Purpose: validate a residual-aware SPS uncertainty module on the frozen clean baseline and test whether its calibration generalizes to fully unseen AoA=10 without holdout retuning.
+- Point predictor: frozen Clean Stage1 + Clean Stage2 residual predictor. The uncertainty head does not change point predictions.
+- Uncertainty semantics: head observes Past20 plus the **pre-residual base CNO forecast**; its target is the error of the **post-residual final forecast**.
+- Head/training recipe: h64, 2 blocks, dropout0, masked log-MAE; Train51 stride5; batch16; AdamW lr=1e-3 with warmup/cosine; 5000 updates; Seen-Dev evaluated every 500 steps; original 300-combination adaptive calibration family only.
+- Correct selection rule: maximize adaptive Seen-Dev SPS **subject to** mean interval width <= `1.20x` the same-Dev best static width. The unconstrained SPS maximum is diagnostic only.
+- Frozen gate: Seen-Dev SPS gain >= `+1.0`; width ratio <= `1.20`; point-prediction parity max abs <= `1e-7`.
+- Selected head: step `4500`; head SHA256 `1cde13a23fe15547dc2ee16cede9edd89fe8c12bc88f8e9ad059641f0a6c90b8`.
+- Selected calibration: `floor=0.0025, mult_u=0.75, mult_v=1.5, rel=0.0075`.
+- Seen-Dev: static SPS `48.416360` -> adaptive SPS `51.654435`, gain `+3.238075`; coverage `0.788302 -> 0.849634`; adaptive mean u/v width `0.014827814`; width ratio `1.192600`; point parity `0`; gate `GO`.
+- One frozen unseen-AoA10 audit, with **no recalibration and no holdout-based selection**: static SPS `45.842623` -> adaptive SPS `49.017414`, gain `+3.174791`; coverage `0.772295 -> 0.837020` (+6.47 percentage points); adaptive mean u/v width `0.015131400`.
+- Interpretation: the SPS gain is almost the same on Seen-Dev and fully unseen AoA10, supporting that the uncertainty head learned transferable heteroscedastic error structure rather than merely widening intervals on Seen-Dev. This direction is therefore approved at the **method level** for SOTA merge.
+- SOTA-merge reuse rule:
+  - if the final point predictor is exactly the same Clean Stage1+Stage2 predictor, reuse this head/checkpoint and calibration directly;
+  - if the final point predictor changes, reuse this **validated recipe and frozen calibration-search protocol**, but do **not** assume the old head weights remain calibrated. Freeze the final point predictor and fit a matched SPS head with the same recipe; select only on Seen-Dev. AoA10 must not be used for retuning.
+- No further SPS research/grid expansion is warranted unless final integration breaks parity or the point predictor changes enough to require a matched head.
+- Recovery evidence: `docs/clean_baseline_final_campaign/results/20260925_exp3_constrained_recovery/`.
+- Evidence commit: `235e8255aa3bdb08b131a2c88bf9b2c54dee4056`.
+- Locked-final/private, Codabench, full-data refit and submission/package were not accessed.
+
 ### Override rule
 
 For any predictive experiment designed after this date:
