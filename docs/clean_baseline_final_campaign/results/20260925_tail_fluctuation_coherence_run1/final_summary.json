@@ -1,0 +1,99 @@
+{
+  "diagnostic_flags": {
+    "f20_amplitude_ratio_near_one": true,
+    "f20_best_phase_not_diagonal": true,
+    "f20_fluctuation_coherence_low": true,
+    "mean_field_rel_below_5pct": true
+  },
+  "interpretation_rule": "Amplitude ratio near 1 + low diagonal fluctuation cosine => coherence/phase problem, not amplitude. High cosine + amplitude ratio far from 1 => amplitude problem. Large mean-field error => broader tail representation/domain issue. A nonzero best phase offset in the 20x20 fluctuation matrix indicates temporal phase drift, but the offset must be interpreted together with the diagonal cosine and trajectory consistency.",
+  "label": "strong_backbone_plus_residual",
+  "mean_field": {
+    "mean_field_norm_ratio_global": 0.99633787327681,
+    "mean_field_norm_ratio_window_mean": 0.9977825834326737,
+    "mean_field_rel_l2_global": 0.047121231965927046,
+    "mean_field_rel_l2_window_mean": 0.043976779176095465,
+    "mean_field_rel_l2_window_median": 0.041072230863941246
+  },
+  "tail": {
+    "f18": {
+      "amplitude_ratio_global": 0.6946564224943962,
+      "amplitude_ratio_window_mean": 0.7791344100058242,
+      "amplitude_ratio_window_median": 0.7999209910177739,
+      "fluctuation_cosine_global": 0.4856412891644472,
+      "fluctuation_cosine_window_mean": 0.5027388221500813,
+      "fluctuation_cosine_window_median": 0.5751525126305305,
+      "fluctuation_rel_l2": 0.8987991233972306,
+      "fluctuation_scale_star": 0.699110054176984,
+      "horizon": 18,
+      "pred_fluct_rms": 0.009117092727588216,
+      "target_fluct_rms": 0.013124607262465449
+    },
+    "f19": {
+      "amplitude_ratio_global": 0.7578944635794319,
+      "amplitude_ratio_window_mean": 0.8207785266606417,
+      "amplitude_ratio_window_median": 0.8150396028271817,
+      "fluctuation_cosine_global": 0.39169132514120536,
+      "fluctuation_cosine_window_mean": 0.4628537547010277,
+      "fluctuation_cosine_window_median": 0.5289011165154699,
+      "fluctuation_rel_l2": 0.9902942211338676,
+      "fluctuation_scale_star": 0.5168151292348816,
+      "horizon": 19,
+      "pred_fluct_rms": 0.010424686396343724,
+      "target_fluct_rms": 0.013754799510091894
+    },
+    "f20": {
+      "amplitude_ratio_global": 0.9422448931730422,
+      "amplitude_ratio_window_mean": 0.8997427940710606,
+      "amplitude_ratio_window_median": 0.8813356943567588,
+      "fluctuation_cosine_global": 0.2763906769397567,
+      "fluctuation_cosine_window_mean": 0.41965343785255005,
+      "fluctuation_cosine_window_median": 0.4856668974385601,
+      "fluctuation_rel_l2": 1.1691749360024897,
+      "fluctuation_scale_star": 0.2933321039385011,
+      "horizon": 20,
+      "pred_fluct_rms": 0.013679409799782931,
+      "target_fluct_rms": 0.014517892215597
+    }
+  },
+  "tail_phase": {
+    "f18": {
+      "best_global_cosine": 0.4856412891644472,
+      "best_gt_horizon_global": 18,
+      "best_gt_horizon_window_mean": 18,
+      "best_offset_global": 0,
+      "best_offset_window_mean": 0,
+      "best_vs_diagonal_global_gain": 0.0,
+      "best_vs_diagonal_window_mean_gain": 0.0,
+      "best_window_mean_cosine": 0.5027388221500813,
+      "diagonal_global_cosine": 0.4856412891644472,
+      "diagonal_window_mean_cosine": 0.5027388221500813,
+      "pred_horizon": 18
+    },
+    "f19": {
+      "best_global_cosine": 0.39471916633322895,
+      "best_gt_horizon_global": 18,
+      "best_gt_horizon_window_mean": 19,
+      "best_offset_global": -1,
+      "best_offset_window_mean": 0,
+      "best_vs_diagonal_global_gain": 0.003027841192023595,
+      "best_vs_diagonal_window_mean_gain": 0.0,
+      "best_window_mean_cosine": 0.4628537547010277,
+      "diagonal_global_cosine": 0.39169132514120536,
+      "diagonal_window_mean_cosine": 0.4628537547010277,
+      "pred_horizon": 19
+    },
+    "f20": {
+      "best_global_cosine": 0.28579303638714404,
+      "best_gt_horizon_global": 19,
+      "best_gt_horizon_window_mean": 20,
+      "best_offset_global": -1,
+      "best_offset_window_mean": 0,
+      "best_vs_diagonal_global_gain": 0.00940235944738732,
+      "best_vs_diagonal_window_mean_gain": 0.0,
+      "best_window_mean_cosine": 0.41965343785255005,
+      "diagonal_global_cosine": 0.2763906769397567,
+      "diagonal_window_mean_cosine": 0.41965343785255005,
+      "pred_horizon": 20
+    }
+  }
+}
