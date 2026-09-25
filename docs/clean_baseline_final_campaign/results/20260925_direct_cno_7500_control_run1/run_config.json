@@ -1,0 +1,33 @@
+{
+  "batch_size": 8,
+  "codabench_accessed": false,
+  "dense_train_windows": 41317,
+  "dev_trajectories": 12,
+  "dev_windows": 491,
+  "final_update": 7500,
+  "full_data_accessed": false,
+  "holdout_accessed": false,
+  "lambda_vort": 15.5385751724,
+  "locked_final_accessed": false,
+  "loss_weights": {
+    "mse": 1.0,
+    "mvpe": 0.009757,
+    "rel": 0.027514,
+    "tke": 0.05
+  },
+  "lr": 1e-05,
+  "matched_reference": "Exp1 Strong Backbone MF-CNO @ update 7500",
+  "max_process_cuda_peak_reserved_bytes": 12884901888,
+  "official_init_sha256": "82e842928a25dbf5a74c4e336bdd28e89bcf40e68bb8cdd213547f1246af4f61",
+  "protocol": "CLEAN_BASELINE_FINAL_CAMPAIGN/DIRECT_CNO_7500_MATCHED_CONTROL",
+  "recipe": "Dense-All+P0-A+Direct-CNO+N2+Vorticity",
+  "runtime_used_for_selection": false,
+  "runtime_valid_for_comparison": false,
+  "scientific_variable": "MF-CNO output parameterization -> Direct-CNO output parameterization",
+  "seed": 41,
+  "shared_gpu_allowed": true,
+  "sps_used_for_selection": false,
+  "stage_b_used": false,
+  "status": "REVIEW_REQUIRED",
+  "train_trajectories": 51
+}

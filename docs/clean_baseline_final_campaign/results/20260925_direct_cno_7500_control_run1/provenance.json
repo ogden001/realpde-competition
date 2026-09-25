@@ -1,0 +1,19 @@
+{
+  "execution_commit": "3011f84cce888f976b2e0cd6ad1536b82bc81cc6",
+  "result_base_commit": "ada02c805dc33c594fdfaec256d2ba5e8ffca08a",
+  "runner_sha256": "f29025e06f3e086e1eaa795d1771672722f54d2a148f97a79e3a2305c38e959b",
+  "remote_source": "/hy-tmp/realpde_runs/_source_direct_cno_7500_control_20260925_run1/code",
+  "remote_output": "/hy-tmp/realpde_runs/direct_cno_7500_control_20260925_run1",
+  "official_init_sha256": "82e842928a25dbf5a74c4e336bdd28e89bcf40e68bb8cdd213547f1246af4f61",
+  "manifest": "/hy-tmp/realpde_runs/strong_backbone_clean_20260924_run1/train_dev_manifest.json",
+  "data_root": "/hy-tmp/realpde_data/train_real",
+  "python": "/hy-tmp/realpde_venv_v2/bin/python",
+  "tests": "32 passed locally and remotely; py_compile passed; git diff --check passed",
+  "updates": [0, 2500, 5000, 7500],
+  "optimizer_updates": 7500,
+  "batch_size": 8,
+  "preflight_peak_reserved_gib": 10.25,
+  "formal_peak_reserved_gib": 10.330078125,
+  "memory_cap_gib": 12.0,
+  "runtime_comparable": false
+}

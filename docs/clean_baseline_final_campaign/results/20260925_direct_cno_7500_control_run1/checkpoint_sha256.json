@@ -1,0 +1,18 @@
+{
+  "update_00000_official_init": {
+    "filename": "sim_real_cno.pth",
+    "sha256": "82e842928a25dbf5a74c4e336bdd28e89bcf40e68bb8cdd213547f1246af4f61"
+  },
+  "update_02500": {
+    "filename": "model_update_02500.pth",
+    "sha256": "a47a5b482caf2cbc3c67fd595bf97ffcff3e5d520e6285241ada745e1a160a3f"
+  },
+  "update_05000": {
+    "filename": "model_update_05000.pth",
+    "sha256": "0629a6267c280bd8a88aa603a7860474434744200b30d960520d8f1972b256b2"
+  },
+  "update_07500": {
+    "filename": "model_update_07500.pth",
+    "sha256": "67571290f9c1b544b7edbb9ebd6fdd90725c5f4b48e639240fdf0d5df7313e37"
+  }
+}

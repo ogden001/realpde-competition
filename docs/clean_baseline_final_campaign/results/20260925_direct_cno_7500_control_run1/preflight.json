@@ -1,0 +1,24 @@
+{
+  "batch_size": 8,
+  "dense_train_windows": 41317,
+  "dev_windows": 491,
+  "feature_count": 20,
+  "gradient_max_abs": 3542.082763671875,
+  "historical_parity_forward_windows": 2,
+  "loss": 90.00259399414062,
+  "loss_parts": {
+    "fluct": 57.49482345581055,
+    "mean": 5.357019901275635,
+    "mse": 0.29447823762893677,
+    "mvpe": 6.649431228637695,
+    "rel": 5.957950592041016,
+    "tke": 1782.16064453125,
+    "vorticity": 0.023893987759947777
+  },
+  "memory_cap_gib": 12.0,
+  "passed": true,
+  "pressure_max_abs": 0.0,
+  "process_peak_gpu_memory_reserved_bytes": 11005853696,
+  "process_peak_gpu_memory_reserved_gib": 10.25,
+  "smoke_state_restored_before_training": true
+}

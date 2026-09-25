@@ -1,0 +1,10 @@
+{
+  "dense_epochs_completed": 2,
+  "memory_cap_gib": 12.0,
+  "process_peak_gpu_memory_allocated_bytes": 9980708864,
+  "process_peak_gpu_memory_reserved_bytes": 11091836928,
+  "process_peak_gpu_memory_reserved_gib": 10.330078125,
+  "runtime_valid_for_comparison": false,
+  "shared_gpu_allowed": true,
+  "training_wall_seconds": 6575.897569403052
+}
