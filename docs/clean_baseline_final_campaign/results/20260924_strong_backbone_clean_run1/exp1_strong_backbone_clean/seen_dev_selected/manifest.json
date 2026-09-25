@@ -1,0 +1,27 @@
+{
+  "backbone_checkpoint": "/hy-tmp/realpde_runs/strong_backbone_clean_20260924_run1/exp1_strong_backbone_clean/strong_backbone/checkpoints/model_best.pth",
+  "base_model": "sota_v2_mf",
+  "codabench_accessed": false,
+  "eval_trajectories": 12,
+  "eval_windows": 491,
+  "locked_final_accessed": false,
+  "optimizer_steps": 0,
+  "residual_checkpoint": "/hy-tmp/realpde_runs/strong_backbone_clean_20260924_run1/exp1_strong_backbone_clean/residual_22k/model_best.pth",
+  "result": {
+    "alpha": 1.0,
+    "base_mvpe_raw": 0.07291065901517868,
+    "base_rel_l2_raw": 0.10122270882129669,
+    "base_tke_raw": 0.47076216340065,
+    "experiment": "seen_dev_selected",
+    "mvpe_improvement_vs_base": 0.11647486686706543,
+    "mvpe_raw": 0.06441839784383774,
+    "rel_l2_improvement_vs_base": 0.21424132585525513,
+    "rel_l2_raw": 0.07953662425279617,
+    "tke_improvement_vs_base": -0.05363726615905762,
+    "tke_raw": 0.4960125684738159,
+    "trajectories": 12,
+    "windows": 491
+  },
+  "status": "REVIEW_REQUIRED",
+  "train_trajectories_in_manifest": 51
+}

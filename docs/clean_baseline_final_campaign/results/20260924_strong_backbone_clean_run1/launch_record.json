@@ -1,0 +1,14 @@
+{
+  "backbone_pid_at_capture": 13055,
+  "campaign_pid": 12989,
+  "captured_at_local": "2026-09-24T17:54:37+08:00",
+  "command_file": "/hy-tmp/realpde_runs/strong_backbone_clean_20260924_run1/run_exp1.sh",
+  "console_log": "/hy-tmp/realpde_runs/strong_backbone_clean_20260924_run1/exp1_console.log",
+  "holdout_field_values_or_metrics_read": false,
+  "holdout_hdf5_metadata_read_for_split_audit": true,
+  "out_root": "/hy-tmp/realpde_runs/strong_backbone_clean_20260924_run1",
+  "stage_log": "/hy-tmp/realpde_runs/strong_backbone_clean_20260924_run1/exp1_strong_backbone_clean/strong_backbone.log",
+  "started_at_local": "2026-09-24T17:49:22+08:00",
+  "status": "RUNNING",
+  "tmux_session": "strong_backbone_clean_20260924_run1"
+}

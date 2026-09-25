@@ -1,0 +1,37 @@
+{
+  "baseline_22k": {
+    "mvpe_raw": 0.06544800809833037,
+    "rel_l2_raw": 0.07969017645492088,
+    "tke_raw": 0.5059098799214101
+  },
+  "candidate": {
+    "mvpe_raw": 0.06441839784383774,
+    "rel_l2_raw": 0.07953662425279617,
+    "tke_raw": 0.4960125684738159
+  },
+  "codabench_accessed": false,
+  "gate": {
+    "checks": {
+      "at_least_two_metrics_improve": true,
+      "mean_error_improvement_ge_1pct": true,
+      "no_metric_degrades_gt_1pct": true,
+      "tke_not_worse": true
+    },
+    "delta_pct": {
+      "mvpe_raw": -1.5731727892248897,
+      "rel_l2_raw": -0.1926864877900835,
+      "tke_raw": -1.9563388343259254
+    },
+    "mean_delta_pct": -1.2407327037802995,
+    "status": "GO"
+  },
+  "holdout": {
+    "mvpe_raw": 0.09412054717540741,
+    "rel_l2_raw": 0.08554701507091522,
+    "tke_raw": 0.5190940499305725
+  },
+  "holdout_accessed": true,
+  "residual_best_sha256": "d2b4ddd0df6064d053ec918c2671a93b7d9c2a40a15afe854bb3a5badf1438fc",
+  "status": "REVIEW_REQUIRED",
+  "strong_backbone_sha256": "d340effd68031aba1cd2bc610c676878fb9105dd7f81b9ce15767280e665a5c0"
+}

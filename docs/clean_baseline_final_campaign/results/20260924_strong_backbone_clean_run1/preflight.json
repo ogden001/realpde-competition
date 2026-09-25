@@ -1,0 +1,30 @@
+{
+  "clean_stage1_sha256": "6aec4edb5e42746080e19baaafa2d6b719bb57befb1ff9035ece7889ec280036",
+  "clean_stage2_sha256": "1536fe02e11fc0dc991a38cb1489d0be0752ec8149be7b9f1542a4cb81c2f975",
+  "codabench_accessed": false,
+  "execution_commit": "d8e6000ec08b39b0e853f03028e13488c2d95a0e",
+  "gpu": {
+    "cuda_runtime": "12.1",
+    "gpu": "NVIDIA GeForce RTX 3090 Ti",
+    "gpu_memory_bytes": 25425608704,
+    "torch": "2.4.0+cu121"
+  },
+  "locked_final_accessed": false,
+  "sim_pretrain_sha256": "82e842928a25dbf5a74c4e336bdd28e89bcf40e68bb8cdd213547f1246af4f61",
+  "split_audit": {
+    "all_10deg_held_out": true,
+    "dev_aoa_counts": {
+      "0": 3,
+      "5": 3,
+      "15": 3,
+      "20": 3
+    },
+    "dev_trajectories": 12,
+    "holdout_aoa": 10,
+    "holdout_trajectories": 18,
+    "train_dev_holdout_overlap": false,
+    "train_trajectories": 51,
+    "usable_trajectories": 81
+  },
+  "status": "REVIEW_REQUIRED"
+}

@@ -1,0 +1,15 @@
+{
+  "alpha": 1.0,
+  "base_mvpe_raw": 0.09855803102254868,
+  "base_rel_l2_raw": 0.10395082086324692,
+  "base_tke_raw": 0.49536624550819397,
+  "experiment": "holdout_aoa10_selected",
+  "mvpe_improvement_vs_base": 0.045024096965789795,
+  "mvpe_raw": 0.09412054717540741,
+  "rel_l2_improvement_vs_base": 0.1770433783531189,
+  "rel_l2_raw": 0.08554701507091522,
+  "tke_improvement_vs_base": -0.047899484634399414,
+  "tke_raw": 0.5190940499305725,
+  "trajectories": 18,
+  "windows": 756
+}

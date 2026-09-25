@@ -1,0 +1,26 @@
+{
+  "adaptations": [
+    {
+      "adapted_sha256": "a1defb555c6a63e9c32263d1e3b20210435b967d6300a268876327363c593e20",
+      "counts": {
+        "dev": 12,
+        "train": 51
+      },
+      "file_identity_and_order_preserved": true,
+      "path": "/hy-tmp/realpde_runs/strong_backbone_clean_20260924_run1/train_dev_manifest.json",
+      "source_sha256": "fe879c63a32b0b370a5a09e6b114e922455350ee6899bc5adabcc3074833c814"
+    },
+    {
+      "adapted_sha256": "288131ed52e78d02928e2aaa230b430bdd675965ef251c9188c384ec870f5977",
+      "counts": {
+        "dev": 18,
+        "train": 51
+      },
+      "file_identity_and_order_preserved": true,
+      "path": "/hy-tmp/realpde_runs/strong_backbone_clean_20260924_run1/holdout_eval_manifest.json",
+      "source_sha256": "c27071ff6fe53d08f854e185fd6bafcff6c4080697e06aec84256753921fc589"
+    }
+  ],
+  "reason": "training split_paths expects mapping rows with a file key; preflight output had string rows",
+  "science_changed": false
+}

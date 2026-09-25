@@ -1,0 +1,134 @@
+{
+  "assets_sha256": {
+    "clean_stage1": "6aec4edb5e42746080e19baaafa2d6b719bb57befb1ff9035ece7889ec280036",
+    "clean_stage2": "1536fe02e11fc0dc991a38cb1489d0be0752ec8149be7b9f1542a4cb81c2f975",
+    "data_manifest": "3612185c939f6c4cd4890afd3968d160a44e88d3e6f7733b8cb9ce71501d532c",
+    "sim_real_cno": "82e842928a25dbf5a74c4e336bdd28e89bcf40e68bb8cdd213547f1246af4f61",
+    "source_bundle": "c1678b51589b26436311416a10419aa97d98d7dda237b7be961ba094362eff94",
+    "starting_kit_zip": "c14b24d0e385d6761be5a29d721a05d2152ccda317ab3c700caad6993febf61c"
+  },
+  "backbone": {
+    "checkpoint_selection": [
+      "Rel-L2",
+      "TKE",
+      "MVPE"
+    ],
+    "effective_batch_size": 8,
+    "init": "official sim_real CNO",
+    "recipe": "Dense-All + P0-A + MF-CNO + N2 + Vorticity + Stage-B extra Rel",
+    "seed": 41,
+    "selection_point_score_only": true,
+    "stage_a": {
+      "lr": 1e-05,
+      "updates": "0->30000"
+    },
+    "stage_b": {
+      "extra_rel": true,
+      "lr": 3e-06,
+      "updates": "30000->35000"
+    }
+  },
+  "checks": {
+    "git_diff_check": "PASS",
+    "gpu_smoke": "PASS; batch=8; finite forward loss and gradients; optimizer updates=0",
+    "py_compile": "PASS",
+    "pytest": "23 passed in 2.74s"
+  },
+  "data_protocol": {
+    "aoa10_holdout_trajectories": 18,
+    "excluded": [
+      "7575_0.h5"
+    ],
+    "holdout_diagnostic_only": true,
+    "seen_dev_start": 0,
+    "seen_dev_stride": 20,
+    "seen_dev_trajectories": 12,
+    "seen_dev_windows": 491,
+    "train_dev_holdout_disjoint": true,
+    "train_trajectories": 51,
+    "train_window_mode": "dense_all, every legal stride-1 start",
+    "train_windows": 41317
+  },
+  "execution_commit": "d8e6000ec08b39b0e853f03028e13488c2d95a0e",
+  "experiment": "REALPDE Experiment 1 \u2014 Strong Backbone Clean",
+  "gate": {
+    "any_metric_degradation_pct_max": 1.0,
+    "at_least_two_of_three_improve": true,
+    "holdout_on_go_only": true,
+    "mean_raw_error_change_pct_max": -1.0,
+    "tke_must_not_worsen": true
+  },
+  "gpu": {
+    "count": 1,
+    "model": "NVIDIA GeForce RTX 3090 Ti",
+    "visible_index": 0
+  },
+  "operational_adaptations": [
+    "single actual GPU selected as visible index 0",
+    "remote GitHub egress was unavailable; exact fetched origin/main commit delivered in verified complete-history Git bundle",
+    "preflight path-list manifest rows wrapped as {file: path}; source/adapted SHA and identity/order preservation recorded in manifest_schema_adapter.json"
+  ],
+  "paths": {
+    "clean_stage1": "/hy-tmp/runs/realpde_clean_baseline_v1_20260924/stage1_cno/model_best.pth",
+    "clean_stage2": "/hy-tmp/runs/realpde_clean_baseline_v1_20260924/stage2_residual/model_best.pth",
+    "kit_root": "/hy-tmp/realpde_t1_kit_v9/realpde_t1_starting_kit_v9",
+    "model_root": "/hy-tmp/realpde_t1_kit_v9/realpde_t1_starting_kit_v9",
+    "out_root": "/hy-tmp/realpde_runs/strong_backbone_clean_20260924_run1",
+    "real_root": "/hy-tmp/realpde_data/train_real",
+    "sim_pretrain": "/hy-tmp/realpde_assets/colleague-80pt/20260921/extracted/handoff_colleague_80pt_archive_20260921/checkpoints/sim_real_cno.pth"
+  },
+  "preflight": {
+    "split_audit": {
+      "all_10deg_held_out": true,
+      "dev_aoa_counts": {
+        "0": 3,
+        "15": 3,
+        "20": 3,
+        "5": 3
+      },
+      "dev_trajectories": 12,
+      "holdout_aoa": 10,
+      "holdout_trajectories": 18,
+      "train_dev_holdout_overlap": false,
+      "train_trajectories": 51,
+      "usable_trajectories": 81
+    },
+    "status": "PASS"
+  },
+  "remote_checkout": "/hy-tmp/realpde_exp1_clean_20260924_run1/code",
+  "residual": {
+    "backbone_frozen": true,
+    "batch_size": 8,
+    "blocks": 2,
+    "gradient_mode": "scalar",
+    "hidden": 96,
+    "loss": {
+      "delta_penalty": 0.02,
+      "grad": 0.015,
+      "mse": 0.05,
+      "p_zero": 0.01,
+      "point": 1.0,
+      "residual_mse": 0.25,
+      "temporal": 0.03,
+      "tke": 0.06
+    },
+    "lr": 0.0002,
+    "max_delta": 0.04,
+    "seed": 41,
+    "structure": "ResidualCorrector3D",
+    "updates": 22000,
+    "weight_decay": 1e-05
+  },
+  "safety": {
+    "codabench_accessed": false,
+    "full_data_refit_started": false,
+    "holdout_diagnostic_started": false,
+    "holdout_field_values_read": false,
+    "holdout_hdf5_metadata_read_for_split_audit": true,
+    "holdout_metric_evaluation": false,
+    "locked_final_private_accessed": false,
+    "submission_packaging_started": false
+  },
+  "status": "REVIEW_REQUIRED",
+  "verified_upstream": "ogden001/realpde-competition main (locally fetched from origin; remote host egress to GitHub unavailable; full-history offline bundle deployed)"
+}

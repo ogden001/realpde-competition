@@ -1,0 +1,19 @@
+{
+  "batch_size": 8,
+  "codabench_accessed": false,
+  "dense_train_windows": 41317,
+  "dev_trajectories": 12,
+  "dev_windows": 491,
+  "final_update": 35000,
+  "historical_all82_checkpoint_used": false,
+  "holdout_accessed": false,
+  "protocol": "CLEAN_BASELINE_FINAL_CAMPAIGN/STRONG_BACKBONE_CLEAN",
+  "recipe": "Dense-All+P0-A+MF-CNO+N2+Vorticity+StageB-extra-Rel",
+  "runtime_used_for_selection": false,
+  "seed": 41,
+  "sps_used_for_selection": false,
+  "stage_a_end": 30000,
+  "stage_a_lr": 1e-05,
+  "stage_b_lr": 3e-06,
+  "train_trajectories": 51
+}

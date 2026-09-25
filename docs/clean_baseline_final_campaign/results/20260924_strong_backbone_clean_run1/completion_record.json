@@ -1,0 +1,16 @@
+{
+  "status": "REVIEW_REQUIRED",
+  "execution_commit": "d8e6000ec08b39b0e853f03028e13488c2d95a0e",
+  "runner_exit_code": 0,
+  "campaign_done_at_local": "2026-09-25T03:44:33+08:00",
+  "elapsed_wall_seconds": 35711,
+  "gate": "GO",
+  "holdout_evaluated_after_gate": "YES",
+  "codabench_accessed": "NO",
+  "locked_final_private_accessed": "NO",
+  "full_data_refit_started": "NO",
+  "submission_packaging_started": "NO",
+  "checkpoints_archived": "NO",
+  "independent_gpu_workload_observed_during_residual": "YES",
+  "scientific_protocol_changed": "NO"
+}
