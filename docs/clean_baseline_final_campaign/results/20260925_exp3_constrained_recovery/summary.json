@@ -1,0 +1,60 @@
+{
+  "candidate_dev": {
+    "coverage": 0.849634165171408,
+    "mean_width_uv": 0.01482781395316124,
+    "sps": 51.65443486996391
+  },
+  "candidate_holdout_aoa10": {
+    "coverage": 0.8370197538994193,
+    "mean_width_uv": 0.015131399966776371,
+    "sps": 49.01741443713009
+  },
+  "codabench_accessed": false,
+  "gate": {
+    "checks": {
+      "point_parity_le_tol": true,
+      "sps_gain_ge_min": true,
+      "width_ratio_le_max": true
+    },
+    "dev_sps_gain_vs_static": 3.2380750853427287,
+    "dev_width_ratio": 1.1926004028157553,
+    "holdout_coverage_delta_vs_static": 0.06472441720653621,
+    "holdout_sps_delta_vs_static": 3.1747911826499617,
+    "max_dev_width_ratio": 1.2,
+    "min_dev_sps_gain": 1.0,
+    "point_prediction_parity_max_abs": 0.0,
+    "point_prediction_parity_tol": 1e-07,
+    "status": "GO"
+  },
+  "holdout_accessed": true,
+  "holdout_recalibrated": false,
+  "holdout_used_for_selection": false,
+  "locked_final_accessed": false,
+  "optimizer_steps": 0,
+  "recovery_kind": "review-only constrained calibration selection",
+  "selected_calibration": {
+    "coverage": 0.849634165171408,
+    "floor": 0.0025,
+    "mean_width_uv": 0.01482781395316124,
+    "mult_u": 0.75,
+    "mult_v": 1.5,
+    "rel": 0.0075,
+    "sps": 51.65443486996391
+  },
+  "selected_step": 4500,
+  "selection_policy": "maximize adaptive Seen-Dev SPS subject to frozen width cap",
+  "source_head_sha256": "1cde13a23fe15547dc2ee16cede9edd89fe8c12bc88f8e9ad059641f0a6c90b8",
+  "source_run": "/hy-tmp/realpde_runs/pareto_sps_20260924_run1/exp3_residual_aware_sps",
+  "static_dev": {
+    "coverage": 0.7883022724027787,
+    "mean_width_uv": 0.012433178722858429,
+    "sps": 48.41635978462118
+  },
+  "static_holdout_aoa10": {
+    "coverage": 0.7722953366928831,
+    "mean_width_uv": 0.012567277997732162,
+    "sps": 45.84262325448013
+  },
+  "status": "REVIEW_REQUIRED",
+  "training_performed": false
+}
