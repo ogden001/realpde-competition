@@ -289,8 +289,31 @@ def run(args: argparse.Namespace) -> None:
         encoding="utf-8",
     )
 
-    # Preflight uses the exact frozen batch=8. Because CNO contains BatchNorm3d,
-    # micro-batch reduction would change training semantics and is forbidden.
+    # Reproduce the historical Exp1 preflight side effect exactly:
+    # one train-mode forward on the first two Seen-Dev windows before update 1.
+    # CNO contains BatchNorm3d, so this detail is part of the matched protocol.
+    _hist_ds, hist_loader = sota.dev_loader(
+        dev,
+        argparse.Namespace(eval_batch_size=8, workers=args.workers),
+    )
+    hist_x, _hist_y, _, _ = next(iter(hist_loader))
+    hist_x = hist_x[:2].to(device)
+    model.train()
+    with torch.no_grad():
+        hist_pred = sota.forward_direct(model, builder, hist_x)
+    if not torch.isfinite(hist_pred).all():
+        raise FloatingPointError("non-finite historical-parity preflight prediction")
+
+    # Preserve that exact post-parity state. The batch-8 backward below is only
+    # a memory/gradient smoke and must not alter BatchNorm running statistics
+    # or any other model state used by formal update 1.
+    formal_start_state = {
+        key: value.detach().cpu().clone()
+        for key, value in model.state_dict().items()
+    }
+
+    # Memory/gradient preflight uses the exact frozen batch=8. Because CNO has
+    # BatchNorm3d, reducing training micro-batch would change science.
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats(device)
     _preflight_ds, preflight_loader = sota.dev_loader(
@@ -316,9 +339,17 @@ def run(args: argparse.Namespace) -> None:
     )
     optimizer.zero_grad(set_to_none=True)
     preflight_peak = enforce_memory_cap(device, "preflight")
+
+    # Roll back the smoke-only BN/statistical mutation before formal training.
+    model.load_state_dict(formal_start_state, strict=True)
+    model.to(device)
+    optimizer.zero_grad(set_to_none=True)
+
     preflight = {
         "passed": bool(torch.isfinite(pred).all() and grad_max > 0),
         "batch_size": BATCH_SIZE,
+        "historical_parity_forward_windows": 2,
+        "smoke_state_restored_before_training": True,
         "pressure_max_abs": float(pred[..., 2].abs().max()),
         "loss": float(loss.detach()),
         "loss_parts": {k: float(v.detach()) for k, v in parts.items()},
