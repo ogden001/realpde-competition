@@ -37,6 +37,9 @@ MULTS = (0.5, 0.75, 1.0, 1.25, 1.5)
 RELS = (0.0, 0.0025, 0.005, 0.0075)
 STATIC_ABS = (0.005, 0.0075, 0.01, 0.0125, 0.015, 0.0175, 0.02, 0.025, 0.03, 0.04)
 STATIC_REL = (0.0, 0.0025, 0.005, 0.0075, 0.01, 0.0125, 0.015, 0.02, 0.025, 0.03, 0.04, 0.05, 0.08, 0.1)
+MIN_DEV_SPS_GAIN = 1.0
+MAX_DEV_WIDTH_RATIO = 1.20
+POINT_PARITY_TOL = 1e-7
 
 
 def dump(path: Path, value: object) -> None:
@@ -88,6 +91,24 @@ def calibrate_adaptive(pred, target, sigma) -> tuple[list[dict[str, float]], dic
                                  **adaptive_score(pred, target, sigma, floor, mu, mv, rel)})
     rows.sort(key=lambda r: -r["sps"])
     return rows, rows[0]
+
+
+def select_adaptive_under_width_cap(
+    rows: list[dict[str, float]],
+    static_best: dict[str, float],
+    max_width_ratio: float = MAX_DEV_WIDTH_RATIO,
+) -> dict[str, float]:
+    """Select the highest-SPS adaptive calibration that satisfies the frozen width gate.
+
+    The width constraint is part of candidate selection, not a post-hoc rejection of
+    the unconstrained SPS optimum.  This matches the campaign protocol:
+    maximize adaptive SPS subject to mean_width <= max_width_ratio * static_width.
+    """
+    cap = max_width_ratio * float(static_best["mean_width_uv"])
+    feasible = [row for row in rows if float(row["mean_width_uv"]) <= cap + 1e-12]
+    if not feasible:
+        raise RuntimeError(f"no adaptive calibration satisfies width cap {cap:.12g}")
+    return max(feasible, key=lambda row: float(row["sps"]))
 
 
 def static_score(pred, target, abs_w: float, rel_w: float) -> dict[str, float]:
@@ -182,8 +203,10 @@ def main() -> None:
             losses.append({"step": step, "loss": float(loss.detach().cpu()), "lr": float(opt.param_groups[0]["lr"])})
         if step % EVAL_EVERY == 0:
             _, pred_dev, _, sigma_dev, target_dev = collect(model, head, dev_paths, device, args.workers)
-            grid, chosen = calibrate_adaptive(pred_dev, target_dev, sigma_dev)
-            record = {"step": step, "best": chosen}
+            grid, unconstrained = calibrate_adaptive(pred_dev, target_dev, sigma_dev)
+            chosen = select_adaptive_under_width_cap(grid, static_best)
+            record = {"step": step, "best": chosen, "unconstrained_best": unconstrained,
+                      "width_cap": MAX_DEV_WIDTH_RATIO * static_best["mean_width_uv"]}
             evals.append(record)
             dump(args.out_dir / f"calibration_grid_{step:05d}.json", grid)
             if best is None or chosen["sps"] > best["best"]["sps"]:
@@ -195,19 +218,28 @@ def main() -> None:
     head.load_state_dict(best_state, strict=True); head.eval()
     _, pred_after, _, sigma_after, target_after = collect(model, head, dev_paths, device, args.workers)
     parity = float(np.max(np.abs(pred_after - pred_before)))
-    if parity > 1e-7:
+    if parity > POINT_PARITY_TOL:
         raise RuntimeError(f"SPS head changed point prediction: {parity}")
     selected = best["best"]
     dev_candidate = adaptive_score(pred_after, target_after, sigma_after, selected["floor"], selected["mult_u"], selected["mult_v"], selected["rel"])
     dev_gain = dev_candidate["sps"] - static_best["sps"]
 
+    width_ratio = dev_candidate["mean_width_uv"] / max(static_best["mean_width_uv"], 1e-12)
+    checks = {
+        "sps_gain_ge_min": dev_gain >= MIN_DEV_SPS_GAIN,
+        "width_ratio_le_max": width_ratio <= MAX_DEV_WIDTH_RATIO + 1e-12,
+        "point_parity_le_tol": parity <= POINT_PARITY_TOL,
+    }
     gate = {
-        "status": "GO" if dev_gain >= 1.0 and dev_candidate["mean_width_uv"] <= 1.20 * static_best["mean_width_uv"] else "NO_GO",
+        "status": "GO" if all(checks.values()) else "NO_GO",
+        "selection_policy": "maximize adaptive Seen-Dev SPS subject to frozen width cap",
+        "checks": checks,
         "dev_sps_gain_vs_static": dev_gain,
-        "min_dev_sps_gain": 1.0,
-        "dev_width_ratio": dev_candidate["mean_width_uv"] / max(static_best["mean_width_uv"], 1e-12),
-        "max_dev_width_ratio": 1.20,
+        "min_dev_sps_gain": MIN_DEV_SPS_GAIN,
+        "dev_width_ratio": width_ratio,
+        "max_dev_width_ratio": MAX_DEV_WIDTH_RATIO,
         "point_prediction_parity_max_abs": parity,
+        "point_prediction_parity_tol": POINT_PARITY_TOL,
     }
 
     summary = {
