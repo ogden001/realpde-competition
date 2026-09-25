@@ -38,6 +38,7 @@ from realpde_feature_engineering import augment_torch, feature_names  # noqa: E4
 BAD_TRAIN_FILES = {"7575_0.h5"}
 SIGMA_GLOBAL = 0.0563870259
 T_NUMERICAL_SEC = 0.72896
+SPATIAL_PHASES_2X = ((0, 0), (0, 1), (1, 0), (1, 1))
 
 
 @dataclass(frozen=True)
@@ -121,11 +122,17 @@ class H5WindowDataset(Dataset):
         include_pressure: bool = False,
         window_mode: str = "fixed",
         preload_to_ram: bool = False,
+        spatial_phase_mix_prob: float = 0.0,
+        spatial_phase_seed: int = 41,
     ) -> None:
         if min(in_steps, out_steps, stride, sub_sample) < 1:
             raise ValueError("in_steps, out_steps, stride, and sub_sample must be positive")
         if window_mode not in {"fixed", "random_phase"}:
             raise ValueError("window_mode must be 'fixed' or 'random_phase'")
+        if not 0.0 <= float(spatial_phase_mix_prob) <= 1.0:
+            raise ValueError("spatial_phase_mix_prob must be in [0, 1]")
+        if float(spatial_phase_mix_prob) > 0.0 and int(sub_sample) != 2:
+            raise ValueError("spatial phase mixing is defined only for sub_sample=2")
         self.in_steps = int(in_steps)
         self.out_steps = int(out_steps)
         self.stride = int(stride)
@@ -134,6 +141,8 @@ class H5WindowDataset(Dataset):
         self.window_mode = window_mode
         self.preload_to_ram = bool(preload_to_ram)
         self.max_windows_per_trajectory = max_windows_per_trajectory
+        self.spatial_phase_mix_prob = float(spatial_phase_mix_prob)
+        self.spatial_phase_seed = int(spatial_phase_seed)
         self.paths = list(paths)
         self.lengths: dict[Path, int] = {}
         self.refs: list[WindowRef] = []
@@ -145,13 +154,21 @@ class H5WindowDataset(Dataset):
                 length = int(h5_field(handle, "u").shape[0])
                 if self.preload_to_ram:
                     ss = self.sub_sample
-                    u_all = np.asarray(h5_field(handle, "u")[:, ::ss, ::ss], dtype=np.float32)
-                    v_all = np.asarray(h5_field(handle, "v")[:, ::ss, ::ss], dtype=np.float32)
+                    if self.spatial_phase_mix_prob > 0.0:
+                        # Preserve the full 64x128 field so P00/P01/P10/P11 can
+                        # be selected later without reopening HDF5 files.
+                        u_all = np.asarray(h5_field(handle, "u")[:], dtype=np.float32)
+                        v_all = np.asarray(h5_field(handle, "v")[:], dtype=np.float32)
+                    else:
+                        # Exact historical path: cache only official P00.
+                        u_all = np.asarray(h5_field(handle, "u")[:, ::ss, ::ss], dtype=np.float32)
+                        v_all = np.asarray(h5_field(handle, "v")[:, ::ss, ::ss], dtype=np.float32)
                     p_all: np.ndarray | None = None
                     if self.include_pressure:
                         try:
+                            p_field = h5_field(handle, "p")
                             p_all = np.asarray(
-                                h5_field(handle, "p")[:, ::ss, ::ss],
+                                p_field[:] if self.spatial_phase_mix_prob > 0.0 else p_field[:, ::ss, ::ss],
                                 dtype=np.float32,
                             )
                         except KeyError:
@@ -169,6 +186,25 @@ class H5WindowDataset(Dataset):
         if not self.refs:
             raise ValueError("requested windows do not fit in the provided trajectories")
 
+        # Freeze one deterministic spatial phase per legal temporal window.
+        # The quick gate consumes <1 dense epoch, so this preserves the exact
+        # matched temporal window order while changing only the observation
+        # phase.  P00 keeps probability (1 - spatial_phase_mix_prob); the
+        # remaining mass is balanced across P01/P10/P11.
+        self._spatial_phase_codes = np.zeros(len(self.refs), dtype=np.uint8)
+        if self.spatial_phase_mix_prob > 0.0:
+            alternate_count = int(round(len(self.refs) * self.spatial_phase_mix_prob))
+            rng = np.random.default_rng(
+                np.random.SeedSequence([self.spatial_phase_seed, 20260925])
+            )
+            selected = rng.permutation(len(self.refs))[:alternate_count]
+            alternate_codes = np.resize(
+                np.asarray([1, 2, 3], dtype=np.uint8),
+                alternate_count,
+            )
+            rng.shuffle(alternate_codes)
+            self._spatial_phase_codes[selected] = alternate_codes
+
     def __len__(self) -> int:
         return len(self.refs)
 
@@ -182,25 +218,53 @@ class H5WindowDataset(Dataset):
             "trajectories": len(self._ram_cache),
             "bytes": int(self._cache_bytes),
             "gib": float(self._cache_bytes / (1024 ** 3)),
+            "full_resolution_spatial_cache": bool(
+                self.preload_to_ram and self.spatial_phase_mix_prob > 0.0
+            ),
         }
+
+    def spatial_phase(self, index: int) -> tuple[int, int]:
+        code = int(self._spatial_phase_codes[int(index)])
+        return SPATIAL_PHASES_2X[code]
+
+    def spatial_phase_counts(self, indices: Sequence[int] | None = None) -> dict[str, int]:
+        source = range(len(self.refs)) if indices is None else indices
+        counts = {f"P{dy}{dx}": 0 for dy, dx in SPATIAL_PHASES_2X}
+        for index in source:
+            dy, dx = self.spatial_phase(int(index))
+            counts[f"P{dy}{dx}"] += 1
+        return counts
 
     def __getitem__(self, index: int) -> tuple[Tensor, Tensor]:
         ref = self.refs[index]
         total = self.in_steps + self.out_steps
         sl = slice(ref.start, ref.start + total)
+        ss = self.sub_sample
+        dy, dx = self.spatial_phase(index)
         if self.preload_to_ram:
             u_all, v_all, p_all = self._ram_cache[ref.path]
-            u = u_all[sl]
-            v = v_all[sl]
-            p = p_all[sl] if p_all is not None else np.zeros_like(u)
+            if self.spatial_phase_mix_prob > 0.0:
+                u = u_all[sl, dy::ss, dx::ss]
+                v = v_all[sl, dy::ss, dx::ss]
+                p = (
+                    p_all[sl, dy::ss, dx::ss]
+                    if p_all is not None
+                    else np.zeros_like(u)
+                )
+            else:
+                u = u_all[sl]
+                v = v_all[sl]
+                p = p_all[sl] if p_all is not None else np.zeros_like(u)
         else:
             with h5py.File(ref.path, "r") as handle:
-                ss = self.sub_sample
-                u = np.asarray(h5_field(handle, "u")[sl, ::ss, ::ss], dtype=np.float32)
-                v = np.asarray(h5_field(handle, "v")[sl, ::ss, ::ss], dtype=np.float32)
+                u = np.asarray(h5_field(handle, "u")[sl, dy::ss, dx::ss], dtype=np.float32)
+                v = np.asarray(h5_field(handle, "v")[sl, dy::ss, dx::ss], dtype=np.float32)
                 if self.include_pressure:
                     try:
-                        p = np.asarray(h5_field(handle, "p")[sl, ::ss, ::ss], dtype=np.float32)
+                        p = np.asarray(
+                            h5_field(handle, "p")[sl, dy::ss, dx::ss],
+                            dtype=np.float32,
+                        )
                     except KeyError:
                         p = np.zeros_like(u)
                 else:
