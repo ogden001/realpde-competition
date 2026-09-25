@@ -55,4 +55,4 @@ Best point checkpoint: update 500, point 90.5742796424, SHA-256 3c49d17795290509
 - post_train_diagnostics/horizon_delta_vs_b0.csv: H19/H20 tail comparison
 - sota_merge_clean_stage_b_a15000_20260925_run1_handoff.json: complete execution handoff and safety record
 
-GitHub write authentication was unavailable before this run. The experiment nevertheless completed and all review evidence is preserved locally and in this commit; no checkpoint binaries or datasets are included.
+The training-time GitHub write-auth dry-run was unavailable. After completion, the review bundle was pushed to origin/main in commit dbd609f; no checkpoint binaries or datasets are included.
