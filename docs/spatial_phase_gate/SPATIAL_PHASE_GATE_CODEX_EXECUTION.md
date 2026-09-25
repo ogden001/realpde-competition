@@ -21,11 +21,27 @@ git push --dry-run origin HEAD:main
 Require:
 
 - current branch is `main`;
-- working tree is clean;
+- no staged changes and no tracked-file modifications/deletions;
 - `HEAD == origin/main`;
 - dry-run push succeeds.
 
-Unknown local changes: STOP. Do not stash/reset/clean them.
+Pre-existing untracked files are allowed **only** under this rule:
+
+1. capture their exact list before execution with `git status --porcelain=v1`;
+2. confirm every non-empty status entry is `?? <path>` (untracked only);
+3. confirm none overlaps task-owned paths, especially:
+   - `tools/run_spatial_phase_gate.py`
+   - `tools/colleague_80pt/realpde_h5_feature_adapter_train.py`
+   - `tools/colleague_80pt/residual_multi.py`
+   - `tools/evaluate_clean_residual_checkpoint.py`
+   - `tests/test_spatial_phase_gate.py`
+   - `docs/spatial_phase_gate/`
+4. leave all such pre-existing untracked files untouched;
+5. never use `git add -A` or `git add .`; stage only the explicit result destination.
+
+Tracked/staged changes, or untracked files overlapping task-owned paths: STOP and report `BLOCKED`.
+
+Do not stash/reset/clean pre-existing files as part of this task. The presence of unrelated, recorded untracked files by itself is **not** a blocker.
 
 ## 2. Resolve approved assets
 
@@ -204,8 +220,11 @@ Inspect archive size and content before staging.
 
 ```bash
 git status --short
+# Pre-existing unrelated untracked files may still be listed here; do not touch them.
 git add "$DEST"
 git diff --cached --check
+# Verify the index contains only files beneath $DEST.
+git diff --cached --name-only
 git commit -m "Archive spatial phase gate evidence"
 git pull --rebase origin main
 git push origin main
