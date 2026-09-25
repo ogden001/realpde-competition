@@ -1,0 +1,10 @@
+{
+  "arm": "control",
+  "codabench_accessed": false,
+  "evaluation_phase": "P00",
+  "holdout_accessed": false,
+  "locked_final_accessed": false,
+  "spatial_phase_mix_prob": 0.0,
+  "status": "REVIEW_REQUIRED",
+  "training_phase_policy": "P00 only"
+}

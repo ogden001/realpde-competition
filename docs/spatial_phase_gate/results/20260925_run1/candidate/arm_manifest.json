@@ -1,0 +1,10 @@
+{
+  "arm": "candidate",
+  "codabench_accessed": false,
+  "evaluation_phase": "P00",
+  "holdout_accessed": false,
+  "locked_final_accessed": false,
+  "spatial_phase_mix_prob": 0.5,
+  "status": "REVIEW_REQUIRED",
+  "training_phase_policy": "50% P00 + 50% balanced P01/P10/P11"
+}
