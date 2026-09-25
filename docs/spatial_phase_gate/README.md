@@ -2,6 +2,13 @@
 
 Status: `READY_FOR_EXECUTION / REVIEW_REQUIRED`
 
+Execution entrypoints for this experiment are intentionally globally identifiable:
+
+- `SPATIAL_PHASE_GATE_NEXT_ACTION.md`
+- `SPATIAL_PHASE_GATE_CODEX_EXECUTION.md`
+
+Do not substitute similarly named `NEXT_ACTION.md` / `CODEX_EXECUTION.md` files from other experiment directories.
+
 Deadline context: final submission is 2026-09-28. This is a single, bounded gate before any final long training. It must not grow into a parameter sweep.
 
 ## Question
