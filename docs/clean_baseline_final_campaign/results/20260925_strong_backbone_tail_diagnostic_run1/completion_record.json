@@ -1,0 +1,17 @@
+{
+  "status": "REVIEW_REQUIRED",
+  "source_commit": "1a7d2a306b0dddd149b24efaf2a6a96b27450e55",
+  "requested_commit": "c800877464193c3afd499a851cedbc97fce1a557",
+  "runner_exit_code": 0,
+  "training_performed": false,
+  "optimizer_steps": 0,
+  "train_trajectories": 51,
+  "seen_dev_trajectories": 12,
+  "seen_dev_windows": 491,
+  "aoa10_accessed": false,
+  "locked_final_private_accessed": false,
+  "codabench_accessed": false,
+  "full_data_refit_started": false,
+  "submission_packaging_started": false,
+  "output_path": "/hy-tmp/realpde_runs/strong_backbone_tail_diagnostic_20260925_run1"
+}

@@ -1,0 +1,17 @@
+{
+  "aoa10_accessed": false,
+  "backbone_sha256": "d340effd68031aba1cd2bc610c676878fb9105dd7f81b9ce15767280e665a5c0",
+  "codabench_accessed": false,
+  "eval_trajectories": 12,
+  "eval_windows": 491,
+  "full_data_refit_started": false,
+  "locked_final_accessed": false,
+  "optimizer_steps": 0,
+  "purpose": "Exp1 F19/F20 zero-training diagnosis",
+  "residual_sha256": "d2b4ddd0df6064d053ec918c2671a93b7d9c2a40a15afe854bb3a5badf1438fc",
+  "split": "Clean Seen-Dev12 only",
+  "status": "REVIEW_REQUIRED",
+  "submission_packaging_started": false,
+  "train_trajectories_in_manifest": 51,
+  "training_performed": false
+}
