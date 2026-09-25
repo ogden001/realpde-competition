@@ -254,14 +254,13 @@ def load_model_for_update(
 
 
 @torch.inference_mode()
-def evaluate_checkpoint(model, builder, loader, device: torch.device) -> dict[str, object]:
+def evaluate_checkpoint(model, builder, dataset, loader, device: torch.device) -> dict[str, object]:
     preds: list[np.ndarray] = []
     raws: list[np.ndarray] = []
     targets: list[np.ndarray] = []
-    names: list[str] = []
-    starts: list[int] = []
+    seen_indices: list[int] = []
 
-    for x, y, batch_names, batch_starts in loader:
+    for x, y, _condition, batch_indices in loader:
         x = x.to(device, non_blocking=True)
         features = builder(x)
         raw = model.cno(features.permute(0, 4, 1, 2, 3)).permute(0, 2, 3, 4, 1)
@@ -280,17 +279,20 @@ def evaluate_checkpoint(model, builder, loader, device: torch.device) -> dict[st
         preds.append(pred.cpu().numpy().astype(np.float32))
         raws.append(raw.cpu().numpy().astype(np.float32))
         targets.append(y.numpy().astype(np.float32))
-        names.extend([str(v) for v in batch_names])
-        if torch.is_tensor(batch_starts):
-            starts.extend([int(v) for v in batch_starts.cpu().tolist()])
+        if torch.is_tensor(batch_indices):
+            seen_indices.extend([int(v) for v in batch_indices.cpu().tolist()])
         else:
-            starts.extend([int(v) for v in batch_starts])
+            seen_indices.extend([int(v) for v in batch_indices])
 
     pred_np = np.concatenate(preds, axis=0)
     raw_np = np.concatenate(raws, axis=0)
     target_np = np.concatenate(targets, axis=0)
     if pred_np.shape[0] != EXPECTED_DEV_WINDOWS:
         raise ValueError(f"expected {EXPECTED_DEV_WINDOWS} dev windows, got {pred_np.shape[0]}")
+    if seen_indices != list(range(len(dataset))):
+        raise RuntimeError("dev DataLoader order differs from fixed dataset order")
+    names = [ref.path.name for ref in dataset.refs]
+    starts = [int(ref.start) for ref in dataset.refs]
 
     window_rows = compute_window_horizon_metrics(pred_np, target_np, names, starts)
     horizon_rows = aggregate_by_horizon(window_rows, experiment="strong_backbone_checkpoint", trajectories=EXPECTED_DEV)
@@ -398,7 +400,7 @@ def main() -> None:
             device=device,
             init_direct=is_init,
         )
-        result = evaluate_checkpoint(model, builder, loader, device)
+        result = evaluate_checkpoint(model, builder, ds, loader, device)
         row: dict[str, object] = {
             "update": update,
             "checkpoint": str(path),
