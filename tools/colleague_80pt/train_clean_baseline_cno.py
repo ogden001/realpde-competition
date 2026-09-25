@@ -170,9 +170,15 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=41)
     parser.add_argument("--preload-to-ram", action="store_true")
     parser.add_argument("--prefetch-factor", type=int, default=4)
+    parser.add_argument("--spatial-phase-mix-prob", type=float, default=0.0)
+    parser.add_argument("--spatial-phase-seed", type=int, default=20260925)
+    parser.add_argument("--protocol-label", default="REALPDE_CLEAN_BASELINE_V1")
     parser.add_argument("--benchmark-mode", action="store_true")
     parser.add_argument("--benchmark-warmup", type=int, default=20)
     args = parser.parse_args()
+
+    if not 0.0 <= args.spatial_phase_mix_prob <= 1.0:
+        raise ValueError("--spatial-phase-mix-prob must be in [0,1]")
 
     if args.out_dir.exists():
         raise FileExistsError(f"refusing to overwrite {args.out_dir}")
@@ -190,6 +196,8 @@ def main() -> None:
         include_pressure=False,
         window_mode="fixed",
         preload_to_ram=args.preload_to_ram,
+        spatial_phase_mix_prob=args.spatial_phase_mix_prob,
+        spatial_phase_seed=args.spatial_phase_seed,
     )
     dev_dataset = H5WindowDataset(
         dev_paths,
@@ -236,8 +244,15 @@ def main() -> None:
     )
     w, wk = wake_ramp_weights(device)
 
+    train_phase_counts = train_dataset.spatial_phase_counts()
+    train_phase_total = max(1, sum(train_phase_counts.values()))
+    train_phase_fractions = {
+        key: float(value) / float(train_phase_total)
+        for key, value in train_phase_counts.items()
+    }
+
     run_config: dict[str, object] = {
-        "protocol": "REALPDE_CLEAN_BASELINE_V1",
+        "protocol": args.protocol_label,
         "stage": "stage1_cno",
         "train_trajectories": len(train_paths),
         "dev_trajectories": len(dev_paths),
@@ -248,6 +263,18 @@ def main() -> None:
         "eval_stride": 20,
         "sub_sample": 2,
         "sampling_policy": "all_legal_stride1_windows_global_shuffle_without_replacement_per_epoch",
+        "spatial_phase_augmentation": {
+            "kind": "2x_subsample_phase_mix",
+            "non_p00_probability": float(args.spatial_phase_mix_prob),
+            "p00_probability": float(1.0 - args.spatial_phase_mix_prob),
+            "alternate_phases": ["P01", "P10", "P11"],
+            "spatial_phase_seed": int(args.spatial_phase_seed),
+            "training_only": True,
+            "same_phase_for_past_and_future": True,
+            "validation_phase": "P00",
+            "assigned_legal_window_counts": train_phase_counts,
+            "assigned_legal_window_fractions": train_phase_fractions,
+        },
         "seed": args.seed,
         "batch_size": args.batch_size,
         "test_batch_size": args.test_batch_size,
@@ -474,6 +501,9 @@ def main() -> None:
                 "updates": args.updates,
                 "samples_consumed": args.updates * args.batch_size,
                 "sampling_policy": run_config["sampling_policy"],
+                "spatial_phase_assigned_legal_window_counts": train_phase_counts,
+                "spatial_phase_assigned_legal_window_fractions": train_phase_fractions,
+                "validation_phase": "P00",
                 "seed": args.seed,
             },
             indent=2,
