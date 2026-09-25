@@ -103,3 +103,4 @@ def test_sps_recovery_is_review_only_and_holdout_gated():
     assert gate_pos < holdout_collect_pos
     assert '"optimizer_steps": 0' in text
     assert '"holdout_recalibrated": False' in text
+    assert "from train_clean_residual_aware_sps import" not in text
