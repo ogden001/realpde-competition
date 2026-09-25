@@ -90,3 +90,17 @@ def test_metric_delta_lower_is_better_sign():
 def test_exp1_hashes_reused_from_frozen_tail_diagnostic():
     assert M.EXP1_BACKBONE_SHA256 == "d340effd68031aba1cd2bc610c676878fb9105dd7f81b9ce15767280e665a5c0"
     assert M.EXP1_RESIDUAL_SHA256 == "d2b4ddd0df6064d053ec918c2671a93b7d9c2a40a15afe854bb3a5badf1438fc"
+
+
+def test_candidate_residual_tail_alpha_changes_only_tail():
+    base = np.zeros((1, 20, 1, 1, 3), dtype=np.float32)
+    final = base.copy()
+    final[:, 17:, 0, 0, 0] = 1.0
+    geometry = [
+        {"horizon": h, "alpha_star": (2.0 if h >= 18 else 1.0)}
+        for h in range(1, 21)
+    ]
+    out = M.candidate_residual_tail_alpha(base, final, geometry)
+    assert np.allclose(out[:, :17], final[:, :17])
+    assert np.allclose(out[:, 17:, 0, 0, 0], 2.0)
+    assert np.allclose(out[..., 2], 0.0)
