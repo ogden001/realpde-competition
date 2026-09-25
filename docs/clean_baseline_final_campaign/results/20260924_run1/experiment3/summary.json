@@ -1,0 +1,43 @@
+{
+  "candidate_dev": {
+    "coverage": 0.8995297760034291,
+    "mean_width_uv": 0.01855357550084591,
+    "sps": 52.23541840742676
+  },
+  "codabench_accessed": false,
+  "dev_stride": 20,
+  "gate": {
+    "dev_sps_gain_vs_static": 3.819058622805578,
+    "dev_width_ratio": 1.492263234882574,
+    "max_dev_width_ratio": 1.2,
+    "min_dev_sps_gain": 1.0,
+    "point_prediction_parity_max_abs": 0.0,
+    "status": "NO_GO"
+  },
+  "holdout_accessed": false,
+  "holdout_used_for_selection": false,
+  "locked_final_accessed": false,
+  "point_prediction_parity_max_abs": 0.0,
+  "recipe": "colleague80 residual-aware SPS: h64/b2/logmae/base-pre-residual features/final-error target",
+  "selected_calibration": {
+    "coverage": 0.8995297760034291,
+    "floor": 0.0025,
+    "mean_width_uv": 0.01855357550084591,
+    "mult_u": 1.5,
+    "mult_v": 1.5,
+    "rel": 0.0025,
+    "sps": 52.23541840742676
+  },
+  "selected_step": 4500,
+  "static_dev": {
+    "abs": 0.005,
+    "coverage": 0.7883022724027787,
+    "mean_width_uv": 0.012433178722858429,
+    "rel": 0.015,
+    "sps": 48.41635978462118
+  },
+  "status": "REVIEW_REQUIRED",
+  "train_stride": 5,
+  "training_wall_seconds": 17987.97289544344,
+  "updates": 5000
+}
