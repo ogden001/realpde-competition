@@ -159,3 +159,38 @@ def test_gate_source_has_no_holdout_or_submission_execution_path() -> None:
     assert "holdout_eval_manifest" not in text
     assert "package_submission" not in text
     assert "submission.py" not in text
+
+def test_state_parity_accepts_matching_empty_state_tensors(tmp_path: Path) -> None:
+    left = tmp_path / "left.pth"
+    right = tmp_path / "right.pth"
+    payload = {
+        "model_state_dict": {
+            "weight": torch.tensor([1.0, 2.0], dtype=torch.float32),
+            "empty_buffer": torch.empty((0,), dtype=torch.float32),
+            "counter": torch.tensor([3], dtype=torch.int64),
+        }
+    }
+    torch.save(payload, left)
+    torch.save(payload, right)
+    assert GATE._state_parity(left, right) == 0.0
+
+
+def test_state_parity_still_detects_nonempty_difference(tmp_path: Path) -> None:
+    left = tmp_path / "left.pth"
+    right = tmp_path / "right.pth"
+    torch.save(
+        {"model_state_dict": {
+            "weight": torch.tensor([1.0, 2.0]),
+            "empty_buffer": torch.empty((0,), dtype=torch.float32),
+        }},
+        left,
+    )
+    torch.save(
+        {"model_state_dict": {
+            "weight": torch.tensor([1.0, 2.1]),
+            "empty_buffer": torch.empty((0,), dtype=torch.float32),
+        }},
+        right,
+    )
+    assert GATE._state_parity(left, right) > 0.09
+
