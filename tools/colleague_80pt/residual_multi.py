@@ -702,6 +702,7 @@ def summarize_sampling_exposure(
             }
         )
 
+    spatial_phase_counts = dataset.spatial_phase_counts(consumed)
     return {
         "sampling_policy": sampling_policy,
         "updates": int(updates),
@@ -718,6 +719,11 @@ def summarize_sampling_exposure(
         "unique_start_median": float(np.median(unique_counts)),
         "unique_start_max": max(unique_counts),
         "unique_start_fraction_median": float(np.median(unique_fractions)),
+        "spatial_phase_counts": spatial_phase_counts,
+        "spatial_phase_fractions": {
+            key: float(value / max(len(consumed), 1))
+            for key, value in spatial_phase_counts.items()
+        },
         "per_trajectory": per_trajectory,
     }
 
@@ -805,6 +811,23 @@ def main() -> None:
     parser.add_argument("--aoa-bridge-low", type=float, default=None)
     parser.add_argument("--aoa-bridge-high", type=float, default=None)
     parser.add_argument("--sub-sample", type=int, default=2)
+    parser.add_argument(
+        "--spatial-phase-mix-prob",
+        type=float,
+        default=0.0,
+        help=(
+            "Training-only probability mass assigned to non-P00 2x spatial phases. "
+            "When >0, each legal temporal window is deterministically assigned P00 "
+            "with probability 1-p and a balanced P01/P10/P11 phase with total probability p. "
+            "Validation always remains official P00."
+        ),
+    )
+    parser.add_argument(
+        "--spatial-phase-seed",
+        type=int,
+        default=41,
+        help="Independent deterministic seed for spatial phase assignment.",
+    )
     parser.add_argument("--val-fraction", type=float, default=0.2)
     parser.add_argument("--train-on-all", action="store_true")
     parser.add_argument("--max-windows-per-trajectory", type=int, default=None)
@@ -860,6 +883,10 @@ def main() -> None:
         raise FileExistsError(f"out_dir already exists, refusing to overwrite: {args.out_dir}")
     if args.angle_aug_max_deg > 0 and args.aoa_meanfield_aug_prob > 0:
         raise ValueError("global velocity rotation and AoA mean-field augmentation are mutually exclusive")
+    if not 0.0 <= args.spatial_phase_mix_prob <= 1.0:
+        raise ValueError("--spatial-phase-mix-prob must be in [0, 1]")
+    if args.spatial_phase_mix_prob > 0.0 and args.sub_sample != 2:
+        raise ValueError("--spatial-phase-mix-prob requires --sub-sample 2")
     if (args.aoa_bridge_low is None) != (args.aoa_bridge_high is None):
         raise ValueError("--aoa-bridge-low and --aoa-bridge-high must be set together")
     args.out_dir.mkdir(parents=True)
@@ -891,6 +918,8 @@ def main() -> None:
         include_pressure=args.include_pressure_data,
         window_mode="random_phase",
         preload_to_ram=args.preload_to_ram,
+        spatial_phase_mix_prob=args.spatial_phase_mix_prob,
+        spatial_phase_seed=args.spatial_phase_seed,
     )
     aoa_aug_dataset = None
     train_dataset = base_train_dataset
@@ -1091,6 +1120,17 @@ def main() -> None:
             "same_angle_for_past_and_future": True,
             "spatial_grid_rotated": False,
             "physical_exact_aoa_claimed": False,
+        },
+        "spatial_phase_augmentation": {
+            "kind": "2x_subsample_phase_mix",
+            "non_p00_probability": float(args.spatial_phase_mix_prob),
+            "p00_probability": float(1.0 - args.spatial_phase_mix_prob),
+            "alternate_phases": ["P01", "P10", "P11"],
+            "spatial_phase_seed": int(args.spatial_phase_seed),
+            "training_only": True,
+            "same_phase_for_past_and_future": True,
+            "validation_phase": "P00",
+            "changes_temporal_window_sampling": False,
         },
         "aoa_meanfield_augmentation": {
             "kind": "same_re_adjacent_aoa_past20_mean_field_shift",
