@@ -32,7 +32,7 @@
 - Stage2 = frozen-backbone ResidualCorrector3D h96/b2；
 - checkpoint selection 只看 Rel-L2/TKE/MVPE 的 point score；
 - SPS/runtime 不参与科研选模；
-- AoA10 Holdout 只在方案训练完成后做诊断。
+- AoA10 Holdout 用于未见攻角泛化审计：长训结束后对预先确定的关键 checkpoint 批量评估，不用于高频调参；当前 Clean 协议不再额外划分 Locked-final。
 
 首个完整 run：
 
@@ -123,7 +123,7 @@
 | **Backbone Family** | FNO / Transolver 尚未形成足以替换当前 SOTA-V2 的同协议证据。若再做，只做高信息增益 bounded screen。 | **OPEN** | P1 |
 | **POD / Modal Dynamics** | 尚未形成可并入当前 SOTA 的强证据。 | **OPEN** | P1 |
 | **Sim2Real / CFD** | raw transfer / frozen representation 均未形成强增益，CFD 主要保留 OOD/coverage 研究价值。 | **WEAK_SIGNAL / PARKED** | PARKED |
-| **Data Split / Distribution Audit** | 50/16/16 `SPLIT_OK`；已完成 duplicate / OOD-like 审计。 | **CLOSED** | Support |
+| **Data Split / Distribution Audit** | 当前 Clean 研发协议固定为 **Train51 / Seen-Dev12 / unseen-AoA10 Holdout18**，不再额外划分 Locked-final；旧 50/16/16 audit 仅作为历史分布/duplicate 证据保留。 | **FROZEN** | Support |
 
 ---
 
