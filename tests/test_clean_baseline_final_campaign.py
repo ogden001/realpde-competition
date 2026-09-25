@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 sys.path.insert(0, str(ROOT / "tools" / "colleague_80pt"))
 CAMPAIGN = load_module("cbfc", str(ROOT / "tools/clean_baseline_final_campaign.py"))
 STRONG = load_module("cbfc_strong", str(ROOT / "tools/train_clean_strong_backbone.py"))
+SPS_CLEAN = load_module("cbfc_sps", str(ROOT / "tools/train_clean_residual_aware_sps.py"))
 
 
 def test_strong_gate_requires_real_multimetric_gain():
@@ -67,3 +68,38 @@ def test_sps_holdout_is_gated_by_seen_dev():
     holdout_collect_pos = text.index("collect(model, head, holdout_paths")
     assert gate_pos < holdout_collect_pos
     assert '"holdout_accessed": False' in text
+
+
+def test_sps_selection_enforces_width_cap_during_selection():
+    static = {"mean_width_uv": 1.0, "sps": 48.0}
+    rows = [
+        {"sps": 60.0, "mean_width_uv": 1.40},
+        {"sps": 55.0, "mean_width_uv": 1.19},
+        {"sps": 54.0, "mean_width_uv": 1.10},
+    ]
+    chosen = SPS_CLEAN.select_adaptive_under_width_cap(rows, static, 1.20)
+    assert chosen["sps"] == 55.0
+    assert chosen["mean_width_uv"] == 1.19
+
+
+def test_sps_selection_rejects_empty_feasible_set():
+    static = {"mean_width_uv": 1.0, "sps": 48.0}
+    rows = [{"sps": 60.0, "mean_width_uv": 1.21}]
+    try:
+        SPS_CLEAN.select_adaptive_under_width_cap(rows, static, 1.20)
+    except RuntimeError as exc:
+        assert "no adaptive calibration satisfies width cap" in str(exc)
+    else:
+        raise AssertionError("expected width-cap selection failure")
+
+
+def test_sps_recovery_is_review_only_and_holdout_gated():
+    text = (ROOT / "tools/recover_clean_exp3_sps.py").read_text(encoding="utf-8")
+    assert "torch.optim" not in text
+    assert ".backward(" not in text
+    assert ".step()" not in text
+    gate_pos = text.index('if gate_status == "GO":')
+    holdout_collect_pos = text.index("model, head, holdout_paths", gate_pos)
+    assert gate_pos < holdout_collect_pos
+    assert '"optimizer_steps": 0' in text
+    assert '"holdout_recalibrated": False' in text
