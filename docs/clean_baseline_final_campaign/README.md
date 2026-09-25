@@ -13,12 +13,21 @@ Reference: `REALPDE_CLEAN_BASELINE_V1`.
 - Train51: AoA 0/5/15/20
 - Seen-Dev12: AoA 0/5/15/20, 3 each
 - unseen-AoA10 Holdout18: all available AoA=10, holdout-only
+- **No extra Locked-final split in the Clean research protocol**
 - Train stride=1 for point-model training unless an SPS-specific head protocol says otherwise
 - Dev/Holdout stride=20, start=0
 - Past20 -> Future20, sub_sample=2
 - seed=41, batch=8 for point-model training
 - Clean Stage1 best SHA256: `6aec4edb5e42746080e19baaafa2d6b719bb57befb1ff9035ece7889ec280036`
 - Clean Stage2 best SHA256: `1536fe02e11fc0dc991a38cb1489d0be0752ec8149be7b9f1542a4cb81c2f975`
+
+### Data-role protocol
+
+- **Train51**: training / optimization only.
+- **Seen-Dev12**: frequent development evaluation; may be used for training-curve monitoring, checkpoint selection and method comparison.
+- **unseen-AoA10 Holdout18**: unseen-condition generalization audit. For long training, do not evaluate every 1000 updates; after the long run, batch-evaluate a predeclared set of key checkpoints (milestones / Seen-Dev champions) with the same Rel-L2/TKE/MVPE/point and by-horizon diagnostics. Do not turn Holdout into a second Dev by repeatedly tuning checkpoints or hyperparameters against its results.
+- **Codabench**: external submission validation, managed by the separate submission workflow.
+- **Locked-final**: not used as an additional data partition in the current Clean protocol.
 
 Clean Seen-Dev best: Rel-L2 `0.078363446`, TKE `0.507731898`, MVPE `0.064407949`.
 
@@ -32,7 +41,7 @@ Old all82/full-data strong-backbone weights are forbidden as initialization. Can
 
 Full historical convergence schedule is retained: Stage A 30,000 updates at LR `1e-5`; Stage B 5,000 updates at LR `3e-6`; effective batch 8; seed 41; point-score checkpoint selection only. After clean strong-backbone selection, train the exact clean-baseline residual recipe for 22,000 updates.
 
-Primary gate versus clean baseline residual @22k: mean percentage change of Rel/TKE/MVPE raw error <= `-1.0%`; at least two metrics improve; no metric worsens > `1.0%`; TKE must not worsen. AoA10 is evaluated once only if Seen-Dev gate passes.
+Primary gate versus clean baseline residual @22k: mean percentage change of Rel/TKE/MVPE raw error <= `-1.0%`; at least two metrics improve; no metric worsens > `1.0%`; TKE must not worsen. For long-run checkpoint audits, AoA10 may be batch-evaluated **after training** on the predeclared key checkpoints; it is audit-only and must not drive a new fine-grained tuning loop.
 
 ## Experiment 2 - Pareto-TKE Residual Clean
 
@@ -68,6 +77,6 @@ Evidence: `docs/clean_baseline_final_campaign/results/20260925_exp3_constrained_
 
 ## Hard campaign boundaries
 
-Forbidden: Random Phase/random-start, AoA augmentation, ordinary TKE-weight sweep, late-horizon expansion, end-to-end joint fine-tuning, new hand-crafted features, new backbone-family sweep, full-data refit, submission/package construction, Codabench, locked-final/private, automatic follow-up experiments.
+Forbidden: Random Phase/random-start, AoA augmentation, ordinary TKE-weight sweep, late-horizon expansion, end-to-end joint fine-tuning, new hand-crafted features, new backbone-family sweep, full-data refit, submission/package construction, Codabench/private hidden data, automatic follow-up experiments. The current Clean protocol does **not** define an additional Locked-final partition.
 
 All results remain `REVIEW_REQUIRED`. Codex produces evidence; Sol makes the scientific merge decision.
