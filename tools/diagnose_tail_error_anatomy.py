@@ -294,6 +294,25 @@ def metric_delta(candidate: dict[str, float], baseline: dict[str, float]) -> dic
     }
 
 
+def candidate_residual_tail_alpha(
+    base: np.ndarray,
+    final: np.ndarray,
+    geometry: list[dict[str, object]],
+) -> np.ndarray:
+    """Apply the diagnostic least-squares alpha* only to F18/F19/F20."""
+    out = final.copy()
+    for row in geometry:
+        h = int(row["horizon"])
+        if h not in TAIL_HORIZONS:
+            continue
+        alpha = float(row["alpha_star"])
+        delta = final[:, h - 1] - base[:, h - 1]
+        out[:, h - 1] = base[:, h - 1] + alpha * delta
+        if out.shape[-1] >= 3:
+            out[:, h - 1, ..., 2] = 0.0
+    return out
+
+
 def diagnose_prediction(label: str, pred: np.ndarray, target: np.ndarray) -> dict[str, object]:
     shifts = [global_shift_oracle(pred, target, h) for h in TAIL_HORIZONS]
     shifts_pw = [per_window_shift_oracle(pred, target, h) for h in TAIL_HORIZONS]
@@ -461,6 +480,18 @@ def main() -> None:
     final_diag = diagnose_prediction("strong_backbone_plus_residual", final, target)
     residual_geom = residual_geometry_by_horizon(base, final, target)
     summary = mechanism_summary(base_diag, final_diag, residual_geom)
+    final_metrics = whole_sequence_metrics(final, target)
+    alpha_candidate = candidate_residual_tail_alpha(base, final, residual_geom)
+    alpha_metrics = whole_sequence_metrics(alpha_candidate, target)
+    summary["residual_tail_alpha_oracle_candidate"] = {
+        "metrics": alpha_metrics,
+        "delta_pct_vs_final": metric_delta(alpha_metrics, final_metrics),
+        "alphas": {
+            str(int(row["horizon"])): float(row["alpha_star"])
+            for row in residual_geom if int(row["horizon"]) in TAIL_HORIZONS
+        },
+        "note": "Seen-Dev diagnostic oracle only; not a submission calibration.",
+    }
 
     dump(args.out_dir / "backbone_error_anatomy.json", base_diag)
     dump(args.out_dir / "final_error_anatomy.json", final_diag)
