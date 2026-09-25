@@ -1,0 +1,136 @@
+{
+  "b0_preflight": {
+    "historical_a15000": {
+      "mvpe": 0.082377,
+      "point": 90.442157,
+      "rel_l2": 0.111199,
+      "tke": 0.482945
+    },
+    "mvpe": 0.08237661421298981,
+    "point": 90.44212800905576,
+    "rel_l2": 0.11120006442070007,
+    "status": "PASS",
+    "tke": 0.4829474985599518
+  },
+  "best_checkpoint": {
+    "iteration": 500,
+    "path": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a15000_20260925_run1/checkpoints/model_best.pth",
+    "selection_score": 90.57427964241231,
+    "sha256": "3c49d1779529050983096d332c39be8f522a7184a274d9310f57c0b6089b224c",
+    "size_bytes": 95920853
+  },
+  "checkpoint_provenance": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a15000_20260925_run1/checkpoint_provenance.json",
+  "checkpoint_sha256": {
+    "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a15000_20260925_run1/checkpoints/model_best.pth": "3c49d1779529050983096d332c39be8f522a7184a274d9310f57c0b6089b224c",
+    "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a15000_20260925_run1/checkpoints/model_latest.pth": "6157b9677e466160e409667a9d3a2e6a881aec4898e3619d0f823a27c10d1dcd",
+    "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a15000_20260925_run1/checkpoints/model_update_000500.pth": "1b702709716a78f6ee06260ba6106b501266bd59c42569737dcc7a71a117cdab",
+    "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a15000_20260925_run1/checkpoints/model_update_001000.pth": "d8f23ec150eb591cedd8e5a1ea6a751240055528c4bd4646dae6b1aadb6c2a2f",
+    "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a15000_20260925_run1/checkpoints/model_update_001500.pth": "5b762a17e4ea0dff294c5010913a6f4216730552c2bb416eec8ae0e7da3b3a06",
+    "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a15000_20260925_run1/checkpoints/model_update_002000.pth": "169776a50d1d37fe7f5242de787f46ec8a598d95d6a6cdbcd4c7f902c7d651aa"
+  },
+  "data_boundary": {
+    "codabench_accessed": false,
+    "holdout_accessed": false,
+    "locked_final_accessed": false,
+    "private_accessed": false,
+    "seen_dev_trajectories": 12,
+    "train_trajectories": 51
+  },
+  "execution_commit": "386920e532e54ba1cbf42c93eb33c5ca165c0cd6",
+  "github_write_auth": "unavailable; previous push --dry-run failed; soft constraint, training proceeding",
+  "local_run_dir": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a15000_20260925_run1",
+  "manifest": "/hy-tmp/realpde_data/train_real_clean_train51_seen_dev12_386920e/stage_b_train_dev_manifest.json",
+  "manifest_sha256": "b167dba4ab4d9afa6b908d7575ea93576c64b09635bfa5d4e54f28767864c223",
+  "metrics": [
+    {
+      "elapsed_seconds": "",
+      "mvpe": "0.08237661421298981",
+      "point_score": "90.44212800905576",
+      "rel_l2": "0.11120006442070007",
+      "source_stage_a_update": "",
+      "stage": "B",
+      "tke": "0.4829474985599518",
+      "update": "0"
+    },
+    {
+      "elapsed_seconds": "449.26081076893024",
+      "mvpe": "0.0806659683585167",
+      "point_score": "90.57427964241231",
+      "rel_l2": "0.10805431753396988",
+      "source_stage_a_update": "15000",
+      "stage": "B",
+      "tke": "0.47753024101257324",
+      "update": "500"
+    },
+    {
+      "elapsed_seconds": "886.119799772976",
+      "mvpe": "0.08169500529766083",
+      "point_score": "90.52751961107326",
+      "rel_l2": "0.10725698620080948",
+      "source_stage_a_update": "15000",
+      "stage": "B",
+      "tke": "0.4814852774143219",
+      "update": "1000"
+    },
+    {
+      "elapsed_seconds": "1341.7377696500625",
+      "mvpe": "0.08100196719169617",
+      "point_score": "90.53116680025511",
+      "rel_l2": "0.10784076154232025",
+      "source_stage_a_update": "15000",
+      "stage": "B",
+      "tke": "0.4813242256641388",
+      "update": "1500"
+    },
+    {
+      "elapsed_seconds": "1801.9825456829276",
+      "mvpe": "0.07939427345991135",
+      "point_score": "90.55200294630443",
+      "rel_l2": "0.10667980462312698",
+      "source_stage_a_update": "15000",
+      "stage": "B",
+      "tke": "0.4832986891269684",
+      "update": "2000"
+    }
+  ],
+  "post_train_diagnostics": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a15000_20260925_run1/post_train_diagnostics",
+  "preflight_eval_dir": "/hy-tmp/realpde_runs/.stage_b_preflight_a15000_20260925_run1/eval_000000",
+  "raw_training_log": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a15000_20260925_run1/raw_training.log",
+  "safety_status": "PASS",
+  "source_checkpoint": "/hy-tmp/realpde_imports/clean_stage_a_15000_20260925/model_update_015000.pth",
+  "source_checkpoint_sha256": "77843313b411e70ef1471a59854f741ed7eddebb68c7d090286a39da78777dcc",
+  "stage_b_curve": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a15000_20260925_run1/stage_b_curve.csv",
+  "stage_b_horizon_curve": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a15000_20260925_run1/stage_b_horizon_curve.csv",
+  "status": "REVIEW_REQUIRED / LOCAL_RESULTS_NOT_PUSHED",
+  "summary": {
+    "best_point_score": 90.57427964241231,
+    "best_update": 500,
+    "codabench_accessed": false,
+    "current_update": 2000,
+    "locked_final_accessed": false,
+    "scope": "clean",
+    "source_stage_a_update": 15000,
+    "stage": "B",
+    "status": "REVIEW_REQUIRED",
+    "target_update": 2000,
+    "training_wall_seconds_this_process": 1802.626916066045
+  },
+  "training_budget": {
+    "checkpoints": [
+      500,
+      1000,
+      1500,
+      2000
+    ],
+    "evaluations": [
+      0,
+      500,
+      1000,
+      1500,
+      2000
+    ],
+    "start_update": 0,
+    "target_update": 2000
+  },
+  "training_complete_at_update_2000": true
+}
