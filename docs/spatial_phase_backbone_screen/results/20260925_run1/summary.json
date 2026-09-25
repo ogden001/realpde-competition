@@ -1,0 +1,114 @@
+{
+  "automatic_followup_started": false,
+  "candidate_at_8000": {
+    "mvpe_raw": 0.07919468730688095,
+    "rel_l2_raw": 0.09793073683977127,
+    "tke_raw": 0.7783641815185547
+  },
+  "candidate_at_8723": {
+    "mvpe_raw": 0.07866805791854858,
+    "rel_l2_raw": 0.09793958067893982,
+    "tke_raw": 0.7701005935668945
+  },
+  "candidate_spatial_phase": {
+    "alternate_phases": [
+      "P01",
+      "P10",
+      "P11"
+    ],
+    "assigned_legal_window_counts": {
+      "P00": 20659,
+      "P01": 6886,
+      "P10": 6886,
+      "P11": 6886
+    },
+    "assigned_legal_window_fractions": {
+      "P00": 0.5000121015562601,
+      "P01": 0.16666263281457996,
+      "P10": 0.16666263281457996,
+      "P11": 0.16666263281457996
+    },
+    "kind": "2x_subsample_phase_mix",
+    "non_p00_probability": 0.5,
+    "p00_probability": 0.5,
+    "same_phase_for_past_and_future": true,
+    "spatial_phase_seed": 20260925,
+    "training_only": true,
+    "validation_phase": "P00"
+  },
+  "candidate_training_summary": {
+    "best_iteration": 8723,
+    "best_point_score": 87.91554418303686,
+    "latest_iteration": 8723,
+    "latest_metrics": {
+      "fluctuation_rel_l2": 0.9875607490539551,
+      "mean_field_rel_l2": 0.05768027901649475,
+      "mvpe_raw": 0.07866805791854858,
+      "mvpe_score": 96.21545837398772,
+      "point_score": 87.91554418303686,
+      "rel_l2_raw": 0.09793958067893982,
+      "rel_l2_score": 95.33163006309054,
+      "tke_raw": 0.7701005935668945,
+      "tke_score": 72.19954411203236,
+      "trajectories": 12,
+      "windows": 491
+    },
+    "status": "REVIEW_REQUIRED"
+  },
+  "codabench_accessed": false,
+  "full_data_refit_started": false,
+  "gate": "GO",
+  "gate_uses_candidate_best_checkpoint": false,
+  "gate_uses_matched_update": 8000,
+  "historical_control": {
+    "execution_commit": "65e4f0f1d029eea47c6ba96364ce889e22d437d8",
+    "metrics": {
+      "8000": {
+        "mvpe_raw": 0.080289602,
+        "rel_l2_raw": 0.099606201,
+        "tke_raw": 0.77803129
+      },
+      "8723": {
+        "mvpe_raw": 0.080299616,
+        "rel_l2_raw": 0.099932298,
+        "tke_raw": 0.792903721
+      }
+    },
+    "source": "docs/clean_baseline_v1/results/20260924_run1/RUN_REPORT.md"
+  },
+  "holdout_accessed": false,
+  "locked_final_accessed": false,
+  "matched_final_8723": {
+    "baseline_point_score": 87.66374073094833,
+    "candidate_point_score": 87.91554418303686,
+    "delta_pct": {
+      "mvpe_raw": -2.031837962277952,
+      "rel_l2_raw": -1.9940673445337795,
+      "tke_raw": -2.8759011755357142
+    },
+    "mean_delta_pct": -2.3006021607824816,
+    "point_score_delta": 0.2518034520885237
+  },
+  "primary_matched_8000": {
+    "baseline_point_score": 87.79661595561731,
+    "candidate_point_score": 87.83597465760441,
+    "checks": {
+      "at_least_two_metrics_improve": true,
+      "mean_raw_error_improves_ge_0p5pct": true,
+      "no_metric_degrades_gt_1pct": true,
+      "point_score_improves": true
+    },
+    "delta_pct": {
+      "mvpe_raw": -1.3637067140014603,
+      "rel_l2_raw": -1.6820882067660974,
+      "tke_raw": 0.04278639211986519
+    },
+    "mean_delta_pct": -1.0010028428825641,
+    "point_score_delta": 0.03935870198709779,
+    "status": "GO"
+  },
+  "protocol": "REALPDE_SPATIAL_PHASE_BACKBONE_SCREEN_V1",
+  "residual_training_started": false,
+  "status": "REVIEW_REQUIRED",
+  "submission_packaging_started": false
+}
