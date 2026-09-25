@@ -370,6 +370,7 @@ def run(args: argparse.Namespace) -> None:
     if args.preflight_only:
         return
 
+    del hist_x, hist_pred, probe_x, probe_y, pred, loss, parts, formal_start_state
     # Fresh peak counter for the formal run.
     if device.type == "cuda":
         torch.cuda.empty_cache()
@@ -437,6 +438,9 @@ def run(args: argparse.Namespace) -> None:
             )
 
         if update in MILESTONES[1:]:
+            del x, y, pred, loss, parts
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
             eval_and_record(update)
             save_checkpoint(
                 checkpoints / f"model_update_{update:05d}.pth",
