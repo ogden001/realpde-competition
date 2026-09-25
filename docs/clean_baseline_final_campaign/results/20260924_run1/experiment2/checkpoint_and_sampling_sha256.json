@@ -1,0 +1,19 @@
+{
+  "checkpoints_not_included": true,
+  "init_state_max_abs_diff": 0.0,
+  "sha256": {
+    "control_22k/model_best.pth": "e3e7f8e311276364a89ae702860d49e38a1cd03e5edc1ceb42043353b8b01aa9",
+    "control_22k/model_init.pth": "8045100988368542e57846d1e92b0f4e063d5209ee66faed18e115e6c9e53f69",
+    "control_22k/model_latest.pth": "37e301ed1a5d60966f7ea37b0a655579abb3b28e0d1d60ee21938d133bb8acb8",
+    "control_22k/window_audit.jsonl": "4e5f6ab85ec1bfb264f5336390b6ed8a93740a85813df697489cc486d1c5c85a",
+    "interpolation/beta_0.50.pth": "d83aa745a8db9c476c9fa2ca37c9fc1cf8307cd8a8e1c244163f96bf68944ae1",
+    "interpolation/beta_0.65.pth": "daec3e49d1a89073b63590093013f33ca349f96c4c8c5a2b697f09da6255095d",
+    "interpolation/beta_0.80.pth": "01fcc0153f72657a8f08758be558b00d01c1a1f7d83004f086f2ee609c92af55",
+    "interpolation/beta_1.00.pth": "53e45b61eb219117521db956a404f4ec65b72d8da16887fce507140be9c0664e",
+    "pareto_22k/model_best.pth": "6673b51cfabcde741e6b246fa6772cc444065c43491ade5d95c9c85a5cbb59e0",
+    "pareto_22k/model_init.pth": "2a275cf7fdbecc821743ba2f766fc0c6d2077974a9277eb3dbf34895025ccb35",
+    "pareto_22k/model_latest.pth": "740d2b93c260803365f96a50f83409e48e73bf1001369204c34cf4f03bc6bdd5",
+    "pareto_22k/window_audit.jsonl": "4e5f6ab85ec1bfb264f5336390b6ed8a93740a85813df697489cc486d1c5c85a"
+  },
+  "window_audit_equal": true
+}

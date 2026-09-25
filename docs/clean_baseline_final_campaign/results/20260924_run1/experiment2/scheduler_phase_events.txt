@@ -1,0 +1,2 @@
+2026-09-25T00:04:53+08:00 START exp2 gpu=0 workers=2 repo=396dc89
+2026-09-25T06:57:34+08:00 COMPLETE exp2; starting exp3 sequentially

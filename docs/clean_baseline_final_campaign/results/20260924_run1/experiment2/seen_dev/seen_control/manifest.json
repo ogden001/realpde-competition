@@ -1,0 +1,27 @@
+{
+  "backbone_checkpoint": "/hy-tmp/runs/realpde_clean_baseline_v1_20260924/stage1_cno/model_best.pth",
+  "base_model": "cno",
+  "codabench_accessed": false,
+  "eval_trajectories": 12,
+  "eval_windows": 491,
+  "locked_final_accessed": false,
+  "optimizer_steps": 0,
+  "residual_checkpoint": "/hy-tmp/realpde_runs/pareto_sps_20260924_run1/exp2_pareto_tke_clean/control_22k/model_best.pth",
+  "result": {
+    "alpha": 1.0,
+    "base_mvpe_raw": 0.08028960227966309,
+    "base_rel_l2_raw": 0.09960620105266571,
+    "base_tke_raw": 0.7780312895774841,
+    "experiment": "seen_control",
+    "mvpe_improvement_vs_base": 0.19147920608520508,
+    "mvpe_raw": 0.06491581350564957,
+    "rel_l2_improvement_vs_base": 0.2068769335746765,
+    "rel_l2_raw": 0.07899997383356094,
+    "tke_improvement_vs_base": 0.34468191862106323,
+    "tke_raw": 0.5098579525947571,
+    "trajectories": 12,
+    "windows": 491
+  },
+  "status": "REVIEW_REQUIRED",
+  "train_trajectories_in_manifest": 51
+}

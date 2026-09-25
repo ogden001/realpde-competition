@@ -1,0 +1,56 @@
+{
+  "execution_commit": "396dc89dec46ac1118a9b1dd33709784903d8e98",
+  "preflight": {
+    "clean_stage1_sha256": "6aec4edb5e42746080e19baaafa2d6b719bb57befb1ff9035ece7889ec280036",
+    "clean_stage2_sha256": "1536fe02e11fc0dc991a38cb1489d0be0752ec8149be7b9f1542a4cb81c2f975",
+    "codabench_accessed": false,
+    "execution_commit": "396dc89dec46ac1118a9b1dd33709784903d8e98",
+    "gpu": {
+      "cuda_runtime": "12.1",
+      "gpu": "NVIDIA GeForce RTX 3090 Ti",
+      "gpu_memory_bytes": 25425608704,
+      "torch": "2.4.0+cu121"
+    },
+    "locked_final_accessed": false,
+    "sim_pretrain_sha256": "82e842928a25dbf5a74c4e336bdd28e89bcf40e68bb8cdd213547f1246af4f61",
+    "split_audit": {
+      "all_10deg_held_out": true,
+      "dev_aoa_counts": {
+        "0": 3,
+        "15": 3,
+        "20": 3,
+        "5": 3
+      },
+      "dev_trajectories": 12,
+      "holdout_aoa": 10,
+      "holdout_trajectories": 18,
+      "train_dev_holdout_overlap": false,
+      "train_trajectories": 51,
+      "usable_trajectories": 81
+    },
+    "status": "REVIEW_REQUIRED"
+  },
+  "runtime": {
+    "campaign_elapsed_seconds": 24761,
+    "campaign_end_local": "2026-09-25T06:57:34+08:00",
+    "campaign_start_local": "2026-09-25T00:04:53+08:00",
+    "codabench_accessed": false,
+    "control_done_local": "2026-09-25T03:59:44.819704+08:00",
+    "control_elapsed_seconds": 13878,
+    "control_model_init_local": "2026-09-25T00:08:26.071265+08:00",
+    "elapsed_method": "model_init.pth creation to DONE sentinel; includes input preparation and evaluation in each arm",
+    "experiment1_concurrent_sampled": true,
+    "experiment1_last_active_health_sample_local": "2026-09-25T03:39:57+08:00",
+    "gpu_name": "NVIDIA GeForce RTX 3090 Ti",
+    "gpu_peak_memory_sampled_mib": 10127,
+    "gpu_peak_sampling_interval_seconds": 300,
+    "locked_final_private_accessed": false,
+    "oom_occurred": false,
+    "pareto_done_local": "2026-09-25T06:50:17.666074+08:00",
+    "pareto_elapsed_seconds": 10052,
+    "pareto_model_init_local": "2026-09-25T04:02:44.885968+08:00",
+    "ram_peak_free_output_used_sampled": "24Gi",
+    "workers": 2
+  },
+  "train_dev_manifest_sha256": "fe879c63a32b0b370a5a09e6b114e922455350ee6899bc5adabcc3074833c814"
+}
