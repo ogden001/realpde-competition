@@ -27,6 +27,7 @@ import torch
 import realpde_loss_official_v9 as core
 import realpde_sota_v2_integrated as sota
 from dw01_by_horizon import aggregate_by_horizon, compute_window_horizon_metrics
+from diagnose_tail_fluctuation_coherence import fluctuation_horizon_rows, mean_field_metrics
 
 SEED = 41
 FINAL_UPDATE = 7_500
@@ -78,6 +79,34 @@ def save_checkpoint(path: Path, model, optimizer, update: int, config, metadata:
         },
         path,
     )
+
+
+def aggregate_by_trajectory_horizon(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    grouped: dict[tuple[str, int], list[dict[str, object]]] = {}
+    for row in rows:
+        key = (str(row["trajectory"]), int(row["horizon"]))
+        grouped.setdefault(key, []).append(row)
+    fields = (
+        "frame_rel_l2",
+        "frame_rmse",
+        "tke_contrib_rel_l2",
+        "tke_contrib_ratio",
+        "mvpe_probe_rel_l2",
+    )
+    out: list[dict[str, object]] = []
+    for (trajectory, horizon), group in sorted(grouped.items()):
+        out.append(
+            {
+                "trajectory": trajectory,
+                "horizon": horizon,
+                "windows": len(group),
+                **{
+                    field: float(np.mean([float(row[field]) for row in group]))
+                    for field in fields
+                },
+            }
+        )
+    return out
 
 
 @torch.inference_mode()
@@ -145,6 +174,11 @@ def evaluate_direct(
         trajectories=EXPECTED_DEV,
     )
     sota.rows(out_dir / "by_horizon.csv", horizon_rows)
+    sota.rows(out_dir / "by_trajectory_horizon.csv", aggregate_by_trajectory_horizon(window_rows))
+
+    fluct_rows = fluctuation_horizon_rows(prediction, target)
+    sota.rows(out_dir / "fluctuation_by_horizon.csv", fluct_rows)
+    mean_stats = mean_field_metrics(prediction, target)
 
     f = {int(row["horizon"]): row for row in horizon_rows}
     tail = {
@@ -166,6 +200,12 @@ def evaluate_direct(
         "runtime_valid_for_comparison": False,
         "runtime_note": "Shared GPU execution is allowed; timing is not a scientific comparison metric.",
         "trajectory_anatomy": anatomy,
+        "mean_field": mean_stats,
+        "tail_fluctuation": {
+            "f18": fluct_rows[17],
+            "f19": fluct_rows[18],
+            "f20": fluct_rows[19],
+        },
     }
     (out_dir / "summary.json").write_text(
         json.dumps(summary, indent=2, sort_keys=True, default=str) + "\n",
@@ -253,7 +293,11 @@ def run(args: argparse.Namespace) -> None:
     # micro-batch reduction would change training semantics and is forbidden.
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats(device)
-    probe_x, probe_y, _, _ = next(iter(dev_loader))
+    _preflight_ds, preflight_loader = sota.dev_loader(
+        dev,
+        argparse.Namespace(eval_batch_size=BATCH_SIZE, workers=args.workers),
+    )
+    probe_x, probe_y, _, _ = next(iter(preflight_loader))
     if probe_x.shape[0] < BATCH_SIZE:
         raise RuntimeError("preflight did not receive frozen batch=8")
     probe_x = probe_x[:BATCH_SIZE].to(device)
