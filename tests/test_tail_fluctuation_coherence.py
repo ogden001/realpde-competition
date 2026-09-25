@@ -26,11 +26,13 @@ M = load_module()
 
 def make_sequence(amplitude: float = 1.0, phase_shift: int = 0, mean_bias: float = 0.0):
     x = np.zeros((2, 20, 2, 2, 3), dtype=np.float32)
-    base = np.arange(20, dtype=np.float32)
-    pattern = np.sin(2.0 * np.pi * (base + phase_shift) / 20.0)
+    mode_a = np.asarray([[1.0, 0.0], [0.0, -1.0]], dtype=np.float32)
+    mode_b = np.asarray([[0.0, 1.0], [-1.0, 0.0]], dtype=np.float32)
     for h in range(20):
-        x[:, h, ..., 0] = mean_bias + amplitude * pattern[h]
-        x[:, h, ..., 1] = 0.5 * mean_bias + 0.5 * amplitude * pattern[h]
+        phase = 2.0 * np.pi * (h + phase_shift) / 20.0
+        field = amplitude * (np.sin(phase) * mode_a + np.cos(phase) * mode_b)
+        x[:, h, ..., 0] = mean_bias + field
+        x[:, h, ..., 1] = 0.5 * mean_bias + 0.5 * field
     return x
 
 
@@ -78,9 +80,10 @@ def test_phase_similarity_detects_shifted_temporal_phase():
     pred = make_sequence(amplitude=1.0, phase_shift=-2)
     gm, wm = M.phase_similarity_matrix(pred, target)
     rows = M.best_phase_rows(gm, wm)
-    # Away from wrap-around ambiguity, Pred F10 should best match a later GT frame by ~2.
+    # phase_shift=-2 means Pred F10 carries the phase of GT F8.
     row = rows[9]
-    assert row["best_offset_global"] in (1, 2, 3)
+    assert row["best_gt_horizon_global"] == 8
+    assert row["best_offset_global"] == -2
     assert row["best_global_cosine"] > row["diagonal_global_cosine"]
 
 
