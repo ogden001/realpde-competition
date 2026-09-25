@@ -1,0 +1,133 @@
+{
+  "b0_preflight": {
+    "historical_a28000": {
+      "mvpe": 0.077967,
+      "point": 90.637621,
+      "rel_l2": 0.104708,
+      "tke": 0.480162
+    },
+    "mvpe": 0.07796500623226166,
+    "point": 90.63765210919308,
+    "preflight_eval_dir": "/hy-tmp/realpde_runs/.stage_b_a28000_preflight_20260925/eval_000000",
+    "rel_l2": 0.10470876097679138,
+    "status": "PASS",
+    "tke": 0.4801611602306366
+  },
+  "best_checkpoint": {
+    "iteration": 500,
+    "path": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1/checkpoints/model_best.pth",
+    "selection_score": 90.85749159659463,
+    "sha256": "ff169727fb37f88915d00ee6a3bb307a9d27a8d8dd701a376b934eb479cbb2cc",
+    "size_bytes": 95920853
+  },
+  "best_tail_checkpoint": {
+    "checkpoint": {
+      "path": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1/checkpoints/model_update_001000.pth",
+      "sha256": "36ad1f0ea392b30a8c453db9a8a29fd20bc42b902ec4fbf744ac139ccc556b1e",
+      "size_bytes": 95926623
+    },
+    "delta_vs_b0": -169.18582758106913,
+    "metric": "lowest Seen-Dev H19+H20 squared-error sum",
+    "squared_error": 2355.398170993517,
+    "update": 1000
+  },
+  "checkpoint_metadata": {
+    "iteration": 28000,
+    "optimizer_state_tensors": 132,
+    "scope": "clean",
+    "stage": "A"
+  },
+  "checkpoint_provenance": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1/checkpoint_provenance.json",
+  "checkpoint_sha256": {
+    "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1/checkpoints/model_best.pth": "ff169727fb37f88915d00ee6a3bb307a9d27a8d8dd701a376b934eb479cbb2cc",
+    "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1/checkpoints/model_latest.pth": "9a5a6e7222c7470dbb6c89a37268d948c11d039502f631e66559c7f734239d07",
+    "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1/checkpoints/model_update_000500.pth": "c84dd9483fed2e6bc29ceebcc390e723783b8a8668e79037c1618c277811283e",
+    "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1/checkpoints/model_update_001000.pth": "36ad1f0ea392b30a8c453db9a8a29fd20bc42b902ec4fbf744ac139ccc556b1e"
+  },
+  "data_boundary": {
+    "codabench_accessed": false,
+    "holdout_accessed": false,
+    "locked_final_accessed": false,
+    "private_accessed": false,
+    "seen_dev_trajectories": 12,
+    "train_trajectories": 51
+  },
+  "data_manifest": "/hy-tmp/realpde_data/train_real_clean_train51_seen_dev12_386920e/stage_b_train_dev_manifest.json",
+  "execution_commit": "b43f9f90a36f3276b6ea716a85b5b29ae780243d",
+  "github_write_auth": "soft constraint; push review bundle after completion if available",
+  "local_run_dir": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1",
+  "manifest_sha256": "b167dba4ab4d9afa6b908d7575ea93576c64b09635bfa5d4e54f28767864c223",
+  "metrics": [
+    {
+      "elapsed_seconds": "",
+      "mvpe": "0.07796500623226166",
+      "point_score": "90.63765210919308",
+      "rel_l2": "0.10470876097679138",
+      "source_stage_a_update": "",
+      "stage": "B",
+      "tke": "0.4801611602306366",
+      "update": "0"
+    },
+    {
+      "elapsed_seconds": "446.76946055097505",
+      "mvpe": "0.07469525933265686",
+      "point_score": "90.85749159659463",
+      "rel_l2": "0.10225046426057816",
+      "source_stage_a_update": "28000",
+      "stage": "B",
+      "tke": "0.46801963448524475",
+      "update": "500"
+    },
+    {
+      "elapsed_seconds": "923.3690464969259",
+      "mvpe": "0.07723924517631531",
+      "point_score": "90.73870569517608",
+      "rel_l2": "0.10229802131652832",
+      "source_stage_a_update": "28000",
+      "stage": "B",
+      "tke": "0.4752326011657715",
+      "update": "1000"
+    }
+  ],
+  "post_train_diagnostics": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1/post_train_diagnostics",
+  "raw_training_log": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1/raw_training.log",
+  "safety_status": "PASS",
+  "source_sha256": "e49aa546653007835f31e690bbf91d28a8a0f60807d7847978c22fdabd666b1d",
+  "source_size_bytes": 95926378,
+  "source_stage_a_checkpoint": "/hy-tmp/realpde_imports/clean_stage_a_28000_20260925/model_update_028000.pth",
+  "stage_b_curve": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1/stage_b_curve.csv",
+  "stage_b_horizon_curve": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1/stage_b_horizon_curve.csv",
+  "status": "REVIEW_REQUIRED / LOCAL_RESULTS_NOT_PUSHED",
+  "summary": {
+    "best_point_score": 90.85749159659463,
+    "best_update": 500,
+    "codabench_accessed": false,
+    "current_update": 1000,
+    "locked_final_accessed": false,
+    "scope": "clean",
+    "source_stage_a_update": 28000,
+    "stage": "B",
+    "status": "REVIEW_REQUIRED",
+    "target_update": 1000,
+    "training_wall_seconds_this_process": 924.030272691045
+  },
+  "training_budget": {
+    "checkpoints": [
+      500,
+      1000
+    ],
+    "evaluations": [
+      0,
+      500,
+      1000
+    ],
+    "start_update": 0,
+    "target_update": 1000
+  },
+  "training_complete_at_update_1000": true,
+  "transfer": {
+    "method": "rsync over SSH",
+    "sha256_source_equals_destination": true,
+    "source_host": "i-1.gpushare.com:4750"
+  }
+}

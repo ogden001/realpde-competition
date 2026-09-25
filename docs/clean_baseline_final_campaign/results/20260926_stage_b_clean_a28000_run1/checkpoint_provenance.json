@@ -1,0 +1,30 @@
+{
+  "checkpoints": [
+    {
+      "iteration": 500,
+      "path": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1/checkpoints/model_best.pth",
+      "selection_score": 90.85749159659463,
+      "sha256": "ff169727fb37f88915d00ee6a3bb307a9d27a8d8dd701a376b934eb479cbb2cc",
+      "size_bytes": 95920853
+    },
+    {
+      "path": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1/checkpoints/model_latest.pth",
+      "sha256": "9a5a6e7222c7470dbb6c89a37268d948c11d039502f631e66559c7f734239d07",
+      "size_bytes": 95922121
+    },
+    {
+      "path": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1/checkpoints/model_update_000500.pth",
+      "sha256": "c84dd9483fed2e6bc29ceebcc390e723783b8a8668e79037c1618c277811283e",
+      "size_bytes": 95926623
+    },
+    {
+      "path": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1/checkpoints/model_update_001000.pth",
+      "sha256": "36ad1f0ea392b30a8c453db9a8a29fd20bc42b902ec4fbf744ac139ccc556b1e",
+      "size_bytes": 95926623
+    }
+  ],
+  "execution_commit": "b43f9f90a36f3276b6ea716a85b5b29ae780243d",
+  "source_stage_a_checkpoint": "/hy-tmp/realpde_imports/clean_stage_a_28000_20260925/model_update_028000.pth",
+  "source_stage_a_sha256": "e49aa546653007835f31e690bbf91d28a8a0f60807d7847978c22fdabd666b1d",
+  "source_stage_a_update": 28000
+}
