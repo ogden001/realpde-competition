@@ -167,6 +167,9 @@ Monitor GPU/host RAM, disk, process and logs. Candidate RAM preload intentionall
 
 After both arm `DONE` markers exist:
 
+If Control and Candidate have already completed successfully and only the review step failed because of review-code logic, **do not rerun either training arm**. Sync the reviewed fix on `main`, rerun the focused tests/compile, and rerun only the review command against the existing `OUT` artifacts. Training artifacts remain authoritative as long as their two arm `DONE` markers and exit-code evidence are intact.
+
+
 ```bash
 python -u -B tools/run_spatial_phase_gate.py review \
   --real-root "$REAL_ROOT" \
@@ -178,6 +181,8 @@ python -u -B tools/run_spatial_phase_gate.py review \
 ```
 
 Review must verify exact initialization parity, identical temporal sampling SHA, and expected phase exposure before emitting GO/NO_GO.
+
+Review-code recovery must not modify or regenerate either arm's checkpoints, training logs, sampling audits, Seen-Dev predictions or metrics. If any required arm artifact is missing or corrupt, STOP and report `BLOCKED` instead of silently rerunning training.
 
 Do not execute AoA10 after GO. This gate stops at Seen-Dev.
 
