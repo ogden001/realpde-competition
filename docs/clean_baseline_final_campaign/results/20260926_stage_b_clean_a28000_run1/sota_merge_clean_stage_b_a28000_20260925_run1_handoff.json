@@ -54,7 +54,8 @@
   },
   "data_manifest": "/hy-tmp/realpde_data/train_real_clean_train51_seen_dev12_386920e/stage_b_train_dev_manifest.json",
   "execution_commit": "b43f9f90a36f3276b6ea716a85b5b29ae780243d",
-  "github_write_auth": "soft constraint; push review bundle after completion if available",
+  "github_results_commit": "bdf1b10",
+  "github_write_auth": "Post-run GitHub push succeeded.",
   "local_run_dir": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1",
   "manifest_sha256": "b167dba4ab4d9afa6b908d7575ea93576c64b09635bfa5d4e54f28767864c223",
   "metrics": [
@@ -97,7 +98,7 @@
   "source_stage_a_checkpoint": "/hy-tmp/realpde_imports/clean_stage_a_28000_20260925/model_update_028000.pth",
   "stage_b_curve": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1/stage_b_curve.csv",
   "stage_b_horizon_curve": "/hy-tmp/realpde_runs/sota_merge_clean_stage_b_a28000_20260925_run1/stage_b_horizon_curve.csv",
-  "status": "REVIEW_REQUIRED / LOCAL_RESULTS_NOT_PUSHED",
+  "status": "REVIEW_REQUIRED / PUSHED_TO_GITHUB",
   "summary": {
     "best_point_score": 90.85749159659463,
     "best_update": 500,
