@@ -20,21 +20,96 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from colleague_80pt.realpde_h5_feature_adapter_train import paths_from_split_manifest
+from colleague_80pt.realpde_h5_feature_adapter_train import H5WindowDataset, paths_from_split_manifest
 from colleague_80pt.residual_multi import load_full_residual_model
 from colleague_80pt.train_head_fast import Head3D, HeadConfig
-from train_clean_residual_aware_sps import (
-    MAX_DEV_WIDTH_RATIO,
-    MIN_DEV_SPS_GAIN,
-    POINT_PARITY_TOL,
-    adaptive_score,
-    collect,
-    dataset,
-    select_adaptive_under_width_cap,
-    static_score,
-)
+from colleague_80pt import realpde_sps_scoring as SPS
 
+MIN_DEV_SPS_GAIN = 1.0
+MAX_DEV_WIDTH_RATIO = 1.20
+POINT_PARITY_TOL = 1e-7
 EXPECTED_HEAD_SHA256 = "1cde13a23fe15547dc2ee16cede9edd89fe8c12bc88f8e9ad059641f0a6c90b8"
+
+
+def dataset(paths: list[Path], stride: int) -> H5WindowDataset:
+    return H5WindowDataset(
+        paths,
+        in_steps=20,
+        out_steps=20,
+        stride=stride,
+        sub_sample=2,
+        include_pressure=False,
+        window_mode="fixed",
+    )
+
+
+@torch.no_grad()
+def collect(model, head, paths: list[Path], device: torch.device, workers: int):
+    ds = dataset(paths, 20)
+    loader = DataLoader(
+        ds,
+        batch_size=32,
+        shuffle=False,
+        num_workers=workers,
+        pin_memory=device.type == "cuda",
+    )
+    preds, bases, sigmas, targets = [], [], [], []
+    model.eval()
+    head.eval()
+    for x, y in loader:
+        x = x.to(device, non_blocking=True)
+        base = model.base_predict(x)
+        delta = model.predict_delta(x, base)
+        final = model.combine(base, delta, 1.0)
+        log_std = head(x, base)
+        preds.append(final.cpu().numpy().astype(np.float32))
+        bases.append(base.cpu().numpy().astype(np.float32))
+        sigmas.append(torch.exp(log_std).cpu().numpy().astype(np.float32))
+        targets.append(y.numpy().astype(np.float32))
+    return (
+        ds,
+        np.concatenate(preds),
+        np.concatenate(bases),
+        np.concatenate(sigmas),
+        np.concatenate(targets),
+    )
+
+
+def adaptive_score(pred, target, sigma, floor: float, mu: float, mv: float, rel: float) -> dict[str, float]:
+    half = np.zeros_like(pred, dtype=np.float32)
+    half[..., 0] = floor + mu * sigma[..., 0] + rel * np.abs(pred[..., 0])
+    half[..., 1] = floor + mv * sigma[..., 1] + rel * np.abs(pred[..., 1])
+    c = SPS.measured_channels(target)
+    raw, cov = SPS.aggregate_sps(pred, target, c, pred - half, pred + half)
+    return {
+        "sps": 100.0 * raw,
+        "coverage": cov,
+        "mean_width_uv": float(np.mean(2.0 * half[..., :2])),
+    }
+
+
+def static_score(pred, target, abs_w: float, rel_w: float) -> dict[str, float]:
+    half = (abs_w + rel_w * np.abs(pred)).astype(np.float32)
+    half[..., 2] = 0.0
+    c = SPS.measured_channels(target)
+    raw, cov = SPS.aggregate_sps(pred, target, c, pred - half, pred + half)
+    return {
+        "sps": 100.0 * raw,
+        "coverage": cov,
+        "mean_width_uv": float(np.mean(2.0 * half[..., :2])),
+    }
+
+
+def select_adaptive_under_width_cap(
+    rows: list[dict[str, float]],
+    static_best: dict[str, float],
+    max_width_ratio: float = MAX_DEV_WIDTH_RATIO,
+) -> dict[str, float]:
+    cap = max_width_ratio * float(static_best["mean_width_uv"])
+    feasible = [row for row in rows if float(row["mean_width_uv"]) <= cap + 1e-12]
+    if not feasible:
+        raise RuntimeError(f"no adaptive calibration satisfies width cap {cap:.12g}")
+    return max(feasible, key=lambda row: float(row["sps"]))
 
 
 def dump(path: Path, value: object) -> None:
