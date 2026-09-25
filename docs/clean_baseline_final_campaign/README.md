@@ -48,7 +48,9 @@ This experiment is independent of Exp1/Exp2 so Codex can finish all three withou
 
 It reproduces successful colleague uncertainty semantics: head observes Past20 plus pre-residual base prediction features; target is post-residual final error; h64, 2 blocks, dropout0; masked logmae; Train51 stride5; SeenDev12 stride20; 5000 head updates, batch16, AdamW LR1e-3, warmup/cosine; point predictor frozen; original 300-combination calibration family only.
 
-Primary gate: SeenDev adaptive SPS +1.0 over same-Dev best static interval; mean interval width <=1.20x static; point parity max abs <=1e-7. Selected Dev calibration is applied once to AoA10 without recalibration.
+Primary gate: SeenDev adaptive SPS +1.0 over same-Dev best static interval; mean interval width <=1.20x static; point parity max abs <=1e-7. Calibration selection is **constrained optimization**: among the frozen 300 adaptive calibrations that satisfy mean width <=1.20x the same-Dev best static width, select the highest Seen-Dev SPS; then select the checkpoint by that constrained SPS. The unconstrained SPS maximum is diagnostic only and must not cause a post-hoc NO_GO if a width-feasible higher-than-static candidate exists. Selected Dev calibration is applied once to AoA10 without recalibration.
+
+Review-only recovery for the completed 2026-09-24 Exp3 is implemented by `tools/recover_clean_exp3_sps.py`. It may reuse the already-saved head only when the constrained-optimal step matches the saved head step and its SHA256 matches the archived hash. Recovery performs zero optimizer steps, never modifies the source run, and accesses AoA10 once only after the corrected Seen-Dev gate is GO.
 
 ## Hard campaign boundaries
 
