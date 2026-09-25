@@ -52,6 +52,20 @@ Primary gate: SeenDev adaptive SPS +1.0 over same-Dev best static interval; mean
 
 Review-only recovery for the completed 2026-09-24 Exp3 is implemented by `tools/recover_clean_exp3_sps.py`. It may reuse the already-saved head only when the constrained-optimal step matches the saved head step and its SHA256 matches the archived hash. Recovery performs zero optimizer steps, never modifies the source run, and accesses AoA10 once only after the corrected Seen-Dev gate is GO.
 
+### Experiment 3 final reviewed result
+
+Status: **`SCIENTIFIC GO / REVIEW_REQUIRED`**.
+
+The corrected constrained selection chose step `4500`, head SHA256 `1cde13a23fe15547dc2ee16cede9edd89fe8c12bc88f8e9ad059641f0a6c90b8`, with calibration `floor=0.0025, mult_u=0.75, mult_v=1.5, rel=0.0075`.
+
+Seen-Dev12: static SPS `48.416360` -> adaptive SPS `51.654435` (`+3.238075`); coverage `0.788302 -> 0.849634`; width ratio `1.192600`; point parity `0`; gate `GO`.
+
+One frozen unseen-AoA10 Holdout18 evaluation, without recalibration or holdout-based selection: static SPS `45.842623` -> adaptive SPS `49.017414` (`+3.174791`); coverage `0.772295 -> 0.837020` (`+6.47` percentage points); adaptive mean u/v width `0.015131400`.
+
+Conclusion: the SPS improvement transfers almost unchanged from Seen-Dev to fully unseen AoA10. Exp3 is therefore accepted as a validated SOTA-merge method. Do not reopen SPS grid research. Exact head/calibration reuse is valid only when the final point predictor is the same frozen Clean Stage1+Stage2 predictor; if the final point predictor changes, reuse the validated SPS recipe/protocol with a matched frozen-predictor head, not the old head weights by assumption.
+
+Evidence: `docs/clean_baseline_final_campaign/results/20260925_exp3_constrained_recovery/`.
+
 ## Hard campaign boundaries
 
 Forbidden: Random Phase/random-start, AoA augmentation, ordinary TKE-weight sweep, late-horizon expansion, end-to-end joint fine-tuning, new hand-crafted features, new backbone-family sweep, full-data refit, submission/package construction, Codabench, locked-final/private, automatic follow-up experiments.
