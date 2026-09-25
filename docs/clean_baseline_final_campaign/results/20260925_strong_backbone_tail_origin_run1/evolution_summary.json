@@ -1,0 +1,16 @@
+{
+  "centered_fluct_amp_ratio_f20_final": 1.6445836205193893,
+  "cliff_growth_from_init_pp": 56.66785667717841,
+  "diagnostic_flags": {
+    "cliff_grows_materially_during_training": true,
+    "cliff_present_at_init": false,
+    "mf_centering_materially_worsens_f20": false,
+    "raw_head_f20_amplitude_grows_materially": false
+  },
+  "final_centering_f20_rel_delta_pct": -30.657851389019008,
+  "final_rel_growth_f18_f20_pct": 51.845781699432465,
+  "interpretation_rule": "Cliff present at update0 supports architecture/boundary initialization effects. A cliff that grows during training supports objective/optimization-induced temporal energy allocation. If raw fluctuation F20 is already abnormal before centering, the anomaly is in the learned CNO/MF raw head; if raw is smooth but centered/reconstructed F20 becomes abnormal, MF zero-mean reconstruction is implicated.",
+  "raw_fluct_amp_ratio_f20_final": 2.533216799386585,
+  "raw_fluct_amp_ratio_f20_update0": 9.448577713772895,
+  "update0_rel_growth_f18_f20_pct": -4.822074977745947
+}

@@ -1,0 +1,33 @@
+{
+  "cliff": {
+    "centered_fluct_amp_ratio_f18": 2.0262776713129966,
+    "centered_fluct_amp_ratio_f19": 2.557265171670965,
+    "centered_fluct_amp_ratio_f20": 1.924062394013881,
+    "centered_fluct_cosine_f18": 0.0012161217585825604,
+    "centered_fluct_cosine_f19": 0.002827600437839254,
+    "centered_fluct_cosine_f20": -0.0009464939562078722,
+    "centered_tail_energy_share_f19_f20": 0.2793426368845508,
+    "centering_f20_rel_delta_pct": -70.19712480003791,
+    "f18_rel": 0.4588387719766963,
+    "f19_rel": 0.47437695731838375,
+    "f20_rel": 0.43671322236501126,
+    "raw_fluct_amp_ratio_f18": 10.142453466563044,
+    "raw_fluct_amp_ratio_f19": 8.886570847449775,
+    "raw_fluct_amp_ratio_f20": 9.448577713772895,
+    "raw_tail_energy_share_f19_f20": 0.08450215759644877,
+    "rel_growth_f18_f19_pct": 3.3864150744603156,
+    "rel_growth_f18_f20_pct": -4.822074977745947,
+    "rel_growth_f19_f20_pct": -7.939621512453446,
+    "target_tail_energy_share_f19_f20": 0.12056159830064134
+  },
+  "meta": {
+    "iteration": 0,
+    "source": "official_sim_real_direct_to_mf_init"
+  },
+  "metrics": {
+    "mvpe": 0.49452120065689087,
+    "rel_l2": 0.4483226239681244,
+    "tke": 7.028714179992676
+  },
+  "update": 0
+}

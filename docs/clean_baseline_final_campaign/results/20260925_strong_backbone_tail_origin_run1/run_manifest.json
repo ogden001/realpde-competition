@@ -1,0 +1,28 @@
+{
+  "aoa10_accessed": false,
+  "checkpoint_selection_performed": false,
+  "codabench_accessed": false,
+  "eval_trajectories": 12,
+  "eval_windows": 491,
+  "full_data_refit_started": false,
+  "locked_final_accessed": false,
+  "optimizer_steps": 0,
+  "purpose": "Strong Backbone F19/F20 checkpoint evolution and raw MF anatomy",
+  "seed": 41,
+  "sim_pretrain_sha256": "82e842928a25dbf5a74c4e336bdd28e89bcf40e68bb8cdd213547f1246af4f61",
+  "status": "REVIEW_REQUIRED",
+  "submission_packaging_started": false,
+  "train_trajectories_in_manifest": 51,
+  "training_performed": false,
+  "updates": [
+    0,
+    7500,
+    15000,
+    20000,
+    25000,
+    30000,
+    31000,
+    32500,
+    35000
+  ]
+}

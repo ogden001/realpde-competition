@@ -1,0 +1,35 @@
+{
+  "cliff": {
+    "centered_fluct_amp_ratio_f18": 0.823090844009369,
+    "centered_fluct_amp_ratio_f19": 1.1924364206423224,
+    "centered_fluct_amp_ratio_f20": 1.7801724720858016,
+    "centered_fluct_cosine_f18": 0.27374399175819425,
+    "centered_fluct_cosine_f19": 0.1431568680511387,
+    "centered_fluct_cosine_f20": 0.09002404429751153,
+    "centered_tail_energy_share_f19_f20": 0.3178528574011685,
+    "centering_f20_rel_delta_pct": -25.365719117444872,
+    "f18_rel": 0.11973877380705435,
+    "f19_rel": 0.14865153142978108,
+    "f20_rel": 0.2033695755849076,
+    "raw_fluct_amp_ratio_f18": 2.396162685085104,
+    "raw_fluct_amp_ratio_f19": 2.392924490764846,
+    "raw_fluct_amp_ratio_f20": 2.630638282167217,
+    "raw_tail_energy_share_f19_f20": 0.11485656328619293,
+    "rel_growth_f18_f19_pct": 24.146528900752237,
+    "rel_growth_f18_f20_pct": 69.8443779895516,
+    "rel_growth_f19_f20_pct": 36.80960675536251,
+    "target_tail_energy_share_f19_f20": 0.12056159830064134
+  },
+  "meta": {
+    "feature_set": "P0-A",
+    "iteration": 25000,
+    "selection_score": 90.43327524170462,
+    "source": "strong_backbone_milestone"
+  },
+  "metrics": {
+    "mvpe": 0.08398503810167313,
+    "rel_l2": 0.1106342151761055,
+    "tke": 0.4822642505168915
+  },
+  "update": 25000
+}
