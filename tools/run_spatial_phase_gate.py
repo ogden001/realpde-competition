@@ -239,9 +239,27 @@ def _state_parity(left: Path, right: Path) -> float:
         raise RuntimeError("arm initialization state keys differ")
     worst = 0.0
     for key in a:
-        if torch.is_tensor(a[key]) and a[key].is_floating_point():
-            worst = max(worst, float((a[key] - b[key]).abs().max()))
-        elif not torch.equal(a[key], b[key]):
+        left_value, right_value = a[key], b[key]
+        if not (torch.is_tensor(left_value) and torch.is_tensor(right_value)):
+            if left_value != right_value:
+                raise RuntimeError(f"non-tensor initialization state differs at {key}")
+            continue
+        if left_value.shape != right_value.shape or left_value.dtype != right_value.dtype:
+            raise RuntimeError(
+                f"initialization tensor metadata differs at {key}: "
+                f"{tuple(left_value.shape)}/{left_value.dtype} vs "
+                f"{tuple(right_value.shape)}/{right_value.dtype}"
+            )
+        if left_value.numel() == 0:
+            # Some modules legitimately persist empty buffers. Equal shape/dtype
+            # means there is no value payload to compare and max() is undefined.
+            continue
+        if left_value.is_floating_point() or left_value.is_complex():
+            worst = max(
+                worst,
+                float((left_value - right_value).abs().max().item()),
+            )
+        elif not torch.equal(left_value, right_value):
             raise RuntimeError(f"non-floating initialization state differs at {key}")
     return worst
 
