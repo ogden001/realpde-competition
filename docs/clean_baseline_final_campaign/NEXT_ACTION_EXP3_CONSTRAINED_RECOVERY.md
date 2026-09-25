@@ -18,9 +18,11 @@ Codex's role is execution, verification, evidence collection and reporting only.
 
 ## Expected recovery facts
 
-Completed source run:
+Completed Exp3 source directory:
 
-`/hy-tmp/realpde_runs/pareto_sps_20260924_run1`
+`/hy-tmp/realpde_runs/pareto_sps_20260924_run1/exp3_residual_aware_sps`
+
+The parent `/hy-tmp/realpde_runs/pareto_sps_20260924_run1` is the campaign root. Exp3 grids, `summary.json`, and `head_best.pth` live in the `exp3_residual_aware_sps/` subdirectory. Use the subdirectory as `--source-run`.
 
 Archived head SHA256:
 
@@ -52,7 +54,7 @@ These numbers are verification targets, not values to hard-code or force. The re
    - If recovery cannot be completed from the saved head, stop as `BLOCKED`. Never retrain to repair evidence.
 
 2. **SOURCE CHECKPOINT MUST MATCH**
-   - Use only `/hy-tmp/realpde_runs/pareto_sps_20260924_run1/head_best.pth`.
+   - Use only `/hy-tmp/realpde_runs/pareto_sps_20260924_run1/exp3_residual_aware_sps/head_best.pth`.
    - Its SHA256 must equal:
      `1cde13a23fe15547dc2ee16cede9edd89fe8c12bc88f8e9ad059641f0a6c90b8`.
    - If missing or mismatched: stop `BLOCKED`.
@@ -89,7 +91,7 @@ These numbers are verification targets, not values to hard-code or force. The re
 
 7. **REPOSITORY POLICY**
    - Work only on `main`.
-   - First `git pull --ff-only origin main`.
+   - First `git pull --ff-only origin main`. After pulling, verify `docs/clean_baseline_final_campaign/NEXT_ACTION_EXP3_CONSTRAINED_RECOVERY.md` exists locally. If it is still missing, stop and report the local HEAD; do not continue from a stale task copy.
    - Do not create a branch.
    - Do not modify the scientific code written by ChatGPT/Sol.
    - Existing unrelated untracked files must remain untouched.
@@ -139,13 +141,13 @@ test -f tools/train_clean_residual_aware_sps.py
 test -f tools/recover_clean_exp3_sps.py
 test -f tests/test_clean_baseline_final_campaign.py
 test -d /hy-tmp/realpde_runs/pareto_sps_20260924_run1
-test -f /hy-tmp/realpde_runs/pareto_sps_20260924_run1/head_best.pth
+test -f /hy-tmp/realpde_runs/pareto_sps_20260924_run1/exp3_residual_aware_sps/head_best.pth
 ```
 
 Verify head SHA before any evaluation:
 
 ```bash
-sha256sum /hy-tmp/realpde_runs/pareto_sps_20260924_run1/head_best.pth
+sha256sum /hy-tmp/realpde_runs/pareto_sps_20260924_run1/exp3_residual_aware_sps/head_best.pth
 ```
 
 Expected exactly:
@@ -191,7 +193,7 @@ It must not already exist.
 Run:
 
 ```bash
-python -u -B tools/recover_clean_exp3_sps.py   --source-run /hy-tmp/realpde_runs/pareto_sps_20260924_run1   --real-root "<EXACT_ORIGINAL_REAL_ROOT>"   --train-manifest "<EXACT_ORIGINAL_TRAIN_DEV_MANIFEST>"   --holdout-manifest "<EXACT_ORIGINAL_AOA10_HOLDOUT_MANIFEST>"   --residual-checkpoint "<EXACT_CLEAN_STAGE2_CHECKPOINT>"   --model-root "<EXACT_ORIGINAL_MODEL_ROOT>"   --out-dir /hy-tmp/realpde_runs/pareto_sps_20260924_run1_constrained_recovery   --expected-head-sha256 1cde13a23fe15547dc2ee16cede9edd89fe8c12bc88f8e9ad059641f0a6c90b8   --workers 4   --require-cuda
+python -u -B tools/recover_clean_exp3_sps.py   --source-run /hy-tmp/realpde_runs/pareto_sps_20260924_run1/exp3_residual_aware_sps   --real-root "<EXACT_ORIGINAL_REAL_ROOT>"   --train-manifest "<EXACT_ORIGINAL_TRAIN_DEV_MANIFEST>"   --holdout-manifest "<EXACT_ORIGINAL_AOA10_HOLDOUT_MANIFEST>"   --residual-checkpoint "<EXACT_CLEAN_STAGE2_CHECKPOINT>"   --model-root "<EXACT_ORIGINAL_MODEL_ROOT>"   --out-dir /hy-tmp/realpde_runs/pareto_sps_20260924_run1_constrained_recovery   --expected-head-sha256 1cde13a23fe15547dc2ee16cede9edd89fe8c12bc88f8e9ad059641f0a6c90b8   --workers 4   --require-cuda
 ```
 
 Do not wrap this in a training runner.
