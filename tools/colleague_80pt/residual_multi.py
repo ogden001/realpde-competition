@@ -887,6 +887,13 @@ def main() -> None:
         raise ValueError("--spatial-phase-mix-prob must be in [0, 1]")
     if args.spatial_phase_mix_prob > 0.0 and args.sub_sample != 2:
         raise ValueError("--spatial-phase-mix-prob requires --sub-sample 2")
+    if args.spatial_phase_mix_prob > 0.0 and (
+        args.angle_aug_max_deg > 0.0 or args.aoa_meanfield_aug_prob > 0.0
+    ):
+        raise ValueError(
+            "spatial phase augmentation is isolated from angle/AoA augmentation "
+            "until a separate reviewed composition experiment exists"
+        )
     if (args.aoa_bridge_low is None) != (args.aoa_bridge_high is None):
         raise ValueError("--aoa-bridge-low and --aoa-bridge-high must be set together")
     args.out_dir.mkdir(parents=True)
