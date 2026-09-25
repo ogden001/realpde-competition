@@ -6,7 +6,7 @@ Execute exactly one matched Control-vs-Candidate spatial-phase gate using the al
 
 ## Task
 
-1. Sync clean `main`.
+1. Sync `main`; require tracked/staged cleanliness, but record and preserve unrelated pre-existing untracked files per the execution protocol.
 2. Verify Strong Backbone and Strong Residual checkpoint SHA256.
 3. Run focused tests and `py_compile`.
 4. Run gate preflight.
