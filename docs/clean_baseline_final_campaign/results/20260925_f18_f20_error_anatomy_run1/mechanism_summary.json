@@ -1,0 +1,79 @@
+{
+  "h20_ranked_zero_training_mechanisms": [
+    {
+      "mechanism": "amplitude_scaling",
+      "sse_gain_pct": 65.56343055904307
+    },
+    {
+      "mechanism": "spatial_phase_global",
+      "sse_gain_pct": 3.8188557631364946
+    },
+    {
+      "mechanism": "temporal_extrapolation",
+      "sse_gain_pct": 0.0
+    }
+  ],
+  "interpretation_note": "Use these as mechanism diagnostics only. A large global spatial-shift gain suggests coherent phase drift; a much larger per-window than global shift gain suggests heterogeneous phase error; negative lag offsets suggest temporal delay; positive extrapolation gain suggests under-advanced dynamics; amplitude gain isolates fluctuation-scale mismatch. Do not auto-promote any oracle setting to submission.",
+  "residual_tail_alpha_oracle_candidate": {
+    "alphas": {
+      "18": 1.0674584163580552,
+      "19": 1.1514030087251679,
+      "20": 1.4477330684259946
+    },
+    "delta_pct_vs_final": {
+      "mvpe_raw": 0.23500793595626046,
+      "rel_l2_raw": 0.37040905461009016,
+      "tke_raw": 0.5483848872407233
+    },
+    "metrics": {
+      "mvpe_raw": 0.06456978619098663,
+      "rel_l2_raw": 0.07983123511075974,
+      "tke_raw": 0.49873262643814087
+    },
+    "note": "Seen-Dev diagnostic oracle only; not a submission calibration."
+  },
+  "tail_signals": {
+    "18": {
+      "backbone_amplitude_gain_pct": 18.640428144551013,
+      "backbone_amplitude_scale_star": 0.3511193683898842,
+      "backbone_spatial_global_gain_pct": 0.0,
+      "backbone_spatial_mode_fraction": 0.8228105906313645,
+      "backbone_spatial_oracle_gain_pct": 1.7626763762553828,
+      "backbone_temporal_best_gamma": 0.0,
+      "backbone_temporal_extrap_gain_pct": 0.0,
+      "backbone_temporal_lag_best_offset": -1,
+      "backbone_temporal_lag_gain_pct": 1.464528499191186,
+      "residual_alpha_star": 1.0674584163580552,
+      "residual_delta_target_cosine": 0.5407361500185733,
+      "residual_sse_gain_pct": 29.12278573705076
+    },
+    "19": {
+      "backbone_amplitude_gain_pct": 39.742802370708894,
+      "backbone_amplitude_scale_star": 0.15698623946831358,
+      "backbone_spatial_global_gain_pct": 3.316011397292288,
+      "backbone_spatial_mode_fraction": 0.5295315682281059,
+      "backbone_spatial_oracle_gain_pct": 5.143539528286033,
+      "backbone_temporal_best_gamma": 0.0,
+      "backbone_temporal_extrap_gain_pct": 0.0,
+      "backbone_temporal_lag_best_offset": -2,
+      "backbone_temporal_lag_gain_pct": 1.7202219828581196,
+      "residual_alpha_star": 1.1514030087251679,
+      "residual_delta_target_cosine": 0.6500548772157214,
+      "residual_sse_gain_pct": 41.52647601995213
+    },
+    "20": {
+      "backbone_amplitude_gain_pct": 65.56343055904307,
+      "backbone_amplitude_scale_star": 0.06754398595227956,
+      "backbone_spatial_global_gain_pct": 3.8188557631364946,
+      "backbone_spatial_mode_fraction": 0.5437881873727087,
+      "backbone_spatial_oracle_gain_pct": 4.505990476409754,
+      "backbone_temporal_best_gamma": 0.0,
+      "backbone_temporal_extrap_gain_pct": 0.0,
+      "backbone_temporal_lag_best_offset": -2,
+      "backbone_temporal_lag_gain_pct": 1.2753128788521726,
+      "residual_alpha_star": 1.4477330684259946,
+      "residual_delta_target_cosine": 0.7831475579619283,
+      "residual_sse_gain_pct": 55.465922074200435
+    }
+  }
+}
