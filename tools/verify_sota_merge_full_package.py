@@ -114,11 +114,17 @@ def _reference_outputs(
         raise ValueError("reference SPS backbone provenance mismatch")
     if hp.get("corrector_sha256") != EXPECTED_CORRECTOR_SHA256:
         raise ValueError("reference SPS corrector provenance mismatch")
-    calibration = {
-        key: float(hp["calibration"][key]) for key in FROZEN_CALIBRATION
-    }
-    if calibration != FROZEN_CALIBRATION:
-        raise ValueError("reference SPS frozen calibration mismatch")
+    raw_calibration = hp.get("calibration")
+    if raw_calibration is None:
+        calibration = dict(FROZEN_CALIBRATION)
+    else:
+        if not isinstance(raw_calibration, dict):
+            raise ValueError("reference SPS calibration metadata has unexpected type")
+        calibration = {
+            key: float(raw_calibration[key]) for key in FROZEN_CALIBRATION
+        }
+        if calibration != FROZEN_CALIBRATION:
+            raise ValueError("reference SPS frozen calibration mismatch")
     hcfg = HeadConfig(**hp["head_config"])
     hcfg.validate()
     head = Head3D(hcfg).to(device)
