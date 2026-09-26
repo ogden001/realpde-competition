@@ -343,37 +343,50 @@ def load_joint_pair(
     corrector_path: Path,
     kit_root: Path,
     device: torch.device,
+    *,
+    target_joint_update: int = TARGET_JOINT_UPDATE,
+    expected_backbone_sha256: str = expected_backbone_sha256,
+    expected_corrector_sha256: str = expected_corrector_sha256,
+    expected_joint_protocol: str = joint.PROTOCOL,
 ):
-    """Load exactly the reviewed Joint@6k pair and freeze it."""
+    """Load one reviewed Joint pair and freeze it.
+
+    Defaults preserve the historical Clean Joint@6k behavior.  Full-refit
+    production runs must pass the exact final update, checkpoint SHAs, and
+    Full Joint protocol explicitly on the command line.
+    """
     for path in (backbone_path, corrector_path, kit_root):
         joint.merge.assert_safe_path(path)
 
     backbone_sha = strong.sha256(backbone_path)
     corrector_sha = strong.sha256(corrector_path)
-    if backbone_sha != EXPECTED_BACKBONE_SHA256:
+    if backbone_sha != expected_backbone_sha256:
         raise RuntimeError(
             f"Joint@6k backbone SHA mismatch: got {backbone_sha}, "
-            f"expected {EXPECTED_BACKBONE_SHA256}"
+            f"expected {expected_backbone_sha256}"
         )
-    if corrector_sha != EXPECTED_CORRECTOR_SHA256:
+    if corrector_sha != expected_corrector_sha256:
         raise RuntimeError(
             f"Joint@6k corrector SHA mismatch: got {corrector_sha}, "
-            f"expected {EXPECTED_CORRECTOR_SHA256}"
+            f"expected {expected_corrector_sha256}"
         )
 
     bp = torch.load(backbone_path, map_location="cpu", weights_only=False)
     cp = torch.load(corrector_path, map_location="cpu", weights_only=False)
 
-    if bp.get("protocol") != joint.PROTOCOL or cp.get("protocol") != joint.PROTOCOL:
-        raise ValueError("checkpoint pair is not REALPDE_SOTA_MERGE_JOINT_V1")
-    if int(bp.get("joint_update", -1)) != TARGET_JOINT_UPDATE:
+    if bp.get("protocol") != expected_joint_protocol or cp.get("protocol") != expected_joint_protocol:
         raise ValueError(
-            f"backbone must be Joint@{TARGET_JOINT_UPDATE}, "
+            f"checkpoint protocol mismatch: expected {expected_joint_protocol!r}, "
+            f"got backbone={bp.get('protocol')!r}, corrector={cp.get('protocol')!r}"
+        )
+    if int(bp.get("joint_update", -1)) != int(target_joint_update):
+        raise ValueError(
+            f"backbone must be Joint@{target_joint_update}, "
             f"got @{bp.get('joint_update')}"
         )
-    if int(cp.get("joint_update", -1)) != TARGET_JOINT_UPDATE:
+    if int(cp.get("joint_update", -1)) != int(target_joint_update):
         raise ValueError(
-            f"corrector must be Joint@{TARGET_JOINT_UPDATE}, "
+            f"corrector must be Joint@{target_joint_update}, "
             f"got @{cp.get('joint_update')}"
         )
     if cp.get("backbone_sha256") != backbone_sha:
@@ -461,6 +474,7 @@ def save_head_snapshot(
     step: int,
     backbone_sha: str,
     corrector_sha: str,
+    joint_update: int,
 ) -> None:
     torch.save(
         {
@@ -471,7 +485,7 @@ def save_head_snapshot(
             "head_config": cfg.__dict__,
             "step": int(step),
             "protocol": PROTOCOL,
-            "joint_update": TARGET_JOINT_UPDATE,
+            "joint_update": int(joint_update),
             "backbone_sha256": backbone_sha,
             "corrector_sha256": corrector_sha,
         },
@@ -491,6 +505,27 @@ def main() -> None:
     parser.add_argument("--kit-root", type=Path, required=True)
     parser.add_argument("--backbone-checkpoint", type=Path, required=True)
     parser.add_argument("--corrector-checkpoint", type=Path, required=True)
+    parser.add_argument(
+        "--target-joint-update",
+        type=int,
+        default=TARGET_JOINT_UPDATE,
+        help="Expected joint_update embedded in both point-model checkpoints.",
+    )
+    parser.add_argument(
+        "--expected-backbone-sha256",
+        default=EXPECTED_BACKBONE_SHA256,
+        help="Exact SHA256 required for the supplied backbone checkpoint.",
+    )
+    parser.add_argument(
+        "--expected-corrector-sha256",
+        default=EXPECTED_CORRECTOR_SHA256,
+        help="Exact SHA256 required for the supplied corrector checkpoint.",
+    )
+    parser.add_argument(
+        "--expected-joint-protocol",
+        default=joint.PROTOCOL,
+        help="Exact protocol string required in both Joint checkpoints.",
+    )
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument(
@@ -531,6 +566,10 @@ def main() -> None:
         args.corrector_checkpoint,
         args.kit_root,
         device,
+        target_joint_update=args.target_joint_update,
+        expected_backbone_sha256=args.expected_backbone_sha256,
+        expected_corrector_sha256=args.expected_corrector_sha256,
+        expected_joint_protocol=args.expected_joint_protocol,
     )
 
     # Validated Exp3 semantics: uncertainty observes Past20 + pre-residual base,
@@ -715,6 +754,7 @@ def main() -> None:
                 step=step,
                 backbone_sha=backbone_sha,
                 corrector_sha=corrector_sha,
+                joint_update=args.target_joint_update,
             )
             dump(
                 args.out_dir / "training_progress.json",
@@ -795,6 +835,9 @@ def main() -> None:
             "validated Clean Exp3: h64/b2/dropout0/logmae/"
             "Past20+pre-residual-base/final-error target"
         ),
+        "train_trajectories": len(train_paths),
+        "seen_dev_trajectories": len(dev_paths),
+        "aoa10_trajectories": len(aoa10_paths),
         "train_stride": 5,
         "dev_stride": 20,
         "batch": BATCH,
@@ -867,7 +910,7 @@ def main() -> None:
             "selected_step": int(best_record["step"]),
             "calibration": selected,
             "protocol": PROTOCOL,
-            "joint_update": TARGET_JOINT_UPDATE,
+            "joint_update": int(args.target_joint_update),
             "backbone_sha256": backbone_sha,
             "corrector_sha256": corrector_sha,
         },
