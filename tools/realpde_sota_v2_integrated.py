@@ -209,11 +209,29 @@ def horizon_error_summary(pred: np.ndarray, target: np.ndarray) -> dict:
 
 
 def dense_loader(paths, args):
-    ds = H5WindowDataset(paths, in_steps=20, out_steps=20, stride=20, sub_sample=2,
-                         include_pressure=False, window_mode="dense_all")
+    preload_to_ram = bool(getattr(args, "preload_to_ram", False))
+    prefetch_factor = int(getattr(args, "prefetch_factor", 4))
+    ds = H5WindowDataset(
+        paths,
+        in_steps=20,
+        out_steps=20,
+        stride=20,
+        sub_sample=2,
+        include_pressure=False,
+        window_mode="dense_all",
+        preload_to_ram=preload_to_ram,
+    )
     sampler = DenseAllWindowSampler(ds, seed=args.seed)
-    loader = DataLoader(ds, batch_size=args.micro_batch, sampler=sampler, num_workers=args.workers,
-                        pin_memory=True, persistent_workers=False, drop_last=True)
+    loader = DataLoader(
+        ds,
+        batch_size=args.micro_batch,
+        sampler=sampler,
+        num_workers=args.workers,
+        pin_memory=True,
+        persistent_workers=bool(args.workers > 0),
+        prefetch_factor=prefetch_factor if args.workers > 0 else None,
+        drop_last=True,
+    )
     return ds, sampler, loader
 
 
