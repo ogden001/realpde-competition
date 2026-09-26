@@ -77,3 +77,23 @@ def test_launcher_accepts_one_canonical_manifest_only():
     assert "AOA10_MANIFEST" not in text
     assert "--aoa10-manifest" not in text
     assert "--aoa10-split" not in text
+
+
+def test_sps_calibration_parallelization_is_engineering_only():
+    text = SCRIPT.read_text(encoding="utf-8")
+    launcher = LAUNCHER.read_text(encoding="utf-8")
+    for expected in (
+        "ProcessPoolExecutor",
+        "shared_memory.SharedMemory",
+        "calibrate_static_parallel",
+        "calibrate_adaptive_parallel",
+        "exp3.static_score",
+        "exp3.adaptive_score",
+        "exp3.FLOORS",
+        "exp3.MULTS",
+        "exp3.RELS",
+        "--calibration-workers",
+    ):
+        assert expected in text
+    assert "--calibration-workers 12" in launcher
+    assert 'OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"' in launcher
