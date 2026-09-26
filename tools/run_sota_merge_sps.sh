@@ -38,6 +38,11 @@ done
 [[ -d "$KIT_ROOT" ]] || { echo "missing kit root: $KIT_ROOT" >&2; exit 3; }
 [[ ! -e "$OUT_DIR" ]] || { echo "OUT_DIR already exists: $OUT_DIR" >&2; exit 4; }
 
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
+export MKL_NUM_THREADS="${MKL_NUM_THREADS:-1}"
+export OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-1}"
+export NUMEXPR_NUM_THREADS="${NUMEXPR_NUM_THREADS:-1}"
+
 python -u -B tools/train_sota_merge_sps.py \
   --data-root "$DATA_ROOT" \
   --manifest "$MANIFEST" \
@@ -46,4 +51,5 @@ python -u -B tools/train_sota_merge_sps.py \
   --corrector-checkpoint "$CORRECTOR" \
   --out-dir "$OUT_DIR" \
   --workers 4 \
+  --calibration-workers 12 \
   --require-cuda
