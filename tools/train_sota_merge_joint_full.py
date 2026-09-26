@@ -297,9 +297,15 @@ def _setup(args: argparse.Namespace) -> dict[str, object]:
     return locals()
 
 
-def _process_tree_rss_bytes() -> int:
-    """Return a conservative current RSS sum for this process and live children."""
-    total = 0
+def _process_tree_memory_bytes() -> tuple[int, int]:
+    """Return summed RSS and summed PSS for this process tree.
+
+    RSS double-counts fork-shared preload pages across DataLoader workers.
+    Summed PSS apportions those shared pages and is the gate used for the
+    physical-memory budget; RSS is retained only as a diagnostic.
+    """
+    rss_total = 0
+    pss_total = 0
     seen: set[int] = set()
     stack = [os.getpid()]
     while stack:
@@ -310,7 +316,14 @@ def _process_tree_rss_bytes() -> int:
         try:
             for line in Path(f"/proc/{pid}/status").read_text(encoding="utf-8").splitlines():
                 if line.startswith("VmRSS:"):
-                    total += int(line.split()[1]) * 1024
+                    rss_total += int(line.split()[1]) * 1024
+                    break
+        except (FileNotFoundError, ProcessLookupError, PermissionError):
+            pass
+        try:
+            for line in Path(f"/proc/{pid}/smaps_rollup").read_text(encoding="utf-8").splitlines():
+                if line.startswith("Pss:"):
+                    pss_total += int(line.split()[1]) * 1024
                     break
         except (FileNotFoundError, ProcessLookupError, PermissionError):
             pass
@@ -320,7 +333,7 @@ def _process_tree_rss_bytes() -> int:
                 stack.extend(int(x) for x in children.split())
         except (FileNotFoundError, ProcessLookupError, PermissionError):
             pass
-    return total
+    return rss_total, pss_total
 
 
 def _preflight(ctx: dict[str, object], args: argparse.Namespace) -> dict[str, object]:
@@ -348,15 +361,15 @@ def _preflight(ctx: dict[str, object], args: argparse.Namespace) -> dict[str, ob
         gpu_peak_bytes = int(torch.cuda.max_memory_reserved(device))
     else:
         gpu_peak_bytes = 0
-    host_rss_bytes = _process_tree_rss_bytes()
+    host_rss_bytes, host_pss_bytes = _process_tree_memory_bytes()
     total_finite = bool(torch.isfinite(total).item())
     bgrad_f = float(bgrad)
     cgrad_f = float(cgrad)
     backbone_grad_ok = np.isfinite(bgrad_f) and bgrad_f > 0.0
     corrector_grad_ok = np.isfinite(cgrad_f) and cgrad_f > 0.0
-    host_rss_ok = host_rss_bytes < HOST_RSS_LIMIT_BYTES
+    host_memory_ok = host_pss_bytes < HOST_RSS_LIMIT_BYTES
     gpu_peak_ok = device.type != "cuda" or gpu_peak_bytes < GPU_PEAK_LIMIT_BYTES
-    passed = total_finite and backbone_grad_ok and corrector_grad_ok and host_rss_ok and gpu_peak_ok
+    passed = total_finite and backbone_grad_ok and corrector_grad_ok and host_memory_ok and gpu_peak_ok
     optimizer.zero_grad(set_to_none=True)
     report = {
         "status": "PASS" if passed else "FAIL",
@@ -369,8 +382,11 @@ def _preflight(ctx: dict[str, object], args: argparse.Namespace) -> dict[str, ob
         "corrector_grad_finite_nonzero": bool(corrector_grad_ok),
         "host_rss_bytes": int(host_rss_bytes),
         "host_rss_gib": float(host_rss_bytes / 1024**3),
-        "host_rss_limit_gib": float(HOST_RSS_LIMIT_BYTES / 1024**3),
-        "host_rss_ok": bool(host_rss_ok),
+        "host_pss_bytes": int(host_pss_bytes),
+        "host_pss_gib": float(host_pss_bytes / 1024**3),
+        "host_memory_gate": "process_tree_pss",
+        "host_memory_limit_gib": float(HOST_RSS_LIMIT_BYTES / 1024**3),
+        "host_memory_ok": bool(host_memory_ok),
         "gpu_peak_reserved_bytes": int(gpu_peak_bytes),
         "gpu_peak_reserved_gib": float(gpu_peak_bytes / 1024**3),
         "gpu_peak_limit_gib": float(GPU_PEAK_LIMIT_BYTES / 1024**3),
