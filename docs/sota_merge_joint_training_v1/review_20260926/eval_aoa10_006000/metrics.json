@@ -1,0 +1,13 @@
+{
+  "base_mvpe": 0.09809841215610504,
+  "base_point": 90.23351300813071,
+  "base_rel_l2": 0.10108702629804611,
+  "base_tke": 0.4941604435443878,
+  "final_mvpe": 0.09380372613668442,
+  "final_point": 90.43239294171313,
+  "final_rel_l2": 0.09227041155099869,
+  "final_tke": 0.4941604435443878,
+  "split": "aoa10_holdout_diagnostic",
+  "update": 6000,
+  "windows": 756
+}

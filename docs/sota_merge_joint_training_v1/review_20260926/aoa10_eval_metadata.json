@@ -1,0 +1,38 @@
+{
+  "protocol": "REALPDE_SOTA_MERGE_JOINT_V1",
+  "diagnostic_split": "clean_manifest_holdout_AoA10_18",
+  "trajectory_ids": [
+    "10125_10.h5",
+    "11400_10.h5",
+    "12675_10.h5",
+    "13950_10.h5",
+    "16500_10.h5",
+    "17775_10.h5",
+    "19050_10.h5",
+    "20325_10.h5",
+    "21600_10.h5",
+    "22875_10.h5",
+    "24150_10.h5",
+    "25425_10.h5",
+    "26700_10.h5",
+    "3750_10.h5",
+    "5025_10.h5",
+    "6300_10.h5",
+    "7575_10.h5",
+    "8850_10.h5"
+  ],
+  "trajectory_count": 18,
+  "updates": [
+    0,
+    1000,
+    2000,
+    3000,
+    4000,
+    5000,
+    6000
+  ],
+  "optimizer_steps": 0,
+  "locked_final_accessed": false,
+  "private_accessed": false,
+  "codabench_accessed": false
+}
