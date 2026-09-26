@@ -39,10 +39,10 @@ import realpde_sps_teammate_final as teammate_cal
 import train_sota_merge_sps as joint_sps
 from colleague_80pt.realpde_h5_feature_adapter_train import (
     BAD_TRAIN_FILES,
+    H5WindowDataset,
     list_h5,
     split_paths,
 )
-from realpde_p0_data import H5WindowDataset
 from sps_teammate_uncertainty_runtime import (
     TeammateUncertaintyHead,
     masked_gaussian_nll_from_log_std,
