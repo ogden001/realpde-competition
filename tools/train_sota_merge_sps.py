@@ -22,7 +22,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import multiprocessing as mp
 import time
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import shared_memory
 from pathlib import Path
 
 import numpy as np
@@ -55,6 +58,169 @@ LR = 1e-3
 WEIGHT_DECAY = 1e-5
 WARMUP = 200
 EPS = 1e-6
+
+
+# Calibration is pure post-processing over frozen NumPy arrays. The original
+# Exp3 implementation evaluates the fixed calibration grid serially; on the
+# 16-core execution host that leaves most CPU cores idle. Keep the exact Exp3
+# score functions and frozen grids, but distribute independent grid points
+# across spawned CPU processes using shared memory.
+_CALIBRATION_ARRAYS: dict[str, np.ndarray] = {}
+_CALIBRATION_SHMS: list[shared_memory.SharedMemory] = []
+
+
+def _init_calibration_worker(
+    specs: list[tuple[str, str, tuple[int, ...], str]],
+) -> None:
+    global _CALIBRATION_ARRAYS, _CALIBRATION_SHMS
+    _CALIBRATION_ARRAYS = {}
+    _CALIBRATION_SHMS = []
+    for key, shm_name, shape, dtype_str in specs:
+        shm = shared_memory.SharedMemory(name=shm_name)
+        array = np.ndarray(
+            tuple(shape),
+            dtype=np.dtype(dtype_str),
+            buffer=shm.buf,
+        )
+        array.setflags(write=False)
+        _CALIBRATION_SHMS.append(shm)
+        _CALIBRATION_ARRAYS[key] = array
+
+
+def _adaptive_calibration_worker(
+    params: tuple[float, float, float, float],
+) -> dict[str, float]:
+    floor, mult_u, mult_v, rel = params
+    score = exp3.adaptive_score(
+        _CALIBRATION_ARRAYS["pred"],
+        _CALIBRATION_ARRAYS["target"],
+        _CALIBRATION_ARRAYS["sigma"],
+        floor,
+        mult_u,
+        mult_v,
+        rel,
+    )
+    return {
+        "floor": floor,
+        "mult_u": mult_u,
+        "mult_v": mult_v,
+        "rel": rel,
+        **score,
+    }
+
+
+def _static_calibration_worker(
+    params: tuple[float, float],
+) -> dict[str, float]:
+    abs_w, rel_w = params
+    score = exp3.static_score(
+        _CALIBRATION_ARRAYS["pred"],
+        _CALIBRATION_ARRAYS["target"],
+        abs_w,
+        rel_w,
+    )
+    return {"abs": abs_w, "rel": rel_w, **score}
+
+
+def _parallel_calibration_rows(
+    arrays: dict[str, np.ndarray],
+    params: list[tuple],
+    worker,
+    workers: int,
+) -> list[dict[str, float]]:
+    """Run independent calibration points in spawned processes.
+
+    Shared memory avoids serializing the large Seen-Dev tensors once per grid
+    point. Spawn is deliberate because the parent already initialized CUDA;
+    forking a CUDA-initialized process is unsafe.
+    """
+    if workers < 1:
+        raise ValueError("calibration workers must be >= 1")
+
+    shm_handles: list[shared_memory.SharedMemory] = []
+    specs: list[tuple[str, str, tuple[int, ...], str]] = []
+    try:
+        for key, value in arrays.items():
+            contiguous = np.ascontiguousarray(value)
+            shm = shared_memory.SharedMemory(
+                create=True,
+                size=contiguous.nbytes,
+            )
+            shared_view = np.ndarray(
+                contiguous.shape,
+                dtype=contiguous.dtype,
+                buffer=shm.buf,
+            )
+            shared_view[...] = contiguous
+            shm_handles.append(shm)
+            specs.append(
+                (
+                    key,
+                    shm.name,
+                    tuple(contiguous.shape),
+                    contiguous.dtype.str,
+                )
+            )
+
+        ctx = mp.get_context("spawn")
+        with ProcessPoolExecutor(
+            max_workers=min(workers, len(params)),
+            mp_context=ctx,
+            initializer=_init_calibration_worker,
+            initargs=(specs,),
+        ) as pool:
+            return list(pool.map(worker, params, chunksize=1))
+    finally:
+        for shm in shm_handles:
+            shm.close()
+            shm.unlink()
+
+
+def calibrate_static_parallel(
+    pred: np.ndarray,
+    target: np.ndarray,
+    workers: int,
+) -> tuple[list[dict[str, float]], dict[str, float]]:
+    if workers == 1:
+        return exp3.calibrate_static(pred, target)
+    params = [
+        (abs_w, rel_w)
+        for abs_w in exp3.STATIC_ABS
+        for rel_w in exp3.STATIC_REL
+    ]
+    rows = _parallel_calibration_rows(
+        {"pred": pred, "target": target},
+        params,
+        _static_calibration_worker,
+        workers,
+    )
+    rows.sort(key=lambda row: -float(row["sps"]))
+    return rows, rows[0]
+
+
+def calibrate_adaptive_parallel(
+    pred: np.ndarray,
+    target: np.ndarray,
+    sigma: np.ndarray,
+    workers: int,
+) -> tuple[list[dict[str, float]], dict[str, float]]:
+    if workers == 1:
+        return exp3.calibrate_adaptive(pred, target, sigma)
+    params = [
+        (floor, mult_u, mult_v, rel)
+        for floor in exp3.FLOORS
+        for mult_u in exp3.MULTS
+        for mult_v in exp3.MULTS
+        for rel in exp3.RELS
+    ]
+    rows = _parallel_calibration_rows(
+        {"pred": pred, "target": target, "sigma": sigma},
+        params,
+        _adaptive_calibration_worker,
+        workers,
+    )
+    rows.sort(key=lambda row: -float(row["sps"]))
+    return rows, rows[0]
 
 
 def dump(path: Path, value: object) -> None:
@@ -275,6 +441,12 @@ def main() -> None:
     parser.add_argument("--corrector-checkpoint", type=Path, required=True)
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument(
+        "--calibration-workers",
+        type=int,
+        default=12,
+        help="CPU processes for exact static/adaptive calibration grids",
+    )
     parser.add_argument("--require-cuda", action="store_true")
     args = parser.parse_args()
 
@@ -361,7 +533,22 @@ def main() -> None:
         device,
         args.workers,
     )
-    static_grid, static_best = exp3.calibrate_static(pred_before, target_before)
+    static_started = time.monotonic()
+    print(
+        f"[SPS] static calibration start: workers={args.calibration_workers}",
+        flush=True,
+    )
+    static_grid, static_best = calibrate_static_parallel(
+        pred_before,
+        target_before,
+        args.calibration_workers,
+    )
+    print(
+        "[SPS] static calibration done: "
+        f"{time.monotonic() - static_started:.1f}s, "
+        f"SPS={float(static_best['sps']):.6f}",
+        flush=True,
+    )
     dump(args.out_dir / "static_calibration_grid.json", static_grid)
 
     best_record = None
@@ -404,16 +591,26 @@ def main() -> None:
         scheduler.step()
 
         if step == 1 or step % 100 == 0:
-            losses.append(
-                {
-                    "step": step,
-                    "loss": float(loss.detach().cpu()),
-                    "lr": float(optimizer.param_groups[0]["lr"]),
-                    "head_grad_norm_preclip": float(grad_norm),
-                }
-            )
+            loss_record = {
+                "step": step,
+                "loss": float(loss.detach().cpu()),
+                "lr": float(optimizer.param_groups[0]["lr"]),
+                "head_grad_norm_preclip": float(grad_norm),
+            }
+            losses.append(loss_record)
+            if step % 100 == 0:
+                print(
+                    f"[SPS] train step {step}/{UPDATES}: "
+                    f"loss={loss_record['loss']:.6f}",
+                    flush=True,
+                )
 
         if step % EVAL_EVERY == 0:
+            eval_started = time.monotonic()
+            print(
+                f"[SPS] milestone {step}: Seen-Dev collect start",
+                flush=True,
+            )
             _, pred_dev, sigma_dev, target_dev = collect(
                 backbone,
                 builder,
@@ -423,11 +620,20 @@ def main() -> None:
                 device,
                 args.workers,
             )
-            grid, unconstrained = exp3.calibrate_adaptive(
+            collect_seconds = time.monotonic() - eval_started
+            calibration_started = time.monotonic()
+            print(
+                f"[SPS] milestone {step}: adaptive calibration start "
+                f"(300 combos, workers={args.calibration_workers})",
+                flush=True,
+            )
+            grid, unconstrained = calibrate_adaptive_parallel(
                 pred_dev,
                 target_dev,
                 sigma_dev,
+                args.calibration_workers,
             )
+            calibration_seconds = time.monotonic() - calibration_started
             chosen = exp3.select_adaptive_under_width_cap(
                 grid,
                 static_best,
@@ -440,6 +646,9 @@ def main() -> None:
                     exp3.MAX_DEV_WIDTH_RATIO
                     * float(static_best["mean_width_uv"])
                 ),
+                "collect_wall_seconds": collect_seconds,
+                "calibration_wall_seconds": calibration_seconds,
+                "milestone_wall_seconds": time.monotonic() - eval_started,
             }
             evals.append(record)
 
@@ -454,6 +663,18 @@ def main() -> None:
                 step=step,
                 backbone_sha=backbone_sha,
                 corrector_sha=corrector_sha,
+            )
+            dump(
+                args.out_dir / "training_progress.json",
+                {"losses": losses, "evals": evals},
+            )
+            print(
+                f"[SPS] milestone {step} done: "
+                f"SPS={float(chosen['sps']):.6f}, "
+                f"width={float(chosen['mean_width_uv']):.6f}, "
+                f"collect={collect_seconds:.1f}s, "
+                f"calibration={calibration_seconds:.1f}s",
+                flush=True,
             )
 
             if (
@@ -526,6 +747,7 @@ def main() -> None:
         "dev_stride": 20,
         "batch": BATCH,
         "lr": LR,
+        "calibration_workers": args.calibration_workers,
         "warmup": WARMUP,
         "selected_step": int(best_record["step"]),
         "selected_calibration": selected,
