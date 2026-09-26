@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import time
 from pathlib import Path
 
@@ -47,6 +48,9 @@ BACKBONE_LR = 1e-6
 CORRECTOR_LR = 1e-5
 BACKBONE_WEIGHT_DECAY = 1e-2
 CORRECTOR_WEIGHT_DECAY = 1e-5
+
+HOST_RSS_LIMIT_BYTES = 48 * 1024**3
+GPU_PEAK_LIMIT_BYTES = 24 * 1024**3
 
 
 def _dump(path: Path, value: object) -> None:
@@ -293,9 +297,37 @@ def _setup(args: argparse.Namespace) -> dict[str, object]:
     return locals()
 
 
+def _process_tree_rss_bytes() -> int:
+    """Return a conservative current RSS sum for this process and live children."""
+    total = 0
+    seen: set[int] = set()
+    stack = [os.getpid()]
+    while stack:
+        pid = stack.pop()
+        if pid in seen:
+            continue
+        seen.add(pid)
+        try:
+            for line in Path(f"/proc/{pid}/status").read_text(encoding="utf-8").splitlines():
+                if line.startswith("VmRSS:"):
+                    total += int(line.split()[1]) * 1024
+                    break
+        except (FileNotFoundError, ProcessLookupError, PermissionError):
+            pass
+        try:
+            children = Path(f"/proc/{pid}/task/{pid}/children").read_text(encoding="utf-8").strip()
+            if children:
+                stack.extend(int(x) for x in children.split())
+        except (FileNotFoundError, ProcessLookupError, PermissionError):
+            pass
+    return total
+
+
 def _preflight(ctx: dict[str, object], args: argparse.Namespace) -> dict[str, object]:
     backbone, corrector, builder, device = ctx["backbone"], ctx["corrector"], ctx["builder"], ctx["device"]
     optimizer = ctx["optimizer"]
+    if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(device)
     optimizer.zero_grad(set_to_none=True)
     backbone.train(); corrector.train()
     xa, ya, _, _ = next(iter(ctx["stage_a_loader"]))
@@ -311,13 +343,38 @@ def _preflight(ctx: dict[str, object], args: argparse.Namespace) -> dict[str, ob
     total.backward()
     bgrad = torch.nn.utils.clip_grad_norm_(backbone.parameters(), 1.0)
     cgrad = torch.nn.utils.clip_grad_norm_(corrector.parameters(), 1.0)
+    if device.type == "cuda":
+        torch.cuda.synchronize(device)
+        gpu_peak_bytes = int(torch.cuda.max_memory_reserved(device))
+    else:
+        gpu_peak_bytes = 0
+    host_rss_bytes = _process_tree_rss_bytes()
+    total_finite = bool(torch.isfinite(total).item())
+    bgrad_f = float(bgrad)
+    cgrad_f = float(cgrad)
+    backbone_grad_ok = np.isfinite(bgrad_f) and bgrad_f > 0.0
+    corrector_grad_ok = np.isfinite(cgrad_f) and cgrad_f > 0.0
+    host_rss_ok = host_rss_bytes < HOST_RSS_LIMIT_BYTES
+    gpu_peak_ok = device.type != "cuda" or gpu_peak_bytes < GPU_PEAK_LIMIT_BYTES
+    passed = total_finite and backbone_grad_ok and corrector_grad_ok and host_rss_ok and gpu_peak_ok
     optimizer.zero_grad(set_to_none=True)
     report = {
-        "status": "PASS" if torch.isfinite(total) and np.isfinite(float(bgrad)) and np.isfinite(float(cgrad)) and float(cgrad) > 0 else "FAIL",
+        "status": "PASS" if passed else "FAIL",
         "optimizer_steps": 0,
         "loss_total": float(total.detach().cpu()),
-        "backbone_grad_norm": float(bgrad),
-        "corrector_grad_norm": float(cgrad),
+        "loss_finite": total_finite,
+        "backbone_grad_norm": bgrad_f,
+        "backbone_grad_finite_nonzero": bool(backbone_grad_ok),
+        "corrector_grad_norm": cgrad_f,
+        "corrector_grad_finite_nonzero": bool(corrector_grad_ok),
+        "host_rss_bytes": int(host_rss_bytes),
+        "host_rss_gib": float(host_rss_bytes / 1024**3),
+        "host_rss_limit_gib": float(HOST_RSS_LIMIT_BYTES / 1024**3),
+        "host_rss_ok": bool(host_rss_ok),
+        "gpu_peak_reserved_bytes": int(gpu_peak_bytes),
+        "gpu_peak_reserved_gib": float(gpu_peak_bytes / 1024**3),
+        "gpu_peak_limit_gib": float(GPU_PEAK_LIMIT_BYTES / 1024**3),
+        "gpu_peak_ok": bool(gpu_peak_ok),
         "full_trajectories": len(ctx["train_paths"]),
         "dense_windows": len(ctx["stage_b_ds"]),
         "stage_a_base_windows": ctx["stage_a_ds"].base_window_count,
