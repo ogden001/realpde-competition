@@ -76,8 +76,18 @@ def _require_exact_sha(path: Path, expected: str, label: str) -> str:
 
 
 def _validate_calibration(raw: object) -> dict[str, float]:
+    """Return the reviewed frozen calibration.
+
+    The selected SPS @2000 artifact is a milestone snapshot created by
+    save_head_snapshot(), which intentionally stores model/provenance metadata
+    but no calibration. Calibration was selected and frozen separately during
+    the reviewed SPS audit. If a checkpoint does carry calibration, require it
+    to match exactly; otherwise use the package-level frozen constants.
+    """
+    if raw is None:
+        return dict(FROZEN_CALIBRATION)
     if not isinstance(raw, dict):
-        raise ValueError("SPS head lacks calibration")
+        raise ValueError("SPS calibration metadata has unexpected type")
     got = {key: float(raw[key]) for key in FROZEN_CALIBRATION}
     if got != FROZEN_CALIBRATION:
         raise ValueError(
@@ -385,6 +395,7 @@ def build(
             "head_sha256": assets["head_sha256"],
         },
         "calibration": assets["calibration"],
+        "calibration_source": "review_frozen_package_constants",
         "files": payload_inventory,
         "locked_final_accessed": False,
         "codabench_accessed": False,
@@ -422,6 +433,7 @@ def build(
         "joint_update": EXPECTED_JOINT_UPDATE,
         "sps_selected_step": EXPECTED_SPS_STEP,
         "calibration": assets["calibration"],
+        "calibration_source": "review_frozen_package_constants",
         "zip": str(zip_path),
         "zip_bytes": int(zip_path.stat().st_size),
         "zip_sha256": sha256(zip_path),
