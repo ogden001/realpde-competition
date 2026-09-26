@@ -345,8 +345,8 @@ def load_joint_pair(
     device: torch.device,
     *,
     target_joint_update: int = TARGET_JOINT_UPDATE,
-    expected_backbone_sha256: str = expected_backbone_sha256,
-    expected_corrector_sha256: str = expected_corrector_sha256,
+    expected_backbone_sha256: str = EXPECTED_BACKBONE_SHA256,
+    expected_corrector_sha256: str = EXPECTED_CORRECTOR_SHA256,
     expected_joint_protocol: str = joint.PROTOCOL,
 ):
     """Load one reviewed Joint pair and freeze it.
@@ -362,12 +362,12 @@ def load_joint_pair(
     corrector_sha = strong.sha256(corrector_path)
     if backbone_sha != expected_backbone_sha256:
         raise RuntimeError(
-            f"Joint@6k backbone SHA mismatch: got {backbone_sha}, "
+            f"Joint backbone SHA mismatch: got {backbone_sha}, "
             f"expected {expected_backbone_sha256}"
         )
     if corrector_sha != expected_corrector_sha256:
         raise RuntimeError(
-            f"Joint@6k corrector SHA mismatch: got {corrector_sha}, "
+            f"Joint corrector SHA mismatch: got {corrector_sha}, "
             f"expected {expected_corrector_sha256}"
         )
 
