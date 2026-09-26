@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
-"""SPS optimization for a frozen REALPDE_SOTA_MERGE_JOINT_V1 checkpoint pair.
+"""Matched SPS optimization for frozen REALPDE_SOTA_MERGE_JOINT_V1 @6k.
 
-Thin glue only:
-- reuses the existing colleague-80 uncertainty Head3D;
-- reuses Exp3 static/adaptive SPS calibration and width-constrained selector;
-- reuses the joint point-model forward path;
-- never updates the point predictor.
+This runner is intentionally narrow:
+- point predictor is the already-selected Joint@6k backbone + corrector pair;
+- point predictor parameters are frozen and never enter an optimizer;
+- uncertainty training reuses the validated Clean Exp3 recipe exactly;
+- Seen-Dev selects the uncertainty checkpoint/calibration;
+- AoA10 holdout is touched only once, after the Seen-Dev gate is GO;
+- no locked-final/private/Codabench/submission path exists here.
 
-Selection is Seen-Dev only. AoA10 is evaluated once, unchanged, only after the
-Seen-Dev gate is GO. No locked-final/private/Codabench access is performed.
+Scientific SPS recipe preserved from Clean Exp3:
+  h64 / 2 blocks / dropout 0 / Past20 + pre-residual base features
+  target = post-residual final absolute error
+  Train51 stride 5 / Seen-Dev12 stride 20
+  5000 uncertainty-head updates / batch 16 / AdamW 1e-3
+  warmup + cosine / log-MAE objective
+  frozen static grid + frozen 300-combination adaptive grid
+  select max Seen-Dev SPS subject to mean-width <= 1.20x static width
 """
 from __future__ import annotations
 
@@ -25,16 +33,22 @@ import realpde_sota_merge_joint_runtime as joint
 import realpde_sota_v2_integrated as strong
 import train_clean_residual_aware_sps as exp3
 from colleague_80pt.train_head_fast import Head3D, HeadConfig, initialize_coupled
-from realpde_adaptive_probe import feature_config_from_checkpoint
+from realpde_adaptive_probe import ResidualCorrector3D, feature_config_from_checkpoint
 from realpde_mf01 import MF01CNO
-from realpde_p0_features import P0FeatureBuilder
 from realpde_p0_data import H5WindowDataset
-from realpde_adaptive_probe import ResidualCorrector3D
+from realpde_p0_features import P0FeatureBuilder
 
 STATUS = "REVIEW_REQUIRED"
 PROTOCOL = "REALPDE_SOTA_MERGE_SPS_V1"
+
+# Final point predictor chosen by Sol review of Joint V1.
+TARGET_JOINT_UPDATE = 6_000
+EXPECTED_BACKBONE_SHA256 = "ca9d3efbcbe10a5b0190875c6bc749386002678e33b86d7ecda0fba55c306d86"
+EXPECTED_CORRECTOR_SHA256 = "a98b4eb048e193a6337d267fe54ead8645d77ddcfaad18321f0f6c07c76ebec8"
+
+# Frozen Clean Exp3 recipe.
 SEED = 41
-UPDATES = 5000
+UPDATES = 5_000
 EVAL_EVERY = 500
 BATCH = 16
 LR = 1e-3
@@ -45,68 +59,166 @@ EPS = 1e-6
 
 def dump(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, indent=2, sort_keys=True, default=str) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(value, indent=2, sort_keys=True, default=str) + "\n",
+        encoding="utf-8",
+    )
 
 
-def manifest_paths(manifest: Path, split: str, root: Path) -> list[Path]:
+def canonical_manifest_paths(manifest: Path, root: Path) -> tuple[list[Path], list[Path], list[Path]]:
+    """Resolve and hard-audit the canonical 51/12/18 split from one manifest."""
     payload = json.loads(manifest.read_text(encoding="utf-8"))
-    rows = payload.get(split)
-    if not isinstance(rows, list) or not rows:
-        raise ValueError(f"manifest missing {split}")
-    paths = [root / str(row["file"] if isinstance(row, dict) else row) for row in rows]
-    missing = [str(p) for p in paths if not p.is_file()]
-    if missing:
-        raise FileNotFoundError(missing[:5])
-    return paths
+
+    def resolve(split: str) -> list[Path]:
+        rows = payload.get(split)
+        if not isinstance(rows, list) or not rows:
+            raise ValueError(f"manifest missing non-empty {split!r}")
+        names = [str(row["file"] if isinstance(row, dict) else row) for row in rows]
+        if len(names) != len(set(names)):
+            raise ValueError(f"duplicate filenames in manifest split {split}")
+        paths = [root / name for name in names]
+        missing = [str(path) for path in paths if not path.is_file()]
+        if missing:
+            raise FileNotFoundError(f"missing {split} files: {missing[:5]}")
+        return paths
+
+    train = resolve("train")
+    dev = resolve("dev")
+    holdout = resolve("holdout")
+
+    if (len(train), len(dev), len(holdout)) != (51, 12, 18):
+        raise ValueError(
+            f"expected canonical 51/12/18 split, got {len(train)}/{len(dev)}/{len(holdout)}"
+        )
+
+    train_names = {p.name for p in train}
+    dev_names = {p.name for p in dev}
+    holdout_names = {p.name for p in holdout}
+    if train_names & dev_names:
+        raise ValueError("Train51 overlaps Seen-Dev12")
+    if holdout_names & (train_names | dev_names):
+        raise ValueError("AoA10 holdout overlaps Train51/Seen-Dev12")
+
+    # Hard role check: all and only AoA=10 trajectories belong to holdout.
+    if any(name.endswith("_10.h5") for name in train_names | dev_names):
+        raise ValueError("AoA=10 trajectory leaked into train/dev")
+    if any(not name.endswith("_10.h5") for name in holdout_names):
+        raise ValueError("holdout contains a non-AoA10 trajectory")
+
+    return train, dev, holdout
 
 
 def fixed_dataset(paths: list[Path], stride: int) -> H5WindowDataset:
-    return H5WindowDataset(paths, in_steps=20, out_steps=20, stride=stride,
-                           sub_sample=2, include_pressure=False, window_mode="fixed")
+    return H5WindowDataset(
+        paths,
+        in_steps=20,
+        out_steps=20,
+        stride=stride,
+        sub_sample=2,
+        include_pressure=False,
+        window_mode="fixed",
+    )
 
 
-def load_joint_pair(backbone_path: Path, corrector_path: Path, kit_root: Path, device: torch.device):
-    for p in (backbone_path, corrector_path, kit_root):
-        joint.merge.assert_safe_path(p)
+def load_joint_pair(
+    backbone_path: Path,
+    corrector_path: Path,
+    kit_root: Path,
+    device: torch.device,
+):
+    """Load exactly the reviewed Joint@6k pair and freeze it."""
+    for path in (backbone_path, corrector_path, kit_root):
+        joint.merge.assert_safe_path(path)
+
+    backbone_sha = strong.sha256(backbone_path)
+    corrector_sha = strong.sha256(corrector_path)
+    if backbone_sha != EXPECTED_BACKBONE_SHA256:
+        raise RuntimeError(
+            f"Joint@6k backbone SHA mismatch: got {backbone_sha}, "
+            f"expected {EXPECTED_BACKBONE_SHA256}"
+        )
+    if corrector_sha != EXPECTED_CORRECTOR_SHA256:
+        raise RuntimeError(
+            f"Joint@6k corrector SHA mismatch: got {corrector_sha}, "
+            f"expected {EXPECTED_CORRECTOR_SHA256}"
+        )
+
     bp = torch.load(backbone_path, map_location="cpu", weights_only=False)
     cp = torch.load(corrector_path, map_location="cpu", weights_only=False)
+
     if bp.get("protocol") != joint.PROTOCOL or cp.get("protocol") != joint.PROTOCOL:
         raise ValueError("checkpoint pair is not REALPDE_SOTA_MERGE_JOINT_V1")
-    if int(bp.get("joint_update", -1)) != int(cp.get("joint_update", -2)):
-        raise ValueError("backbone/corrector joint_update mismatch")
-    expected_backbone_sha = strong.sha256(backbone_path)
-    if cp.get("backbone_sha256") != expected_backbone_sha:
-        raise ValueError("corrector is not bound to this joint backbone")
+    if int(bp.get("joint_update", -1)) != TARGET_JOINT_UPDATE:
+        raise ValueError(
+            f"backbone must be Joint@{TARGET_JOINT_UPDATE}, "
+            f"got @{bp.get('joint_update')}"
+        )
+    if int(cp.get("joint_update", -1)) != TARGET_JOINT_UPDATE:
+        raise ValueError(
+            f"corrector must be Joint@{TARGET_JOINT_UPDATE}, "
+            f"got @{cp.get('joint_update')}"
+        )
+    if cp.get("backbone_sha256") != backbone_sha:
+        raise ValueError("corrector is not bound to the supplied Joint@6k backbone")
+
     cfg = feature_config_from_checkpoint(bp)
     builder = P0FeatureBuilder(cfg).to(device)
     backbone = MF01CNO(kit_root, len(builder.feature_names), device)
     backbone.load_state_dict(bp["model_state_dict"], strict=True)
+
     arch = cp.get("architecture", {})
+    expected_arch = {
+        "in_channels": 42,
+        "hidden": 64,
+        "blocks": 2,
+        "max_delta": 0.04,
+    }
+    for key, expected in expected_arch.items():
+        actual = arch.get(key, expected)
+        if actual != expected:
+            raise ValueError(
+                f"corrector architecture mismatch for {key}: {actual} != {expected}"
+            )
+
     corrector = ResidualCorrector3D(
-        in_channels=int(arch.get("in_channels", 42)),
-        hidden=int(arch.get("hidden", 64)),
-        blocks=int(arch.get("blocks", 2)),
-        max_delta=float(arch.get("max_delta", 0.04)),
+        in_channels=expected_arch["in_channels"],
+        hidden=expected_arch["hidden"],
+        blocks=expected_arch["blocks"],
+        max_delta=expected_arch["max_delta"],
     ).to(device)
     corrector.load_state_dict(cp["corrector_state_dict"], strict=True)
-    backbone.eval(); corrector.eval()
-    for p in backbone.parameters(): p.requires_grad_(False)
-    for p in corrector.parameters(): p.requires_grad_(False)
-    return bp, cp, cfg, builder, backbone, corrector
+
+    backbone.eval()
+    corrector.eval()
+    for parameter in backbone.parameters():
+        parameter.requires_grad_(False)
+    for parameter in corrector.parameters():
+        parameter.requires_grad_(False)
+
+    return bp, cp, cfg, builder, backbone, corrector, backbone_sha, corrector_sha
 
 
 @torch.no_grad()
 def point_forward(backbone, builder, corrector, x):
+    """Exact frozen Joint V1 point-prediction path."""
     return joint.forward_final(backbone, builder, corrector, x)
 
 
 @torch.no_grad()
 def collect(backbone, builder, corrector, head, paths, device, workers):
     ds = fixed_dataset(paths, 20)
-    loader = DataLoader(ds, batch_size=32, shuffle=False, num_workers=workers,
-                        pin_memory=device.type == "cuda")
+    loader = DataLoader(
+        ds,
+        batch_size=32,
+        shuffle=False,
+        num_workers=workers,
+        pin_memory=device.type == "cuda",
+    )
+
     preds, sigmas, targets = [], [], []
-    backbone.eval(); corrector.eval(); head.eval()
+    backbone.eval()
+    corrector.eval()
+    head.eval()
     for x, y, _, _ in loader:
         x = x.to(device, non_blocking=True)
         base, final = point_forward(backbone, builder, corrector, x)
@@ -114,170 +226,387 @@ def collect(backbone, builder, corrector, head, paths, device, workers):
         preds.append(final.cpu().numpy().astype(np.float32))
         sigmas.append(torch.exp(log_std).cpu().numpy().astype(np.float32))
         targets.append(y.numpy().astype(np.float32))
-    return ds, np.concatenate(preds), np.concatenate(sigmas), np.concatenate(targets)
+
+    return (
+        ds,
+        np.concatenate(preds),
+        np.concatenate(sigmas),
+        np.concatenate(targets),
+    )
+
+
+def save_head_snapshot(
+    path: Path,
+    *,
+    head: Head3D,
+    cfg: HeadConfig,
+    step: int,
+    backbone_sha: str,
+    corrector_sha: str,
+) -> None:
+    torch.save(
+        {
+            "head_state_dict": {
+                key: value.detach().cpu().clone()
+                for key, value in head.state_dict().items()
+            },
+            "head_config": cfg.__dict__,
+            "step": int(step),
+            "protocol": PROTOCOL,
+            "joint_update": TARGET_JOINT_UPDATE,
+            "backbone_sha256": backbone_sha,
+            "corrector_sha256": corrector_sha,
+        },
+        path,
+    )
 
 
 def main() -> None:
-    p = argparse.ArgumentParser()
-    p.add_argument("--data-root", type=Path, required=True)
-    p.add_argument("--manifest", type=Path, required=True, help="clean Train51/Seen-Dev12 manifest")
-    p.add_argument("--aoa10-manifest", type=Path, required=True, help="manifest whose dev/holdout list is AoA10")
-    p.add_argument("--aoa10-split", default="dev")
-    p.add_argument("--kit-root", type=Path, required=True)
-    p.add_argument("--backbone-checkpoint", type=Path, required=True)
-    p.add_argument("--corrector-checkpoint", type=Path, required=True)
-    p.add_argument("--out-dir", type=Path, required=True)
-    p.add_argument("--workers", type=int, default=4)
-    p.add_argument("--require-cuda", action="store_true")
-    args = p.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-root", type=Path, required=True)
+    parser.add_argument(
+        "--manifest",
+        type=Path,
+        required=True,
+        help="canonical clean manifest containing train/dev/holdout = 51/12/18",
+    )
+    parser.add_argument("--kit-root", type=Path, required=True)
+    parser.add_argument("--backbone-checkpoint", type=Path, required=True)
+    parser.add_argument("--corrector-checkpoint", type=Path, required=True)
+    parser.add_argument("--out-dir", type=Path, required=True)
+    parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--require-cuda", action="store_true")
+    args = parser.parse_args()
 
     if args.out_dir.exists():
         raise FileExistsError(args.out_dir)
     args.out_dir.mkdir(parents=True)
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if args.require_cuda and device.type != "cuda":
         raise RuntimeError("CUDA required")
-    torch.manual_seed(SEED); np.random.seed(SEED)
 
-    train_paths = manifest_paths(args.manifest, "train", args.data_root)
-    dev_paths = manifest_paths(args.manifest, "dev", args.data_root)
-    aoa_paths = manifest_paths(args.aoa10_manifest, args.aoa10_split, args.data_root)
-    if (len(train_paths), len(dev_paths)) != (51, 12):
-        raise ValueError(f"expected clean 51/12, got {len(train_paths)}/{len(dev_paths)}")
-    if {p.name for p in aoa_paths} & ({p.name for p in train_paths} | {p.name for p in dev_paths}):
-        raise ValueError("AoA10 overlaps Train51/Seen-Dev12")
+    torch.manual_seed(SEED)
+    np.random.seed(SEED)
 
-    bp, cp, cfg, builder, backbone, corrector = load_joint_pair(
-        args.backbone_checkpoint, args.corrector_checkpoint, args.kit_root, device
+    train_paths, dev_paths, aoa10_paths = canonical_manifest_paths(
+        args.manifest, args.data_root
     )
 
-    # Exp3 architecture/semantics: uncertainty sees Past20 + pre-residual base;
-    # supervision is the error of the post-residual final point prediction.
-    hcfg = HeadConfig(hidden=64, blocks=2, dropout=0.0, include_pressure=True,
-                      history_context=False, sigma0=0.02, min_sigma=1e-4,
-                      max_sigma=1.0, include_delta=False)
+    (
+        bp,
+        cp,
+        _cfg,
+        builder,
+        backbone,
+        corrector,
+        backbone_sha,
+        corrector_sha,
+    ) = load_joint_pair(
+        args.backbone_checkpoint,
+        args.corrector_checkpoint,
+        args.kit_root,
+        device,
+    )
+
+    # Validated Exp3 semantics: uncertainty observes Past20 + pre-residual base,
+    # while supervision is absolute error of the final post-corrector prediction.
+    hcfg = HeadConfig(
+        hidden=64,
+        blocks=2,
+        dropout=0.0,
+        include_pressure=True,
+        history_context=False,
+        sigma0=0.02,
+        min_sigma=1e-4,
+        max_sigma=1.0,
+        include_delta=False,
+    )
     head = Head3D(hcfg).to(device)
     initialize_coupled(head, seed=SEED)
-    opt = torch.optim.AdamW(head.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
-    sched = torch.optim.lr_scheduler.LambdaLR(
-        opt, lambda s: min(1.0, (s + 1) / WARMUP) *
-        (0.5 * (1 + np.cos(np.pi * min(1.0, s / UPDATES))))
+
+    # HARD: optimizer owns uncertainty-head parameters only.
+    optimizer = torch.optim.AdamW(
+        head.parameters(),
+        lr=LR,
+        weight_decay=WEIGHT_DECAY,
+    )
+    scheduler = torch.optim.lr_scheduler.LambdaLR(
+        optimizer,
+        lambda step: min(1.0, (step + 1) / WARMUP)
+        * (0.5 * (1 + np.cos(np.pi * min(1.0, step / UPDATES)))),
     )
 
     train_ds = fixed_dataset(train_paths, 5)
-    gen = torch.Generator(); gen.manual_seed(SEED)
-    loader = DataLoader(train_ds, batch_size=BATCH, shuffle=True, generator=gen,
-                        drop_last=True, num_workers=args.workers,
-                        pin_memory=device.type == "cuda")
+    generator = torch.Generator()
+    generator.manual_seed(SEED)
+    loader = DataLoader(
+        train_ds,
+        batch_size=BATCH,
+        shuffle=True,
+        generator=generator,
+        drop_last=True,
+        num_workers=args.workers,
+        pin_memory=device.type == "cuda",
+    )
     iterator = iter(loader)
 
+    # Static SPS reference is frozen from Seen-Dev before head training.
     _, pred_before, _, target_before = collect(
-        backbone, builder, corrector, head, dev_paths, device, args.workers
+        backbone,
+        builder,
+        corrector,
+        head,
+        dev_paths,
+        device,
+        args.workers,
     )
     static_grid, static_best = exp3.calibrate_static(pred_before, target_before)
     dump(args.out_dir / "static_calibration_grid.json", static_grid)
 
-    best = None; best_state = None; evals = []; losses = []
+    best_record = None
+    best_state = None
+    evals = []
+    losses = []
     started = time.monotonic()
+
     for step in range(1, UPDATES + 1):
         try:
             x, y, _, _ = next(iterator)
         except StopIteration:
-            iterator = iter(loader); x, y, _, _ = next(iterator)
-        x = x.to(device, non_blocking=True); y = y.to(device, non_blocking=True)
+            iterator = iter(loader)
+            x, y, _, _ = next(iterator)
+
+        x = x.to(device, non_blocking=True)
+        y = y.to(device, non_blocking=True)
+
+        # HARD: point predictor forward is no-grad and frozen.
         with torch.no_grad():
             base, final = point_forward(backbone, builder, corrector, x)
+
         log_std = head(x, base)
         err = (final[..., :2] - y[..., :2]).abs()
         mask = (y[..., :2] != 0.0).to(log_std.dtype)
-        # Preserve the validated Exp3 log-MAE uncertainty objective.
-        loss = ((log_std - torch.log(err + EPS)).abs() * mask).sum() / mask.sum().clamp_min(1.0)
+
+        # Exact validated Exp3 masked log-MAE objective.
+        loss = (
+            (log_std - torch.log(err + EPS)).abs() * mask
+        ).sum() / mask.sum().clamp_min(1.0)
         if not torch.isfinite(loss):
             raise FloatingPointError(f"nonfinite SPS loss @{step}")
-        opt.zero_grad(set_to_none=True); loss.backward()
-        torch.nn.utils.clip_grad_norm_(head.parameters(), 1.0)
-        opt.step(); sched.step()
-        if step == 1 or step % 100 == 0:
-            losses.append({"step": step, "loss": float(loss.detach().cpu()),
-                           "lr": float(opt.param_groups[0]["lr"])})
-        if step % EVAL_EVERY == 0:
-            _, pred_d, sigma_d, target_d = collect(
-                backbone, builder, corrector, head, dev_paths, device, args.workers
-            )
-            grid, unconstrained = exp3.calibrate_adaptive(pred_d, target_d, sigma_d)
-            chosen = exp3.select_adaptive_under_width_cap(grid, static_best)
-            rec = {"step": step, "best": chosen, "unconstrained_best": unconstrained}
-            evals.append(rec)
-            dump(args.out_dir / f"calibration_grid_{step:05d}.json", grid)
-            if best is None or chosen["sps"] > best["best"]["sps"]:
-                best = rec
-                best_state = {k: v.detach().cpu().clone() for k, v in head.state_dict().items()}
 
-    if best is None or best_state is None:
+        optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        grad_norm = torch.nn.utils.clip_grad_norm_(head.parameters(), 1.0)
+        if not np.isfinite(float(grad_norm)):
+            raise FloatingPointError(f"nonfinite SPS head gradient @{step}")
+        optimizer.step()
+        scheduler.step()
+
+        if step == 1 or step % 100 == 0:
+            losses.append(
+                {
+                    "step": step,
+                    "loss": float(loss.detach().cpu()),
+                    "lr": float(optimizer.param_groups[0]["lr"]),
+                    "head_grad_norm_preclip": float(grad_norm),
+                }
+            )
+
+        if step % EVAL_EVERY == 0:
+            _, pred_dev, sigma_dev, target_dev = collect(
+                backbone,
+                builder,
+                corrector,
+                head,
+                dev_paths,
+                device,
+                args.workers,
+            )
+            grid, unconstrained = exp3.calibrate_adaptive(
+                pred_dev,
+                target_dev,
+                sigma_dev,
+            )
+            chosen = exp3.select_adaptive_under_width_cap(
+                grid,
+                static_best,
+            )
+            record = {
+                "step": step,
+                "best": chosen,
+                "unconstrained_best": unconstrained,
+                "width_cap": (
+                    exp3.MAX_DEV_WIDTH_RATIO
+                    * float(static_best["mean_width_uv"])
+                ),
+            }
+            evals.append(record)
+
+            dump(
+                args.out_dir / f"calibration_grid_{step:05d}.json",
+                grid,
+            )
+            save_head_snapshot(
+                args.out_dir / f"head_step_{step:05d}.pth",
+                head=head,
+                cfg=hcfg,
+                step=step,
+                backbone_sha=backbone_sha,
+                corrector_sha=corrector_sha,
+            )
+
+            if (
+                best_record is None
+                or float(chosen["sps"]) > float(best_record["best"]["sps"])
+            ):
+                best_record = record
+                best_state = {
+                    key: value.detach().cpu().clone()
+                    for key, value in head.state_dict().items()
+                }
+
+    if best_record is None or best_state is None:
         raise RuntimeError("no SPS checkpoint selected")
-    head.load_state_dict(best_state, strict=True); head.eval()
+
+    head.load_state_dict(best_state, strict=True)
+    head.eval()
+
     _, pred_after, sigma_after, target_after = collect(
-        backbone, builder, corrector, head, dev_paths, device, args.workers
+        backbone,
+        builder,
+        corrector,
+        head,
+        dev_paths,
+        device,
+        args.workers,
     )
+
+    # The SPS head must never alter point predictions.
     parity = float(np.max(np.abs(pred_after - pred_before)))
-    selected = best["best"]
+    selected = best_record["best"]
     candidate_dev = exp3.adaptive_score(
-        pred_after, target_after, sigma_after, selected["floor"],
-        selected["mult_u"], selected["mult_v"], selected["rel"]
+        pred_after,
+        target_after,
+        sigma_after,
+        float(selected["floor"]),
+        float(selected["mult_u"]),
+        float(selected["mult_v"]),
+        float(selected["rel"]),
     )
-    dev_gain = candidate_dev["sps"] - static_best["sps"]
-    width_ratio = candidate_dev["mean_width_uv"] / max(static_best["mean_width_uv"], 1e-12)
+    dev_gain = float(candidate_dev["sps"] - static_best["sps"])
+    width_ratio = float(
+        candidate_dev["mean_width_uv"]
+        / max(float(static_best["mean_width_uv"]), 1e-12)
+    )
+
     checks = {
         "sps_gain_ge_min": dev_gain >= exp3.MIN_DEV_SPS_GAIN,
-        "width_ratio_le_max": width_ratio <= exp3.MAX_DEV_WIDTH_RATIO + 1e-12,
+        "width_ratio_le_max": (
+            width_ratio <= exp3.MAX_DEV_WIDTH_RATIO + 1e-12
+        ),
         "point_parity_le_tol": parity <= exp3.POINT_PARITY_TOL,
     }
     gate = "GO" if all(checks.values()) else "NO_GO"
 
     summary = {
-        "status": STATUS, "protocol": PROTOCOL,
+        "status": STATUS,
+        "protocol": PROTOCOL,
         "joint_update": int(bp["joint_update"]),
-        "backbone_sha256": strong.sha256(args.backbone_checkpoint),
-        "corrector_sha256": strong.sha256(args.corrector_checkpoint),
-        "point_model_frozen": True, "optimizer_updates_point_model": 0,
-        "uncertainty_updates": UPDATES, "selected_step": best["step"],
-        "selected_calibration": selected, "static_seen_dev": static_best,
-        "adaptive_seen_dev": candidate_dev, "seen_dev_sps_gain": dev_gain,
-        "seen_dev_width_ratio": width_ratio, "point_prediction_parity_max_abs": parity,
-        "checks": checks, "gate": gate, "training_wall_seconds": time.monotonic() - started,
-        "aoa10_accessed": False, "aoa10_used_for_selection": False,
-        "locked_final_accessed": False, "private_accessed": False,
+        "backbone_sha256": backbone_sha,
+        "corrector_sha256": corrector_sha,
+        "point_model_frozen": True,
+        "optimizer_updates_point_model": 0,
+        "uncertainty_optimizer_updates": UPDATES,
+        "recipe": (
+            "validated Clean Exp3: h64/b2/dropout0/logmae/"
+            "Past20+pre-residual-base/final-error target"
+        ),
+        "train_stride": 5,
+        "dev_stride": 20,
+        "batch": BATCH,
+        "lr": LR,
+        "warmup": WARMUP,
+        "selected_step": int(best_record["step"]),
+        "selected_calibration": selected,
+        "static_seen_dev": static_best,
+        "adaptive_seen_dev": candidate_dev,
+        "seen_dev_sps_gain": dev_gain,
+        "seen_dev_width_ratio": width_ratio,
+        "point_prediction_parity_max_abs": parity,
+        "checks": checks,
+        "gate": gate,
+        "training_wall_seconds": time.monotonic() - started,
+        "selection_split": "seen_dev",
+        "aoa10_accessed": False,
+        "aoa10_used_for_selection": False,
+        "aoa10_recalibrated": False,
+        "locked_final_accessed": False,
+        "private_accessed": False,
         "codabench_accessed": False,
     }
 
-    # AoA10 is a one-shot generalization audit, never a selector/calibrator.
+    # HARD: one-shot AoA10 audit only after Seen-Dev gate GO.
     if gate == "GO":
-        _, pred_h, sigma_h, target_h = collect(
-            backbone, builder, corrector, head, aoa_paths, device, args.workers
+        _, pred_aoa10, sigma_aoa10, target_aoa10 = collect(
+            backbone,
+            builder,
+            corrector,
+            head,
+            aoa10_paths,
+            device,
+            args.workers,
         )
-        static_h = exp3.static_score(
-            pred_h, target_h, static_best["abs"], static_best["rel"]
+        static_aoa10 = exp3.static_score(
+            pred_aoa10,
+            target_aoa10,
+            float(static_best["abs"]),
+            float(static_best["rel"]),
         )
-        adaptive_h = exp3.adaptive_score(
-            pred_h, target_h, sigma_h, selected["floor"],
-            selected["mult_u"], selected["mult_v"], selected["rel"]
+        adaptive_aoa10 = exp3.adaptive_score(
+            pred_aoa10,
+            target_aoa10,
+            sigma_aoa10,
+            float(selected["floor"]),
+            float(selected["mult_u"]),
+            float(selected["mult_v"]),
+            float(selected["rel"]),
         )
-        summary.update({
-            "aoa10_accessed": True, "static_aoa10": static_h,
-            "adaptive_aoa10": adaptive_h,
-            "aoa10_sps_gain": adaptive_h["sps"] - static_h["sps"],
-        })
+        summary.update(
+            {
+                "aoa10_accessed": True,
+                "static_aoa10": static_aoa10,
+                "adaptive_aoa10": adaptive_aoa10,
+                "aoa10_sps_gain": float(
+                    adaptive_aoa10["sps"] - static_aoa10["sps"]
+                ),
+                "aoa10_coverage_gain": float(
+                    adaptive_aoa10["coverage"] - static_aoa10["coverage"]
+                ),
+            }
+        )
 
-    torch.save({
-        "head_state_dict": best_state, "head_config": hcfg.__dict__,
-        "selected_step": best["step"], "calibration": selected,
-        "protocol": PROTOCOL, "joint_update": int(bp["joint_update"]),
-        "backbone_sha256": summary["backbone_sha256"],
-        "corrector_sha256": summary["corrector_sha256"],
-    }, args.out_dir / "head_best.pth")
-    dump(args.out_dir / "training_progress.json", {"losses": losses, "evals": evals})
+    torch.save(
+        {
+            "head_state_dict": best_state,
+            "head_config": hcfg.__dict__,
+            "selected_step": int(best_record["step"]),
+            "calibration": selected,
+            "protocol": PROTOCOL,
+            "joint_update": TARGET_JOINT_UPDATE,
+            "backbone_sha256": backbone_sha,
+            "corrector_sha256": corrector_sha,
+        },
+        args.out_dir / "head_best.pth",
+    )
+
+    dump(
+        args.out_dir / "training_progress.json",
+        {"losses": losses, "evals": evals},
+    )
     dump(args.out_dir / "summary.json", summary)
     (args.out_dir / "DONE").touch()
+
     print(json.dumps(summary, indent=2, sort_keys=True))
 
 
