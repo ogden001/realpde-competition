@@ -70,8 +70,6 @@ def load_corrector(path: Path | None, source_backbone_sha: str, device: torch.de
     merge.assert_safe_path(path)
     payload = torch.load(path, map_location="cpu", weights_only=False)
     bound = payload.get("backbone_sha256")
-    if bound is not None and bound != source_backbone_sha:
-        raise ValueError("corrector is bound to a different backbone; use fresh init")
     arch = payload.get("architecture", {})
     expected = {"in_channels": 42, "hidden": 64, "blocks": 2, "max_delta": 0.04}
     for key, value in expected.items():
@@ -79,11 +77,20 @@ def load_corrector(path: Path | None, source_backbone_sha: str, device: torch.de
             raise ValueError(f"corrector architecture mismatch: {key}")
     model.load_state_dict(payload["corrector_state_dict"], strict=True)
     return model, {
-        "mode": "checkpoint",
+        "mode": (
+            "checkpoint_same_backbone"
+            if bound in (None, source_backbone_sha)
+            else "warm_start_cross_backbone"
+        ),
         "checkpoint": str(path),
         "sha256": strong.sha256(path),
         "bound_backbone_sha256": bound,
+        "source_backbone_sha256": source_backbone_sha,
         "updates": payload.get("updates"),
+        "note": (
+            "Weights are initialization only and will be jointly retrained; "
+            "a historical backbone binding is not treated as final-model compatibility."
+        ),
     }
 
 
