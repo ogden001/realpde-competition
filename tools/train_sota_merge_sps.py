@@ -23,6 +23,8 @@ from __future__ import annotations
 import argparse
 import json
 import multiprocessing as mp
+import shutil
+import tempfile
 import time
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import shared_memory
@@ -70,20 +72,25 @@ _CALIBRATION_SHMS: list[shared_memory.SharedMemory] = []
 
 
 def _init_calibration_worker(
-    specs: list[tuple[str, str, tuple[int, ...], str]],
+    specs: list[tuple[str, str, str, tuple[int, ...], str]],
 ) -> None:
     global _CALIBRATION_ARRAYS, _CALIBRATION_SHMS
     _CALIBRATION_ARRAYS = {}
     _CALIBRATION_SHMS = []
-    for key, shm_name, shape, dtype_str in specs:
-        shm = shared_memory.SharedMemory(name=shm_name)
-        array = np.ndarray(
-            tuple(shape),
-            dtype=np.dtype(dtype_str),
-            buffer=shm.buf,
-        )
+    for key, backend, locator, shape, dtype_str in specs:
+        if backend == "shm":
+            shm = shared_memory.SharedMemory(name=locator)
+            array = np.ndarray(
+                tuple(shape),
+                dtype=np.dtype(dtype_str),
+                buffer=shm.buf,
+            )
+            _CALIBRATION_SHMS.append(shm)
+        elif backend == "npy":
+            array = np.load(locator, mmap_mode="r", allow_pickle=False)
+        else:
+            raise ValueError(f"unknown calibration IPC backend: {backend}")
         array.setflags(write=False)
-        _CALIBRATION_SHMS.append(shm)
         _CALIBRATION_ARRAYS[key] = array
 
 
@@ -137,31 +144,71 @@ def _parallel_calibration_rows(
     if workers < 1:
         raise ValueError("calibration workers must be >= 1")
 
-    shm_handles: list[shared_memory.SharedMemory] = []
-    specs: list[tuple[str, str, tuple[int, ...], str]] = []
-    try:
-        for key, value in arrays.items():
-            contiguous = np.ascontiguousarray(value)
-            shm = shared_memory.SharedMemory(
-                create=True,
-                size=contiguous.nbytes,
-            )
-            shared_view = np.ndarray(
-                contiguous.shape,
-                dtype=contiguous.dtype,
-                buffer=shm.buf,
-            )
-            shared_view[...] = contiguous
-            shm_handles.append(shm)
-            specs.append(
-                (
-                    key,
-                    shm.name,
-                    tuple(contiguous.shape),
-                    contiguous.dtype.str,
-                )
-            )
+    contiguous_arrays = {
+        key: np.ascontiguousarray(value)
+        for key, value in arrays.items()
+    }
+    total_bytes = sum(value.nbytes for value in contiguous_arrays.values())
+    shm_root = Path("/dev/shm")
+    use_shm = (
+        shm_root.is_dir()
+        and shutil.disk_usage(shm_root).free >= max(64 << 20, int(total_bytes * 1.25))
+    )
 
+    shm_handles: list[shared_memory.SharedMemory] = []
+    tmpdir = None
+    specs: list[tuple[str, str, str, tuple[int, ...], str]] = []
+    try:
+        if use_shm:
+            backend = "shm"
+            for key, contiguous in contiguous_arrays.items():
+                shm = shared_memory.SharedMemory(
+                    create=True,
+                    size=contiguous.nbytes,
+                )
+                shared_view = np.ndarray(
+                    contiguous.shape,
+                    dtype=contiguous.dtype,
+                    buffer=shm.buf,
+                )
+                shared_view[...] = contiguous
+                shm_handles.append(shm)
+                specs.append(
+                    (
+                        key,
+                        backend,
+                        shm.name,
+                        tuple(contiguous.shape),
+                        contiguous.dtype.str,
+                    )
+                )
+        else:
+            backend = "npy"
+            tmp_parent = Path("/hy-tmp")
+            tmpdir = tempfile.TemporaryDirectory(
+                prefix="realpde_sps_calib_",
+                dir=str(tmp_parent) if tmp_parent.is_dir() else None,
+            )
+            tmp_root = Path(tmpdir.name)
+            for key, contiguous in contiguous_arrays.items():
+                file_path = tmp_root / f"{key}.npy"
+                np.save(file_path, contiguous, allow_pickle=False)
+                specs.append(
+                    (
+                        key,
+                        backend,
+                        str(file_path),
+                        tuple(contiguous.shape),
+                        contiguous.dtype.str,
+                    )
+                )
+
+        print(
+            f"[SPS] calibration CPU backend={backend}, "
+            f"workers={min(workers, len(params))}, "
+            f"shared_bytes={total_bytes}",
+            flush=True,
+        )
         ctx = mp.get_context("spawn")
         with ProcessPoolExecutor(
             max_workers=min(workers, len(params)),
@@ -173,7 +220,12 @@ def _parallel_calibration_rows(
     finally:
         for shm in shm_handles:
             shm.close()
-            shm.unlink()
+            try:
+                shm.unlink()
+            except FileNotFoundError:
+                pass
+        if tmpdir is not None:
+            tmpdir.cleanup()
 
 
 def calibrate_static_parallel(
