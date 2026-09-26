@@ -98,7 +98,6 @@ class H5WindowDataset(Dataset[tuple[Tensor, Tensor, Tensor, Tensor]]):
                     else:
                         p = np.zeros_like(u)
                     cached = np.stack([u, v, p], axis=-1)
-                    cached.setflags(write=False)
                     self._ram_cache[path] = cached
                     self._cache_bytes += int(cached.nbytes)
             self.lengths[path] = length
