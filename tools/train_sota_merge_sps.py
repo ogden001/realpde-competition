@@ -527,6 +527,12 @@ def main() -> None:
         help="Exact protocol string required in both Joint checkpoints.",
     )
     parser.add_argument("--out-dir", type=Path, required=True)
+    parser.add_argument(
+        "--train-stride",
+        type=int,
+        default=5,
+        help="Temporal window stride for SPS-head training only.",
+    )
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument(
         "--calibration-workers",
@@ -600,7 +606,9 @@ def main() -> None:
         * (0.5 * (1 + np.cos(np.pi * min(1.0, step / UPDATES)))),
     )
 
-    train_ds = fixed_dataset(train_paths, 5)
+    if args.train_stride < 1:
+        raise ValueError("--train-stride must be >= 1")
+    train_ds = fixed_dataset(train_paths, args.train_stride)
     generator = torch.Generator()
     generator.manual_seed(SEED)
     loader = DataLoader(
@@ -838,7 +846,7 @@ def main() -> None:
         "train_trajectories": len(train_paths),
         "seen_dev_trajectories": len(dev_paths),
         "aoa10_trajectories": len(aoa10_paths),
-        "train_stride": 5,
+        "train_stride": int(args.train_stride),
         "dev_stride": 20,
         "batch": BATCH,
         "lr": LR,
