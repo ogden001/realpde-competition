@@ -24,7 +24,7 @@ KIT_ROOT="$4"
 INIT_CKPT="$5"
 STAGE_A_CKPT="$6"
 OUT_ROOT="$7"
-WORKERS="\${8:-4}"
+WORKERS="${8:-4}"
 
 mkdir -p "$OUT_ROOT"
 LOCK_FILE="$OUT_ROOT/.serial_unattended.lock"
