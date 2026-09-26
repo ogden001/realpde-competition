@@ -1,40 +1,37 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# REALPDE final SPS optimization launcher.
-# Scientific code lives in tools/train_sota_merge_sps.py. This file only
-# resolves explicit inputs and launches it. No Codabench/locked-final access.
+# REALPDE matched SPS launcher for the reviewed Joint@6k point predictor.
+# Scientific code is fully defined in tools/train_sota_merge_sps.py.
+# This launcher only validates explicit paths and starts that frozen protocol.
 
-if [[ $# -ne 8 ]]; then
+if [[ $# -ne 6 ]]; then
   cat >&2 <<'EOF'
 usage:
   tools/run_sota_merge_sps.sh \
-    DATA_ROOT CLEAN_51_12_MANIFEST AOA10_MANIFEST AOA10_SPLIT KIT_ROOT \
-    JOINT_BACKBONE_CKPT JOINT_CORRECTOR_CKPT OUT_DIR
+    DATA_ROOT CLEAN_51_12_18_MANIFEST KIT_ROOT \
+    JOINT6K_BACKBONE_CKPT JOINT6K_CORRECTOR_CKPT OUT_DIR
 
 example:
   tools/run_sota_merge_sps.sh \
-    /data/real \
+    /hy-tmp/realpde_data/train_real_clean_train51_seen_dev12_386920e \
     configs/clean_baseline_v1_split.json \
-    <aoa10_manifest.json> dev \
-    /third_party/realpdebench \
-    /hy-tmp/.../checkpoints/backbone_joint_006000.pth \
-    /hy-tmp/.../checkpoints/corrector_joint_006000.pth \
-    /hy-tmp/realpde_runs/final_sps
+    /hy-tmp/realpde_t1_kit_v9/realpde_t1_starting_kit_v9 \
+    /hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/checkpoints/backbone_joint_006000.pth \
+    /hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/checkpoints/corrector_joint_006000.pth \
+    /hy-tmp/realpde_runs/realpde_sota_merge_sps_joint6k
 EOF
   exit 2
 fi
 
 DATA_ROOT=$1
 MANIFEST=$2
-AOA10_MANIFEST=$3
-AOA10_SPLIT=$4
-KIT_ROOT=$5
-BACKBONE=$6
-CORRECTOR=$7
-OUT_DIR=$8
+KIT_ROOT=$3
+BACKBONE=$4
+CORRECTOR=$5
+OUT_DIR=$6
 
-for f in "$MANIFEST" "$AOA10_MANIFEST" "$BACKBONE" "$CORRECTOR"; do
+for f in "$MANIFEST" "$BACKBONE" "$CORRECTOR"; do
   [[ -f "$f" ]] || { echo "missing file: $f" >&2; exit 3; }
 done
 [[ -d "$DATA_ROOT" ]] || { echo "missing data root: $DATA_ROOT" >&2; exit 3; }
@@ -44,8 +41,6 @@ done
 python -u -B tools/train_sota_merge_sps.py \
   --data-root "$DATA_ROOT" \
   --manifest "$MANIFEST" \
-  --aoa10-manifest "$AOA10_MANIFEST" \
-  --aoa10-split "$AOA10_SPLIT" \
   --kit-root "$KIT_ROOT" \
   --backbone-checkpoint "$BACKBONE" \
   --corrector-checkpoint "$CORRECTOR" \
