@@ -277,6 +277,7 @@ def _setup(args: argparse.Namespace) -> dict[str, object]:
     stage_b_ds = H5WindowDataset(
         train_paths, in_steps=20, out_steps=20, stride=20, sub_sample=2,
         include_pressure=False, window_mode="dense_all",
+        preload_to_ram=args.preload_to_ram,
     )
     if len(stage_b_ds) != merge.FULL_DENSE_WINDOWS:
         raise ValueError("Full Stage-B dense window audit mismatch")
@@ -383,6 +384,11 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "codabench_accessed": False,
         "auto_sps": False,
         "auto_package": False,
+        "preload_to_ram": bool(args.preload_to_ram),
+        "stage_a_cache": stage_a_ds.cache_summary(),
+        "stage_b_cache": stage_b_ds.cache_summary(),
+        "workers": int(args.workers),
+        "prefetch_factor": int(args.prefetch_factor),
     })
 
     started = time.monotonic()
