@@ -75,7 +75,7 @@ def load_residual_checkpoint(
     device: torch.device,
 ) -> dict[str, object]:
     """Restore a complete base-plus-corrector checkpoint with strict parity."""
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     if not isinstance(checkpoint, dict):
         raise TypeError("residual checkpoint must be a mapping")
     state = checkpoint.get("model_state_dict", checkpoint)

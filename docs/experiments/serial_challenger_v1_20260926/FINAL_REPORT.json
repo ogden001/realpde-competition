@@ -1,0 +1,63 @@
+{
+  "aoa10_used_for_selection": false,
+  "codabench_accessed": false,
+  "final_selected_evidence": {
+    "aoa10": {
+      "alpha": 1.0,
+      "base_mvpe_raw": 0.09872698038816452,
+      "base_rel_l2_raw": 0.09940799325704575,
+      "base_tke_raw": 0.49757593870162964,
+      "experiment": "final_aoa_selected",
+      "mvpe_improvement_vs_base": 0.021652400493621826,
+      "mvpe_raw": 0.09658930450677872,
+      "point_score": 90.25248345651339,
+      "rel_l2_improvement_vs_base": 0.1297803521156311,
+      "rel_l2_raw": 0.08650679141283035,
+      "tke_improvement_vs_base": -0.03580796718597412,
+      "tke_raw": 0.5153931379318237,
+      "trajectories": 18,
+      "windows": 756
+    },
+    "seen": {
+      "alpha": 1.0,
+      "base_mvpe_raw": 0.06840461492538452,
+      "base_rel_l2_raw": 0.0952393040060997,
+      "base_tke_raw": 0.46676626801490784,
+      "experiment": "final_seen_selected",
+      "mvpe_improvement_vs_base": 0.07266873121261597,
+      "mvpe_raw": 0.06343373656272888,
+      "point_score": 91.14169229077633,
+      "rel_l2_improvement_vs_base": 0.17378252744674683,
+      "rel_l2_raw": 0.0786883756518364,
+      "tke_improvement_vs_base": -0.052204012870788574,
+      "tke_raw": 0.49113336205482483,
+      "trajectories": 12,
+      "windows": 491
+    }
+  },
+  "full_data_started": false,
+  "locked_final_accessed": false,
+  "next_action": "REVIEW_REQUIRED: compare serial result with Joint V1; do not auto-start SPS/full/submission.",
+  "private_accessed": false,
+  "protocol": "REALPDE_SOTA_MERGE_SERIAL_UNATTENDED_V1",
+  "residual": {
+    "best_point_seen": 91.14169226997763,
+    "best_update_seen": 18000,
+    "selected_checkpoint": "/hy-tmp/realpde_runs/serial_challenger_v1_20260926/residual/checkpoints/model_best.pth",
+    "selected_sha256": "574220df3b50bd023690911930111f0893f3ee6aa86b88661824595a83f1eeb5"
+  },
+  "sps_started": false,
+  "stage_a_source": {
+    "checkpoint": "/hy-tmp/realpde_serial_assets_download/realpde_serial_assets_oss_stage_20260926/model_update_057000.pth",
+    "sha256": "1bdde38d902c2bec516570cadb8703797457c7db9c3fda67eb9a911021d1b873",
+    "update": 57000
+  },
+  "stage_b": {
+    "best_point_seen": 91.07505933600653,
+    "best_update_seen": 6000,
+    "selected_checkpoint": "/hy-tmp/realpde_runs/serial_challenger_v1_20260926/stage_b/checkpoints/model_best.pth",
+    "selected_sha256": "d158fe3c426ae42c9488853378432646aec57f3cbd9f9b2a0bbe140ab66df06d"
+  },
+  "state": "DONE",
+  "status": "REVIEW_REQUIRED"
+}

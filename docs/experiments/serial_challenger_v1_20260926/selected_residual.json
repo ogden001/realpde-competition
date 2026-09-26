@@ -1,0 +1,6 @@
+{
+  "aoa_used_for_selection": false,
+  "checkpoint": "/hy-tmp/realpde_runs/serial_challenger_v1_20260926/residual/checkpoints/model_best.pth",
+  "selection_split": "Seen-Dev12",
+  "sha256": "574220df3b50bd023690911930111f0893f3ee6aa86b88661824595a83f1eeb5"
+}

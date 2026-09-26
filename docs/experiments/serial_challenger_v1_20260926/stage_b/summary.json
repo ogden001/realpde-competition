@@ -1,0 +1,13 @@
+{
+  "best_point_score": 91.07505933600653,
+  "best_update": 6000,
+  "codabench_accessed": false,
+  "current_update": 6000,
+  "locked_final_accessed": false,
+  "scope": "clean",
+  "source_stage_a_update": 57000,
+  "stage": "B",
+  "status": "REVIEW_REQUIRED",
+  "target_update": 6000,
+  "training_wall_seconds_this_process": 2584.059529352933
+}
