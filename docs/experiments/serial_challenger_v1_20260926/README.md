@@ -13,6 +13,7 @@ This directory contains compact run evidence for independent review. The run com
 - Verified source asset bundle: `realpde_serial_assets_20260926.tar`, SHA256 `83dc5e8c016e5ab78c9a64e73faa82a6737f168b6f51c4ae27b8423287b457da`.
 - Stage-B: 6,000 updates, P00 only, learning rate `3e-6`, carried Stage-A optimizer, Seen-Dev12 selection, evaluations/saves every 500 updates.
 - Residual: selected Stage-B backbone frozen; hidden width 96, 2 blocks, max delta 0.04, AdamW (`lr=2e-4`, `weight_decay=1e-5`), 22,000 updates, alpha 1.0, existing Serial Strong-Backbone loss, Seen-Dev12 selection.
+- Residual implementation lineage: the Residual Corrector used in Serial Challenger V1 follows the legacy Strong-Backbone / `colleague_80pt` residual lineage. It is not the current unified corrector implementation. Corrector lineage, initialization, and training implementation are therefore not held constant against Joint; this experiment must not be interpreted as a strictly controlled Serial-vs-Joint causal comparison.
 - Split: Train51 / Seen-Dev12 / AoA10 18 trajectories. AoA10 is audit-only; both selection records state `aoa_used_for_selection: false`.
 - Scope: no SPS, full-data run, locked-final/private access, or Codabench access. No submission was made.
 - Final state: `DONE`, status `REVIEW_REQUIRED`; no downstream run was started.
