@@ -57,7 +57,7 @@ class H5WindowDataset(Dataset[tuple[Tensor, Tensor, Tensor, Tensor]]):
 
     def __init__(self, paths: Sequence[Path], *, in_steps: int = 20, out_steps: int = 20, stride: int = 20,
                  sub_sample: int = 2, max_windows_per_trajectory: int | None = None, include_pressure: bool = False,
-                 window_mode: str = "fixed"):
+                 window_mode: str = "fixed", preload_to_ram: bool = False):
         if min(in_steps, out_steps, stride, sub_sample) < 1:
             raise ValueError("in_steps, out_steps, stride, and sub_sample must be positive")
         if window_mode not in {"fixed", "random_phase", "dense_all"}:
@@ -69,13 +69,38 @@ class H5WindowDataset(Dataset[tuple[Tensor, Tensor, Tensor, Tensor]]):
         self.window_mode = window_mode
         self.max_windows_per_trajectory = max_windows_per_trajectory
         self.include_pressure = include_pressure
+        self.preload_to_ram = bool(preload_to_ram)
         self.refs: list[WindowRef] = []
         self.paths = list(paths)
         self.lengths: dict[Path, int] = {}
+        self._conditions: dict[Path, tuple[float, float]] = {}
+        self._ram_cache: dict[Path, np.ndarray] = {}
+        self._cache_bytes = 0
         for path in self.paths:
             with h5py.File(path, "r") as f:
-                field = f["u"] if "u" in f else f["measured_data/u"]
+                field = self._field(f, "u")
                 length = int(field.shape[0])
+                self._conditions[path] = (float(f["re"][()]), float(f["aoa"][()]))
+                if self.preload_to_ram:
+                    u = np.asarray(
+                        self._field(f, "u")[:, ::self.sub_sample, ::self.sub_sample],
+                        dtype=np.float32,
+                    )
+                    v = np.asarray(
+                        self._field(f, "v")[:, ::self.sub_sample, ::self.sub_sample],
+                        dtype=np.float32,
+                    )
+                    if self.include_pressure and ("p" in f or "measured_data/p" in f):
+                        p = np.asarray(
+                            self._field(f, "p")[:, ::self.sub_sample, ::self.sub_sample],
+                            dtype=np.float32,
+                        )
+                    else:
+                        p = np.zeros_like(u)
+                    cached = np.stack([u, v, p], axis=-1)
+                    cached.setflags(write=False)
+                    self._ram_cache[path] = cached
+                    self._cache_bytes += int(cached.nbytes)
             self.lengths[path] = length
             if window_mode == "fixed":
                 starts = list(range(0, length - in_steps - out_steps + 1, stride))
@@ -90,6 +115,20 @@ class H5WindowDataset(Dataset[tuple[Tensor, Tensor, Tensor, Tensor]]):
         if not self.refs:
             raise ValueError("the requested windows do not fit into supplied trajectories")
 
+    @property
+    def cache_bytes(self) -> int:
+        return int(self._cache_bytes)
+
+    def cache_summary(self) -> dict[str, object]:
+        return {
+            "enabled": self.preload_to_ram,
+            "trajectories": len(self._ram_cache),
+            "bytes": self.cache_bytes,
+            "gib": float(self.cache_bytes / (1024 ** 3)),
+            "sub_sample": int(self.sub_sample),
+            "include_pressure": bool(self.include_pressure),
+        }
+
     def __len__(self) -> int:
         return len(self.refs)
 
@@ -100,23 +139,31 @@ class H5WindowDataset(Dataset[tuple[Tensor, Tensor, Tensor, Tensor]]):
     def __getitem__(self, index: int) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         ref = self.refs[index]
         total = self.in_steps + self.out_steps
-        with h5py.File(ref.path, "r") as f:
-            sl = slice(ref.start, ref.start + total)
-            u = np.asarray(self._field(f, "u")[sl, ::self.sub_sample, ::self.sub_sample], dtype=np.float32)
-            v = np.asarray(self._field(f, "v")[sl, ::self.sub_sample, ::self.sub_sample], dtype=np.float32)
-            if self.include_pressure and ("p" in f or "measured_data/p" in f):
-                p = np.asarray(self._field(f, "p")[sl, ::self.sub_sample, ::self.sub_sample], dtype=np.float32)
-            else:
-                p = np.zeros_like(u)
-            re, aoa = float(f["re"][()]), float(f["aoa"][()])
-        stacked = np.stack([u, v, p], axis=-1)
+        sl = slice(ref.start, ref.start + total)
+        if self.preload_to_ram:
+            stacked = self._ram_cache[ref.path][sl]
+        else:
+            with h5py.File(ref.path, "r") as f:
+                u = np.asarray(
+                    self._field(f, "u")[sl, ::self.sub_sample, ::self.sub_sample],
+                    dtype=np.float32,
+                )
+                v = np.asarray(
+                    self._field(f, "v")[sl, ::self.sub_sample, ::self.sub_sample],
+                    dtype=np.float32,
+                )
+                if self.include_pressure and ("p" in f or "measured_data/p" in f):
+                    p = np.asarray(
+                        self._field(f, "p")[sl, ::self.sub_sample, ::self.sub_sample],
+                        dtype=np.float32,
+                    )
+                else:
+                    p = np.zeros_like(u)
+            stacked = np.stack([u, v, p], axis=-1)
+        re, aoa = self._conditions[ref.path]
         try:
             full = torch.from_numpy(stacked)
         except RuntimeError as exc:
-            # Some local PyTorch/NumPy combinations cannot initialize the
-            # NumPy C bridge.  Preserve the exact values via a Python-list
-            # bridge for that environment-only failure; CUDA environments
-            # continue to use the zero-copy path above.
             if "Numpy is not available" not in str(exc):
                 raise
             full = torch.tensor(stacked.tolist(), dtype=torch.float32)
@@ -201,7 +248,7 @@ class RandomPhaseWindowSampler(Sampler[int]):
 
 
 class DenseAllWindowSampler(Sampler[int]):
-    """Globally shuffle every legal Dense-All window with an epoch-derived seed."""
+    """Globally shuffle every legal Dense-All window with exact resume support."""
 
     def __init__(self, dataset: H5WindowDataset, *, seed: int):
         if dataset.window_mode != "dense_all":
@@ -209,17 +256,25 @@ class DenseAllWindowSampler(Sampler[int]):
         self.dataset = dataset
         self.seed = int(seed)
         self.epoch = 0
+        self.start_index = 0
         self._selected_indices: list[int] = []
         self.set_epoch(0)
 
-    def set_epoch(self, epoch: int) -> None:
-        if epoch < 0:
-            raise ValueError("epoch must be non-negative")
+    def set_epoch(self, epoch: int, *, start_index: int = 0) -> None:
+        if epoch < 0 or start_index < 0:
+            raise ValueError("epoch and start_index must be non-negative")
         self.epoch = int(epoch)
+        self.start_index = int(start_index)
         selected = list(range(len(self.dataset)))
         rng = np.random.default_rng(np.random.SeedSequence([self.seed, self.epoch]))
         rng.shuffle(selected)
+        if self.start_index > len(selected):
+            raise ValueError("start_index outside Dense-All epoch")
         self._selected_indices = selected
+
+    @property
+    def full_epoch_size(self) -> int:
+        return len(self._selected_indices)
 
     def audit_records(self) -> list[dict[str, object]]:
         records = []
@@ -241,7 +296,8 @@ class DenseAllWindowSampler(Sampler[int]):
         return records
 
     def __iter__(self):
-        return iter(self._selected_indices)
+        return iter(self._selected_indices[self.start_index:])
 
     def __len__(self) -> int:
-        return len(self._selected_indices)
+        return len(self._selected_indices) - self.start_index
+
