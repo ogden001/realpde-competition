@@ -1,0 +1,94 @@
+{
+  "status": "INTERIM_REVIEW_REQUIRED",
+  "snapshot_time_local": "2026-09-26 10:12 Asia/Shanghai",
+  "training_process_pid_at_snapshot": 75089,
+  "training_update_at_snapshot_approx": 2200,
+  "evaluated_through_update": 2000,
+  "files": [
+    {
+      "path": "CLEAN_CAMPAIGN_BOUNDARIES.md",
+      "size_bytes": 7204,
+      "sha256": "13de78847b1c822ef8428f3b3bed9afddf87b9350897f4504bdce7b5f7d47b20"
+    },
+    {
+      "path": "README.md",
+      "size_bytes": 3345,
+      "sha256": "6449e44ecc5a4555acca7a3071c336808e297ced9d3fec27d82b910d67c22efa"
+    },
+    {
+      "path": "aggregate_metrics.csv",
+      "size_bytes": 670,
+      "sha256": "00a4e56214134b03ed4472bb346b23be1bbfc3c665d79eea8320257ec3fff73b"
+    },
+    {
+      "path": "clean_baseline_v1_split.json",
+      "size_bytes": 1952,
+      "sha256": "1a0935dd7fbc4860b0d2ca5d49e410dfe03191cf8177d9f8ced336cd69736e2a"
+    },
+    {
+      "path": "eval_seen_dev_000000/base_horizon_error_summary.json",
+      "size_bytes": 1022,
+      "sha256": "08c144cdbc5c80e47dd304ebb6b5b964db19a2c63e1c5974888d08f6db63c98a"
+    },
+    {
+      "path": "eval_seen_dev_000000/final_horizon_error_summary.json",
+      "size_bytes": 1016,
+      "sha256": "e6f9e35989c30592a6e37a9774f62a62d6dc0b1226cd8589677d71bfccf630f2"
+    },
+    {
+      "path": "eval_seen_dev_000000/metrics.json",
+      "size_bytes": 346,
+      "sha256": "ec0e240f76c6e1fc8bca6858556bb30b187a97be9bced67796c64c15b5ce39f2"
+    },
+    {
+      "path": "eval_seen_dev_001000/base_horizon_error_summary.json",
+      "size_bytes": 1024,
+      "sha256": "00daa513ca1bd6748f1a86e5cbb72e1769a5a57b98d41a1c77fefe8305579a67"
+    },
+    {
+      "path": "eval_seen_dev_001000/final_horizon_error_summary.json",
+      "size_bytes": 1023,
+      "sha256": "9febd376c4a9c1bb688260252bd5d3106f489d41cf25b0e8e7214358fb1e480a"
+    },
+    {
+      "path": "eval_seen_dev_001000/metrics.json",
+      "size_bytes": 350,
+      "sha256": "6c32ef9891db1838b975445fbcc4b25c8bed64470595adcbe40d1b0312b10d5d"
+    },
+    {
+      "path": "eval_seen_dev_002000/base_horizon_error_summary.json",
+      "size_bytes": 1023,
+      "sha256": "22a0cf7e348493ea9a48ae00a5c03fa571a971ced37edf94d6c561d1a1db2f8b"
+    },
+    {
+      "path": "eval_seen_dev_002000/final_horizon_error_summary.json",
+      "size_bytes": 1025,
+      "sha256": "02ae1b55a94cf2b62f974d327f9d1a22af5348185354e3b355e9ed8037938695"
+    },
+    {
+      "path": "eval_seen_dev_002000/metrics.json",
+      "size_bytes": 351,
+      "sha256": "58f74c6d3a884baac7ff56e5f16c2c914aa40c0b497226173d936c6c020bbb0a"
+    },
+    {
+      "path": "remote_snapshot.txt",
+      "size_bytes": 5235,
+      "sha256": "b7ecf5175469a9c24fbf264acb3cdbeb084714edaee52caded62571573d7c6ca"
+    },
+    {
+      "path": "run_config.json",
+      "size_bytes": 1969,
+      "sha256": "598824682665c3b769cf86b0c54e2571b7048281488d0c9a6c6bf152aa9f9f0b"
+    },
+    {
+      "path": "stdout.log",
+      "size_bytes": 13568,
+      "sha256": "03dd56a3fb5e79b2189459be7dae50ee2b1c98f91f39833e9ea8b38fe2dd2296"
+    },
+    {
+      "path": "stdout_snapshot_meta.txt",
+      "size_bytes": 276,
+      "sha256": "aad4ae574e079ff588b328ba36c88047bf1e67502c014b2ad436e9df8f1fdd04"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "batch_size_each_branch": 8,
+  "codabench_accessed": false,
+  "corrector_source": {
+    "bound_backbone_sha256": "6926722895611c38dee79cf16ce43b87c7de3d4a1305e9db431dadd4c1a7bf47",
+    "checkpoint": "/hy-tmp/realpde_assets/joint_training_v1/corrector_tmr02_update_30000.pth",
+    "mode": "warm_start_cross_backbone",
+    "note": "Weights are initialization only and will be jointly retrained; a historical backbone binding is not treated as final-model compatibility.",
+    "sha256": "1f72b329d9a160b206a6e9f4fce5e780022b3bac7a9ce4bdf5b8c9efa30b4506",
+    "source_backbone_sha256": "1bdde38d902c2bec516570cadb8703797457c7db9c3fda67eb9a911021d1b873",
+    "updates": 30000
+  },
+  "locked_final_accessed": false,
+  "loss_weights": {
+    "residual": 1.0,
+    "stage_a": 1.0,
+    "stage_b": 1.0
+  },
+  "milestones": [
+    1000,
+    2000,
+    3000,
+    4000,
+    5000,
+    6000
+  ],
+  "optimizer": {
+    "backbone_lr": 1e-06,
+    "backbone_weight_decay": 0.01,
+    "corrector_lr": 1e-05,
+    "corrector_weight_decay": 1e-05,
+    "scheduler": "CosineAnnealingLR"
+  },
+  "private_accessed": false,
+  "protocol": "REALPDE_SOTA_MERGE_JOINT_V1",
+  "recovery_every": 500,
+  "residual": {
+    "architecture": "existing ResidualCorrector3D(42,h64,b2,max_delta=0.04)",
+    "base_pred_detached": false,
+    "loss": "existing strong_loss(final_pred, extra_rel=0.027514)",
+    "projection": "existing spatial_tke_map"
+  },
+  "source_stage_a_checkpoint": "/hy-tmp/realpde_runs/sota_merge_clean_stage_a_4090_restore_20260926/checkpoints/model_update_057000.pth",
+  "source_stage_a_sha256": "1bdde38d902c2bec516570cadb8703797457c7db9c3fda67eb9a911021d1b873",
+  "source_stage_a_update": 57000,
+  "stage_a": {
+    "loss": "existing strong_loss(extra_rel=0.0)",
+    "sampling": "existing exhaustive P00/P01/P10/P11"
+  },
+  "stage_b": {
+    "loss": "existing strong_loss(extra_rel=0.027514)",
+    "sampling": "existing P00 Dense-All"
+  },
+  "status": "REVIEW_REQUIRED",
+  "updates": 6000
+}

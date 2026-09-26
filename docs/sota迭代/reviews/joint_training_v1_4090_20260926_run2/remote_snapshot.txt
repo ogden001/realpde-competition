@@ -1,0 +1,40 @@
+---HOST---
+I2b5847212d00701227
+2026-09-26T10:12:02+08:00
+NVIDIA GeForce RTX 4090, 24564 MiB, 11426 MiB, 87 %, 77, 428.70 W
+---GIT---
+cbf25c73400e753de5d3d9b701118f9b01954b3e
+main
+---PROCESS---
+    PID    PPID     ELAPSED %CPU %MEM COMMAND
+  75089   75073       26:12  102  0.4 /hy-tmp/realpde_venv_v2/bin/python -u tools/train_sota_merge_joint.py --manifest /hy-tmp/realpde-competition/configs/clean_baseline_v1_split.json --data-root /hy-tmp/realpde_data/train_real_clean_train51_seen_dev12_386920e --kit-root /hy-tmp/realpde_t1_kit_v9/realpde_t1_starting_kit_v9 --backbone-checkpoint /hy-tmp/realpde_runs/sota_merge_clean_stage_a_4090_restore_20260926/checkpoints/model_update_057000.pth --corrector-checkpoint /hy-tmp/realpde_assets/joint_training_v1/corrector_tmr02_update_30000.pth --out-dir /hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2 --updates 6000 --milestones 1000 2000 3000 4000 5000 6000 --batch-size 8 --eval-batch-size 8 --workers 4 --prefetch-factor 2 --log-every 100 --require-cuda
+---RUN FILES---
+/hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/aggregate_metrics.csv|674|2026-09-26T10:10:00.3471379800
+/hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/checkpoints/backbone_joint_001000.pth|32072803|2026-09-26T09:58:33.8780004850
+/hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/checkpoints/backbone_joint_002000.pth|32072803|2026-09-26T10:10:00.3831379560
+/hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/checkpoints/corrector_joint_001000.pth|2067869|2026-09-26T09:58:33.9140010800
+/hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/checkpoints/corrector_joint_002000.pth|2067869|2026-09-26T10:10:00.4191379330
+/hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/checkpoints/runner_latest.pth|102133723|2026-09-26T10:10:00.5151378690
+/hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/eval_seen_dev_000000/base_horizon_error_summary.json|1022|2026-09-26T09:47:05.7419175860
+/hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/eval_seen_dev_000000/final_horizon_error_summary.json|1016|2026-09-26T09:47:06.4139304570
+/hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/eval_seen_dev_000000/metrics.json|346|2026-09-26T09:47:06.4139304570
+/hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/eval_seen_dev_001000/base_horizon_error_summary.json|1024|2026-09-26T09:58:33.3659920210
+/hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/eval_seen_dev_001000/final_horizon_error_summary.json|1023|2026-09-26T09:58:33.8419998900
+/hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/eval_seen_dev_001000/metrics.json|350|2026-09-26T09:58:33.8419998900
+/hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/eval_seen_dev_002000/base_horizon_error_summary.json|1023|2026-09-26T10:09:59.8711382990
+/hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/eval_seen_dev_002000/final_horizon_error_summary.json|1025|2026-09-26T10:10:00.3471379800
+/hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/eval_seen_dev_002000/metrics.json|351|2026-09-26T10:10:00.3471379800
+/hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/run_config.json|1969|2026-09-26T09:45:54.1485273820
+---SHA256---
+30710c3e663b9bca2c2dd9b0806381d2d865268d18f8c25c19de437c914e5b60  /hy-tmp/realpde-competition/tools/train_sota_merge_joint.py
+a67e2fe306d7a7bf20b1a2f91adac00f22564377e3155215f6cf40716d9e4237  /hy-tmp/realpde-competition/tools/realpde_sota_merge_joint_runtime.py
+1a0935dd7fbc4860b0d2ca5d49e410dfe03191cf8177d9f8ced336cd69736e2a  /hy-tmp/realpde-competition/configs/clean_baseline_v1_split.json
+598824682665c3b769cf86b0c54e2571b7048281488d0c9a6c6bf152aa9f9f0b  /hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/run_config.json
+d8f2e45118a981535c381c68662eac75bad6c27aa929c928bf04386838b0c33e  /hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/aggregate_metrics.csv
+b8e447031e3b18946682c1001f7afc02c8279a1091d476371c5a763800d30947  /hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/checkpoints/backbone_joint_001000.pth
+b3157454933537852b9bb6455f2dddbafbcb12610e151c42957ad7af6ede6839  /hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/checkpoints/backbone_joint_002000.pth
+74294d3f3c7010e73ae2ce6d4bdb97b28bf5e08166e6888b44fd7ff02e6b9441  /hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/checkpoints/corrector_joint_001000.pth
+61ae6c61565fbb41f99a4a07e7ae6c8d69573ec8fc83b855fb1b5a10a9e25f07  /hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/checkpoints/corrector_joint_002000.pth
+daf97e0b4a4569c0d64d14d61c69493f7bf9484cf9de1d6a0895f9e638b726f6  /hy-tmp/realpde_runs/realpde_joint_training_v1_4090_20260926_run2/checkpoints/runner_latest.pth
+1f72b329d9a160b206a6e9f4fce5e780022b3bac7a9ce4bdf5b8c9efa30b4506  /hy-tmp/realpde-competition/../realpde_assets/joint_training_v1/corrector_tmr02_update_30000.pth
+1bdde38d902c2bec516570cadb8703797457c7db9c3fda67eb9a911021d1b873  /hy-tmp/realpde-competition/../realpde_runs/sota_merge_clean_stage_a_4090_restore_20260926/checkpoints/model_update_057000.pth
