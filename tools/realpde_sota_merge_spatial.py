@@ -73,6 +73,7 @@ class SpatialPhaseExpandedDataset(Dataset[tuple[Tensor, Tensor, Tensor, Tensor]]
 
         self.base_refs: list[tuple[Path, int]] = []
         self._ram_cache: dict[Path, tuple[np.ndarray, np.ndarray, np.ndarray | None]] = {}
+        self._conditions: dict[Path, tuple[float, float]] = {}
         self._cache_bytes = 0
         total = self.in_steps + self.out_steps
 
@@ -83,6 +84,10 @@ class SpatialPhaseExpandedDataset(Dataset[tuple[Tensor, Tensor, Tensor, Tensor]]
                 if u_field.shape != v_field.shape or len(u_field.shape) != 3:
                     raise ValueError(f"invalid u/v field geometry in {path}")
                 length, height, width = map(int, u_field.shape)
+                self._conditions[path] = (
+                    float(handle["re"][()]) if "re" in handle else 0.0,
+                    float(handle["aoa"][()]) if "aoa" in handle else 0.0,
+                )
                 if height % 2 or width % 2:
                     raise ValueError(f"2x phase expansion requires even H/W, got {height}x{width} in {path}")
                 starts = list(range(0, length - total + 1, self.stride))
@@ -144,9 +149,6 @@ class SpatialPhaseExpandedDataset(Dataset[tuple[Tensor, Tensor, Tensor, Tensor]]
             u = u_all[sl, dy::2, dx::2]
             v = v_all[sl, dy::2, dx::2]
             p = p_all[sl, dy::2, dx::2] if p_all is not None else np.zeros_like(u)
-            with h5py.File(ref.path, "r") as handle:
-                re = float(handle["re"][()]) if "re" in handle else 0.0
-                aoa = float(handle["aoa"][()]) if "aoa" in handle else 0.0
         else:
             with h5py.File(ref.path, "r") as handle:
                 u = np.asarray(_field(handle, "u")[sl, dy::2, dx::2], dtype=np.float32)
@@ -158,8 +160,7 @@ class SpatialPhaseExpandedDataset(Dataset[tuple[Tensor, Tensor, Tensor, Tensor]]
                         p = np.zeros_like(u)
                 else:
                     p = np.zeros_like(u)
-                re = float(handle["re"][()]) if "re" in handle else 0.0
-                aoa = float(handle["aoa"][()]) if "aoa" in handle else 0.0
+        re, aoa = self._conditions[ref.path]
 
         if u.shape != v.shape or u.shape[1:] != (32, 64):
             raise ValueError(f"phase {ref.phase_name} produced unexpected shape {u.shape} from {ref.path}")
