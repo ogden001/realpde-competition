@@ -330,6 +330,15 @@ def stage_b_aoa_curve(args: argparse.Namespace, selected_backbone: Path) -> list
     root = args.out_root / "stage_b_aoa_curve"
     rows: list[dict[str, object]] = []
     checkpoints = args.out_root / "stage_b" / "checkpoints"
+
+    # u0 is the frozen Stage-A @57k source. It is part of the audit curve but
+    # never changes the Seen-only Stage-B selection rule.
+    base_out = root / "u000000"
+    eval_backbone(args, args.stage_a_checkpoint, base_out, "AoA10")
+    base_row = json.loads((base_out / "metrics.json").read_text(encoding="utf-8"))
+    base_row["iteration"] = 0
+    rows.append(base_row)
+
     for update in range(STAGE_B_INTERVAL, STAGE_B_UPDATES + 1, STAGE_B_INTERVAL):
         ck = checkpoints / f"model_update_{update:06d}.pth"
         if not ck.is_file():
@@ -356,6 +365,17 @@ def residual_aoa_curve(args: argparse.Namespace, backbone: Path) -> list[dict[st
     root = args.out_root / "residual_aoa_curve"
     rows: list[dict[str, object]] = []
     checkpoints = args.out_root / "residual" / "checkpoints"
+
+    # Preserve the exact zero-residual baseline in the AoA curve.
+    init_ck = checkpoints / "model_init.pth"
+    if not init_ck.is_file():
+        raise FileNotFoundError(init_ck)
+    init_out = root / "u000000"
+    eval_residual(args, backbone, init_ck, args.aoa_manifest, init_out, "RESIDUAL_AOA_AUDIT")
+    init_metrics = json.loads((init_out / "final_primary_metrics.json").read_text(encoding="utf-8"))
+    init_metrics["update"] = 0
+    rows.append(init_metrics)
+
     for update in range(RESIDUAL_INTERVAL, RESIDUAL_UPDATES + 1, RESIDUAL_INTERVAL):
         ck = checkpoints / f"model_update_{update:06d}.pth"
         if not ck.is_file():
