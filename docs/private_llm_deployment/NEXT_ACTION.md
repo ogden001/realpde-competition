@@ -1,56 +1,69 @@
-# NEXT_ACTION — Private LLM Node Bootstrap on RTX 3090
+# NEXT_ACTION — Strata + Qwen3.8-Flash-Next Bootstrap on RTX 3090
 
 Status: `IMPLEMENT_AND_EXECUTE_AUTHORIZED / REVIEW_REQUIRED`
 
-This task is an **independent infrastructure/deployment direction**. The RealPDE repository is used only as the shared ChatGPT/Sol ↔ Codex/Luna coordination and evidence channel. Do **not** modify or access RealPDE scientific assets unless explicitly required to read the collaboration protocol.
+This is the **first deployment step only**.
 
-The user will provide the exact Git commit containing this task as `REQUIRED_COMMIT`. Before execution, verify that commit is an ancestor of `HEAD`.
+The RealPDE repository is used only as the ChatGPT/Sol ↔ Codex/Luna coordination and evidence channel. Do not modify or access RealPDE scientific assets.
+
+The user will provide the exact commit containing this task as `REQUIRED_COMMIT`. Before execution, verify that commit is an ancestor of `HEAD`.
 
 ## Goal
 
-Turn the existing single-GPU server into a stable local AI node with the following frozen first-stage stack:
+Deploy and start exactly this local LLM stack on the existing RTX 3090 server:
 
 ```text
-DeepSeek Harness (Agent)
-        ↓ OpenAI-compatible API
-Strata serving
-        ↓
+curl
+  ↓ OpenAI-compatible HTTP API
+Strata
+  ↓
 Qwen3.8-Flash-Next / IQ3_XXS / 128K
-        ↓
-RTX 3090 24 GB + 64 GB system RAM
+  ↓
+RTX 3090 24 GB + 64 GB RAM
 ```
 
-Target machine expected hardware:
+Expected host:
 
 - GPU: NVIDIA RTX 3090 24 GB
 - RAM: 64 GB
 - CPU: Intel i7-13700KF
 - Disk: 1 TB
-- OS: Linux, preferably Ubuntu
+- OS: Linux
 
-This task is **deployment/bootstrap only**. Do not turn it into RAG, benchmark research, model comparison, multi-user serving, or product engineering.
+Success for this task means:
 
-## Roles
+1. Strata is installed from the official upstream repository;
+2. Qwen3.8-Flash-Next IQ3_XXS is installed/configured for 128K context;
+3. the service starts successfully on localhost only;
+4. `curl` can query health/model endpoints and receive one successful OpenAI-compatible chat completion;
+5. lightweight evidence is committed and pushed to `origin/main`;
+6. final state is `REVIEW_REQUIRED`.
 
-### ChatGPT / Sol owns
+**Do not install any Agent framework in this task.**
 
-- frozen deployment architecture;
-- model family / quantization / context choice;
+---
+
+# Roles
+
+## ChatGPT / Sol owns
+
+- deployment architecture;
+- model / quantization / context choice;
 - hard/soft constraints;
 - review of execution evidence;
-- decision on any follow-up optimization, RAG, alternative agent, or production hardening.
+- decision on later Agent, RAG, calibration, service hardening, or production work.
 
-### Codex / Luna owns
+## Codex / Luna owns
 
 - host/environment inspection;
 - bounded installation and environment adaptation;
-- following upstream installation docs;
-- service wiring and local API configuration;
-- smoke tests;
-- reproducible command/config capture;
-- lightweight evidence commit + push to `origin/main`.
+- following current official Strata documentation;
+- starting the frozen model server;
+- curl smoke tests;
+- lightweight evidence collection;
+- commit + push to `origin/main`.
 
-If a required adaptation would change the frozen architecture or a HARD CONSTRAINT, STOP and report. Do not choose a new architecture yourself.
+If a required adaptation would change a HARD CONSTRAINT, STOP and report. Do not choose a new architecture or model yourself.
 
 ---
 
@@ -60,28 +73,26 @@ These are absolute.
 
 ## H1. Do not touch RealPDE scientific assets
 
-The RealPDE repository is only the coordination/evidence repo for this task.
-
 Do not:
 
 - modify RealPDE model/training/evaluation code;
 - read/copy/delete/move any RealPDE H5 dataset or checkpoint;
 - start/stop any RealPDE training/evaluation job;
 - reuse RealPDE run directories for this deployment;
-- add model binaries, large logs, credentials, or generated deployment state into Git.
+- add model binaries, large logs, credentials, or generated model state into Git.
 
-Only the protocol/task/evidence files under this new deployment direction may be added to this repo, plus small generic deployment scripts/config templates if needed.
+Only files under `docs/private_llm_deployment/` may be added/updated for this task, plus a tiny secret-free helper script only if strictly needed.
 
-## H2. Frozen first-stage model
+## H2. Frozen model configuration
 
 Deploy exactly:
 
-- family: `Qwen3.8-Flash-Next`
+- model family: `Qwen3.8-Flash-Next`
 - Strata quantization: `IQ3_XXS`
 - context target: `131072` tokens (128K)
 - vision: OFF
-- MTP/speculative decoding: use Strata supported/default path
-- KV: keep Strata's normal/default 8-bit KV path; do not opt into experimental q4/k8v4 variants
+- MTP/speculative decoding: use the normal supported Strata path
+- KV: keep Strata's normal/default 8-bit path; do not opt into experimental q4/k8v4 variants
 
 Do not silently switch to:
 
@@ -92,69 +103,74 @@ Do not silently switch to:
 - another Qwen model;
 - another inference engine.
 
-If the frozen configuration cannot start, preserve evidence and STOP. A fallback requires Sol/user review.
+If this exact configuration cannot start, preserve evidence and STOP at `REVIEW_REQUIRED`.
 
-## H3. Strata is the model server
+## H3. Strata is the only inference server
 
-Use the official upstream repository:
+Use the official repository:
 
 `https://github.com/Niko1221/Strata`
 
-Prefer the current supported upstream installation flow rather than recreating engine flags by hand.
+Requirements:
 
-Pin and record the exact Strata Git commit actually used.
+- clone/use official upstream;
+- record exact Strata Git SHA actually used;
+- follow the current official setup flow;
+- do not patch Strata core/kernel/model code;
+- do not create a private fork to work around an upstream problem.
 
-Do not patch Strata core/kernel/model code in this task. If upstream fails due to a genuine compatibility bug, capture the failure and STOP rather than inventing a local fork.
+If official Strata cannot run this frozen configuration on the host, capture the failure and STOP.
 
-## H4. Agent is DeepSeek Harness first
+## H4. No Agent installation
 
-Use the official DeepSeek Harness project/package and its documented installation/configuration flow.
+Do **not** install or configure:
 
-Primary goal:
+- DeepSeek Harness;
+- AgentScope;
+- Qwen-Agent;
+- OpenHands;
+- LangGraph;
+- Claude Code integrations;
+- Codex integrations;
+- any other Agent framework/runtime.
 
-`DeepSeek Harness -> local Strata OpenAI-compatible endpoint`
+This task ends after direct HTTP/curl model API validation.
 
-Do not silently replace Harness with AgentScope, Qwen-Agent, OpenHands, LangGraph, or another agent framework.
+## H5. No RAG/application stack
 
-If Harness cannot interoperate with the local Strata endpoint, leave the verified Strata service intact, capture the compatibility evidence, and STOP at `REVIEW_REQUIRED`.
+Do not install or configure:
 
-## H5. No public exposure
+- RAG;
+- vector database;
+- embedding model/service;
+- reranker;
+- document parsing pipeline;
+- Web UI;
+- application backend;
+- model router;
+- cloud model fallback.
+
+## H6. Local-only network binding
 
 For this stage:
 
-- Strata must listen only on `127.0.0.1`;
-- DeepSeek Harness must listen only on `127.0.0.1` where supported;
-- do not bind either service to `0.0.0.0`;
+- Strata must bind to `127.0.0.1` only;
+- do not bind to `0.0.0.0`;
 - do not open firewall ports;
-- do not configure public DNS, TLS, Nginx, Cloudflare, tunnels, or external ingress.
+- do not configure public DNS, TLS, Nginx, Cloudflare, tunnels, or ingress.
 
-Remote user access, if needed, is via SSH port forwarding outside this task.
-
-## H6. Agent process must not run as root
-
-DeepSeek Harness / agent tool execution must not run with UID 0.
-
-Preferred:
-
-- use an existing non-root deployment user; or
-- if Codex is currently root and host policy permits, create a dedicated unprivileged `aiagent` user.
-
-The agent workspace must be a dedicated directory under the AI stack root and must not be the RealPDE repo, `/root`, `/`, or another project directory.
-
-Do not grant the agent passwordless sudo.
-
-If the environment cannot satisfy a non-root agent process safely, STOP.
+All smoke tests are performed locally with `curl`.
 
 ## H7. Do not kill unrelated processes
 
-Before installation/startup inspect GPU processes with `nvidia-smi`.
+Before installation/startup inspect `nvidia-smi` and relevant process/port state.
 
-If an unknown or unrelated process is using material GPU memory/compute:
+If an unknown/unrelated process is using material GPU memory or compute:
 
 - do not kill it;
 - do not reset the GPU;
-- do not steal the port/process;
-- report the conflict and STOP before starting Strata.
+- do not steal its port;
+- STOP and report before starting Strata.
 
 ## H8. No destructive cleanup
 
@@ -164,11 +180,11 @@ Do not use destructive broad commands such as:
 - `git reset --hard`;
 - `git clean -fdx`;
 - deleting existing model caches to make room;
-- rewriting unrelated service configs.
+- overwriting unrelated services/configuration.
 
 Unknown existing installations/configs must be preserved and reported.
 
-## H9. Capacity gate before large model download
+## H9. Capacity gate before large download
 
 Before downloading model assets verify:
 
@@ -176,9 +192,9 @@ Before downloading model assets verify:
 - visible system RAM is about 60 GiB or more;
 - target filesystem has at least `180 GiB` free;
 - NVIDIA driver/runtime are healthy;
-- there is no material swap thrashing or disk-full condition.
+- no material swap thrashing or disk-full condition exists.
 
-If any capacity gate fails, STOP before the large download.
+If any gate fails, STOP before the large download.
 
 ## H10. No secrets in Git
 
@@ -188,89 +204,86 @@ Never commit:
 - SSH keys;
 - API secrets;
 - tokens;
-- private hostnames/IPs if they are sensitive;
-- full environment dumps containing credentials.
+- sensitive hostnames/IPs;
+- unredacted environment dumps containing credentials.
 
-Use redacted templates and record only non-secret paths/version facts.
+## H11. No optimization sweep
 
-## H11. Scope exclusions
+Do not do:
 
-Do NOT add in this task:
-
-- RAG;
-- vector DB;
-- embedding service;
-- reranker;
-- Nginx;
-- HTTPS;
-- Kubernetes;
-- Dockerization merely for packaging convenience;
-- multi-model router;
-- cloud API fallback;
-- multi-user auth;
-- performance tuning sweep;
+- model comparison;
+- quantization comparison;
+- context sweep;
+- performance benchmark matrix;
+- kernel tuning;
+- expert-cache tuning;
+- speculative decoding tuning;
 - production load test.
 
-## H12. Final state is always REVIEW_REQUIRED
+A single minimal smoke measurement/resource snapshot is allowed only as evidence that deployment works.
 
-Codex does not declare the architecture production-ready and does not start a second-stage optimization on its own.
+## H12. No persistence/hardening work in this task
+
+Do not spend time on:
+
+- systemd service creation;
+- Docker/Kubernetes;
+- watchdogs;
+- production logging stack;
+- monitoring stack;
+- auto-restart policy;
+- boot persistence.
+
+The objective is first successful local deployment and curl validation. Persistence comes later after review.
+
+## H13. No calibration in this task
+
+Do not run Strata calibration yet. First establish an untouched upstream baseline that works.
+
+## H14. Final state is always REVIEW_REQUIRED
+
+Do not proceed to Agent, RAG, optimization, or hardening after curl smoke.
 
 End at:
 
 `REVIEW_REQUIRED`
 
-Then wait for user + ChatGPT/Sol review.
+and wait for user + ChatGPT/Sol review.
 
 ---
 
 # SOFT CONSTRAINTS
 
-These may be adapted to the real host as long as the architecture and HARD CONSTRAINTS remain unchanged.
+These may be adapted to the real host without changing the frozen deployment semantics.
 
 ## S1. Installation root
 
-Preferred root:
+Preferred:
 
 `/opt/ai-stack`
 
-Preferred layout:
+Suggested minimal layout:
 
 ```text
 /opt/ai-stack/
 ├── strata/
-├── agents/
-│   └── deepseek-harness/
 ├── models/
-├── workspace/
-├── config/
-├── logs/
-└── scripts/
+└── logs/
 ```
 
-If `/opt` is not writable or host policy prefers user-local software, use an equivalent root such as:
+If `/opt` is unsuitable, use an equivalent location such as `$HOME/ai-stack` and record the actual path.
 
-`$HOME/ai-stack`
-
-Record the actual root. Do not force `/opt` by weakening permissions.
+Do not weaken permissions merely to force `/opt`.
 
 ## S2. Native Linux preferred
 
-Prefer native Linux installation. Do not introduce Docker unless upstream absolutely requires it, and if so STOP for review instead of changing architecture automatically.
+Prefer native Linux. Do not introduce Docker simply for convenience.
 
-## S3. Service manager
+If current official Strata unexpectedly requires a materially different deployment mechanism, STOP for review rather than changing architecture automatically.
 
-Preferred persistence:
+## S3. Follow current upstream CLI
 
-- system `systemd` service when appropriate; or
-- `systemd --user` for user-owned services.
-
-If systemd is unavailable, complete a foreground/local smoke test, provide explicit start/stop scripts, record that persistence is not established, and return `REVIEW_REQUIRED`. Do not install a new process manager just for this task.
-
-## S4. Follow upstream commands, do not guess stale CLI flags
-
-The repositories may have changed since this task was written.
-
-Codex may adapt exact CLI syntax to the current official upstream docs, but the resulting semantics must remain:
+The Strata repository can change. Codex may adapt exact CLI syntax to current official docs, but final semantics must remain:
 
 - Qwen3.8-Flash-Next;
 - IQ3_XXS;
@@ -278,19 +291,21 @@ Codex may adapt exact CLI syntax to the current official upstream docs, but the 
 - vision off;
 - local-only API.
 
-Record the exact commands actually executed.
+Record exact commands actually executed.
 
-## S5. Calibration
+## S4. Minimal dependencies
 
-After the frozen model can start and pass API smoke, run Strata's official NVIDIA calibration flow if supported by the pinned version and it does not change the frozen model/quantization/context semantics.
+Install only dependencies required by official Strata documentation.
 
-Calibration failure is non-fatal for the base deployment. Preserve the failure and keep the known-working configuration rather than experimenting broadly.
+Do not perform broad OS or NVIDIA driver upgrades. If the current driver is incompatible and replacement is required, STOP and report rather than modifying the GPU software stack automatically.
 
-## S6. Minimal package installation
+## S5. Background process for smoke is allowed
 
-Install only dependencies required by official Strata/Harness docs. Prefer host package manager and project-managed virtual/node environments.
+After successful installation, Codex may launch Strata with the project's supported launcher under `nohup`, a shell background process, `tmux`, or equivalent solely to keep the model alive long enough for curl smoke and evidence collection.
 
-Do not perform broad OS upgrades or driver upgrades unless the existing driver is incompatible. Driver replacement is out of scope and requires review.
+Record PID/command/log path when applicable.
+
+Do not convert this into a permanent service in this task.
 
 ---
 
@@ -315,9 +330,9 @@ Requirements:
 - `REQUIRED_COMMIT` is an ancestor of `HEAD`;
 - dry-run push succeeds.
 
-If unknown repo changes exist, do not stash/reset/restore/clean them. STOP and report.
+If unknown repo changes exist, do not stash/reset/restore/clean. STOP and report.
 
-Then capture host facts, at minimum:
+Then capture host facts:
 
 ```bash
 uname -a
@@ -333,264 +348,235 @@ nvidia-smi --query-gpu=name,memory.total,memory.used,utilization.gpu,driver_vers
 Also inspect:
 
 - GPU process list;
-- current listeners around proposed ports `8080` and `3080`;
-- existing Strata/Harness/AI-stack directories;
-- whether systemd/systemd-user is available;
-- available Node/Python/Git versions as required by current upstream docs.
+- listener state for port `8080`;
+- existing Strata / AI-stack directories;
+- Git/Python/tool versions required by current Strata docs.
 
 Do not expose secrets in evidence.
 
-Create a lightweight preflight evidence record before the large model download.
+Create lightweight preflight evidence before the large model download.
 
 ---
 
 # Execution
 
-## Phase 1 — Prepare isolated AI stack
+## Phase 1 — Prepare isolated Strata installation
 
-1. Choose the actual AI stack root using S1.
-2. Create separate locations for Strata, Harness, workspace, logs and config.
-3. Ensure the Harness runtime identity is non-root.
-4. Keep the RealPDE repository outside the agent workspace.
-5. Record ownership/permissions relevant to the services.
+1. Choose actual AI stack root using S1.
+2. Keep the installation completely outside RealPDE data/run directories.
+3. Create only directories needed for Strata/model/logs.
+4. Record actual path and disk free space.
 
-Do not weaken broad filesystem permissions with `chmod -R 777`.
+## Phase 2 — Clone and pin official Strata
 
-## Phase 2 — Install and pin Strata
+Clone/use:
 
-1. Clone official Strata into the chosen stack root.
-2. Record:
-   - upstream URL;
-   - branch/tag if any;
-   - exact Git SHA;
-   - install command;
-   - engine/version information emitted by the project.
-3. Follow the official setup flow for the frozen model configuration.
-4. Keep model assets outside the RealPDE Git repository.
-5. Do not download additional model variants.
-
-If upstream setup asks interactive questions, answer them consistently with the frozen semantics and record the final choices.
-
-## Phase 3 — Start Strata locally
-
-Start Strata with the exact launcher generated/recommended by the pinned upstream version.
-
-Required properties:
-
-- bind only to `127.0.0.1`;
-- model = Qwen3.8-Flash-Next IQ3_XXS;
-- context = 128K;
-- vision disabled;
-- no experimental quantization/context fallback.
-
-Verify the process is stable for at least several minutes and is not crash-looping/OOMing.
-
-## Phase 4 — Strata API smoke
-
-At minimum verify the supported equivalents of:
-
-- health endpoint;
-- model listing endpoint;
-- one OpenAI-compatible chat request;
-- one Chinese response.
-
-Capture:
-
-- HTTP status;
-- model identity returned by the service;
-- prompt/completion usage if exposed;
-- process exit/state;
-- GPU VRAM snapshot;
-- system RAM snapshot.
-
-This is a smoke test, not a benchmark. Do not start a performance sweep.
-
-## Phase 5 — Optional official calibration
-
-If supported by the pinned Strata version, run the project's official calibration routine once.
+`https://github.com/Niko1221/Strata`
 
 Record:
 
-- command;
-- selected settings;
-- before/after service start status;
-- any warning/error.
+- upstream URL;
+- current branch/tag if relevant;
+- exact Git SHA;
+- install/setup command;
+- Strata/engine version information if exposed.
 
-After calibration, rerun the basic API smoke. If calibration breaks the working service, revert only the calibration-generated change using the project's supported mechanism or preserve the pre-calibration working config and report. Do not begin manual kernel/tuning experiments.
+Do not modify Strata core source.
 
-## Phase 6 — Make Strata persistent
+## Phase 3 — Install frozen model
 
-Prefer a systemd service or systemd-user service based on the actual install/runtime user.
+Follow the current upstream setup flow to install exactly:
 
-Use the exact known-working Strata launcher rather than reconstructing low-level engine flags.
+```text
+Qwen3.8-Flash-Next
+IQ3_XXS
+context = 131072
+vision = OFF
+```
 
-Required service behavior:
+Use default/supported MTP and normal/default KV path.
 
-- local-only binding;
-- predictable working directory;
-- logs retrievable with journal or a documented file path;
-- restart on genuine failure where appropriate;
-- no secrets embedded in Git-tracked unit templates.
+Do not download alternate Qwen model variants for comparison.
+
+If the setup is interactive, answer consistently with the frozen configuration and record the effective choices.
+
+## Phase 4 — Start Strata locally
+
+Start using the official generated/recommended launcher.
+
+Required:
+
+- localhost only;
+- expected model/quantization;
+- 128K context;
+- vision disabled;
+- no fallback model.
 
 Verify:
 
-```text
-start -> healthy -> stop -> start -> healthy
+- process remains alive;
+- no CUDA OOM;
+- no immediate crash-loop;
+- expected listening port is local-only.
+
+## Phase 5 — curl smoke
+
+Use `curl` directly against Strata. Adapt endpoint names only if the current official API differs.
+
+At minimum test:
+
+### A. Health
+
+Equivalent to:
+
+```bash
+curl -sS http://127.0.0.1:8080/health
 ```
 
-Do not reboot the server solely for this task.
+### B. Models
 
-## Phase 7 — Install and pin DeepSeek Harness
+Equivalent to:
 
-Use the official DeepSeek Harness source/package and current official docs.
-
-Record:
-
-- upstream project/package;
-- exact source SHA and/or package version;
-- Node/runtime version;
-- installation command.
-
-Configure its model provider to target the local Strata OpenAI-compatible API, semantically equivalent to:
-
-```text
-provider: strata-local
-base_url: http://127.0.0.1:8080/v1
-model: local Strata model
-protocol: OpenAI Chat Completions (or the exact currently supported compatible mode)
+```bash
+curl -sS http://127.0.0.1:8080/v1/models
 ```
 
-Use a non-secret local placeholder key only if the client requires a syntactic API key.
+### C. OpenAI-compatible chat completion
 
-Do not expose Harness publicly.
+Equivalent to:
 
-## Phase 8 — Agent isolation and smoke
+```bash
+curl -sS http://127.0.0.1:8080/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "strata",
+    "messages": [
+      {"role": "user", "content": "请用三句话说明大型化工工程投标技术文件通常需要关注哪些核心内容。"}
+    ],
+    "max_tokens": 256,
+    "temperature": 0
+  }'
+```
 
-Run Harness as a non-root identity with a dedicated workspace, preferred:
+If the current API reports a different actual model name, use the name returned by `/v1/models` instead of guessing.
 
-`<AI_STACK_ROOT>/workspace`
+Capture:
 
-Perform only minimal smoke checks:
+- HTTP success/failure;
+- response body in redacted/lightweight form;
+- returned model identifier;
+- token usage if exposed;
+- elapsed request time if easily available from curl;
+- no need to run repeated performance trials.
 
-1. Harness starts without fatal error.
-2. Harness can reach the local Strata provider.
-3. A basic chat request returns through the full chain.
-4. If the current Harness supports tool/file operations in this configuration, ask it to create a harmless text file inside the dedicated workspace and read it back.
+## Phase 6 — Runtime snapshot
 
-The tool smoke file must stay inside the dedicated workspace.
+Immediately after successful chat smoke, capture:
 
-If plain chat works but tool calling fails due to model/provider compatibility:
+```bash
+nvidia-smi
+free -h
+ps -ef | grep -i strata
+ss -lntp | grep 8080 || true
+```
 
-- do not patch Harness or Strata core;
-- capture the request/error/log evidence;
-- classify `HARNESS_CHAT_SMOKE=PASS`, `HARNESS_TOOL_SMOKE=FAIL`;
-- return `REVIEW_REQUIRED`.
+Record at minimum:
 
-## Phase 9 — Persistence for Harness
+- GPU VRAM used;
+- GPU utilization snapshot;
+- system RAM used/available;
+- Strata PID;
+- local listening address;
+- model/context configuration;
+- log path.
 
-If Harness has a stable documented daemon/server mode, make it persistent using systemd/systemd-user while preserving:
+This is deployment evidence, not a benchmark.
 
-- non-root execution;
-- local-only binding;
-- dedicated workspace;
-- local Strata provider.
-
-If current Harness is clearly developer-preview/interactive and persistent service wrapping is not reliable, do not invent a fragile daemon. Provide a reproducible start script and record `HARNESS_PERSISTENCE=NOT_ESTABLISHED`.
+Then STOP. Do not install anything else.
 
 ---
 
-# Verification gates
+# Verification Gate
 
-The deployment may be summarized as `BOOTSTRAP_PASS` only when all of the following are true:
+Return `LLM_BOOTSTRAP_PASS` only if all are true:
 
-1. hardware/capacity preflight passed;
-2. Strata pinned version recorded;
-3. Qwen3.8-Flash-Next IQ3_XXS starts at 128K;
-4. Strata stays local-only;
-5. Strata API smoke passes;
-6. Strata survives stop/start;
-7. Harness exact version recorded;
-8. Harness runs non-root;
-9. Harness uses the dedicated workspace;
-10. Harness reaches the local Strata endpoint;
-11. full-chain basic chat smoke passes;
-12. no RealPDE scientific asset was accessed or modified;
+1. host/capacity preflight passed;
+2. exact Strata SHA/version recorded;
+3. exact Qwen3.8-Flash-Next IQ3_XXS installed;
+4. configured context is 128K;
+5. vision is off;
+6. Strata listens only on localhost;
+7. health curl passes;
+8. models curl passes;
+9. OpenAI-compatible chat curl returns a valid completion;
+10. runtime RAM/VRAM evidence captured;
+11. no RealPDE scientific asset was accessed or modified;
+12. no Agent/RAG/application stack was installed;
 13. no secret was committed.
 
-`HARNESS_TOOL_SMOKE` may be `PASS` or `FAIL`; a tool-call compatibility failure does not invalidate a working Strata deployment, but it must be explicitly surfaced for Sol review.
+If the service starts but one API smoke fails, classify `PARTIAL` and preserve exact evidence.
 
-Any hard-constraint violation makes the execution `INVALID` until reviewed.
+Any HARD CONSTRAINT violation means `INVALID` until Sol review.
 
 ---
 
-# Evidence and deliverables
+# Evidence and Deliverables
 
-Create/update this direction only:
+Maintain only:
 
 ```text
 docs/private_llm_deployment/
 ├── README.md
 ├── NEXT_ACTION.md
 └── reviews/
-    └── strata_qwen38_3090_bootstrap_20261003/
+    └── strata_qwen38_3090_curl_bootstrap_20261003/
         ├── README.md
         ├── preflight.md
         ├── runtime.json
-        ├── strata_smoke.md
-        ├── harness_smoke.md
-        └── service_inventory.md
+        └── curl_smoke.md
 ```
 
-Names may vary slightly if a current-date suffix is needed, but keep everything under this direction.
+A slightly different date suffix is acceptable if execution crosses midnight.
 
-### `docs/private_llm_deployment/README.md`
+## `docs/private_llm_deployment/README.md`
 
-Long-term direction memory. Record only stable facts:
+Record stable facts only:
 
-- purpose of the node;
-- actual hardware/OS facts;
-- actual AI stack root;
-- Strata upstream SHA/version;
-- model/quant/context;
-- Harness SHA/version;
-- local ports;
-- service names;
-- start/stop/status/log commands;
+- purpose of this local LLM node;
+- actual host hardware/OS;
+- actual Strata install root;
+- exact Strata SHA/version;
+- model / quantization / context;
+- local endpoint;
+- exact start command/launcher;
 - known limitations;
 - review status.
 
-### Review evidence
+## Review evidence must include
 
-At minimum record:
-
-- execution Git commit from the RealPDE coordination repo;
-- host hardware facts;
-- disk/RAM/VRAM preflight;
-- existing GPU process check;
-- installed versions/SHAs;
-- exact non-secret commands used;
-- actual install paths;
-- service unit names and status;
-- local listen addresses/ports;
-- Strata API smoke results;
-- Harness chat/tool smoke results;
-- runtime RAM/VRAM snapshots;
-- any bounded environment adaptation;
-- any failure/warning;
+- execution commit in the coordination repo;
+- hardware/capacity preflight;
+- GPU process conflict check;
+- exact Strata SHA/version;
+- exact install/setup/start commands, secret-free;
+- actual install/model paths and sizes;
+- health/models/chat curl results;
+- runtime RAM/VRAM snapshot;
+- bounded environment adaptations;
+- warnings/errors;
 - explicit scope statement:
   - `RealPDE scientific assets NOT accessed`
+  - `Agent framework NOT installed`
   - `RAG NOT deployed`
-  - `vector DB NOT deployed`
   - `public ingress NOT enabled`
-  - `cloud model fallback NOT configured`
+  - `calibration NOT run`
+  - `persistent service NOT configured`
 
-Do not commit full downloaded models or large raw logs. Reference their local paths and sizes only.
-
-Generic reproducibility helpers may be added under a small deployment-specific path if they are genuinely needed, are secret-free, and do not modify RealPDE scientific code.
+Do not commit model files or large raw logs. Reference paths only.
 
 ---
 
-# Git delivery
+# Git Delivery
 
 Before final commit:
 
@@ -600,14 +586,14 @@ git fetch origin
 git pull --rebase origin main
 ```
 
-If rebase creates a substantive conflict, STOP and report rather than guessing.
+If rebase creates a substantive conflict, STOP and report.
 
-Stage only this deployment direction and any explicitly related small helper/template files. Do not use blind `git add .`.
+Stage only files in this deployment direction. Do not use blind `git add .`.
 
-Commit with a scoped message, for example:
+Suggested commit message:
 
 ```text
-ops: record local Qwen Strata bootstrap
+ops: record Strata Qwen curl bootstrap
 ```
 
 Then:
@@ -621,31 +607,32 @@ git status --short
 
 Requirements:
 
-- result/evidence commit is present on remote `main`;
+- evidence commit is present on remote `main`;
 - `HEAD == origin/main` after delivery;
 - no unknown local changes introduced by this task.
 
 ---
 
-# Final response format
+# Final Response Format
 
-Return a compact handoff only after the GitHub delivery is complete:
+After GitHub delivery, return only a compact handoff:
 
 ```text
 PRIVATE_LLM_BOOTSTRAP
 status: REVIEW_REQUIRED
-bootstrap_gate: BOOTSTRAP_PASS | PARTIAL | FAILED | INVALID
+bootstrap_gate: LLM_BOOTSTRAP_PASS | PARTIAL | FAILED | INVALID
 execution_commit: <sha>
 strata_commit/version: <value>
 model: Qwen3.8-Flash-Next IQ3_XXS
 context: 128K
-strata_api_smoke: PASS | FAIL
-strata_restart_smoke: PASS | FAIL
-harness_version: <value>
-harness_chat_smoke: PASS | FAIL
-harness_tool_smoke: PASS | FAIL | NOT_SUPPORTED
-agent_non_root: PASS | FAIL
+health_curl: PASS | FAIL
+models_curl: PASS | FAIL
+chat_curl: PASS | FAIL
 local_only_binding: PASS | FAIL
+gpu_vram_snapshot: <value>
+system_ram_snapshot: <value>
+agent_framework_installed: NO
+rag_deployed: NO
 realpde_assets_accessed: NO
 public_ingress_enabled: NO
 evidence: docs/private_llm_deployment/reviews/<run>/README.md
@@ -653,4 +640,4 @@ blocking_issue: <none or concise issue>
 NEXT_ACTION: REVIEW_REQUIRED
 ```
 
-Do not start RAG, switch models, expose the service, tune the model, or begin another deployment after this handoff.
+Do not install an Agent, RAG stack, Web UI, model router, or persistent service after this handoff.
