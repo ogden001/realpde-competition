@@ -1,7 +1,7 @@
 # Private LLM Deployment
 
-Purpose: first-step local-only Strata deployment on the existing GPU host. Deployment has not been installed: the 2026-10-03 preflight stopped under the required no-interference gate because an unrelated GPU process already holds about 12 GiB VRAM and port 8080 is already bound.
+Purpose: first-step local-only Strata deployment on the existing GPU host. The official Strata source is cloned under `~/ai-stack/strata`; model installation stopped before downloading model assets because the current upstream release has no ready-made engine and its documented source-build path requires CUDA Toolkit 13.0 installation through sudo.
 
-Target remains Qwen3.8-Flash-Next / IQ3_XXS / 131072-token context, vision off, served by official Strata on 127.0.0.1. No Strata SHA, model path, or launcher has been established. Review status: `REVIEW_REQUIRED` (blocked before installation).
+Target remains Qwen3.8-Flash-Next / IQ3_XXS / 131072-token context, vision off, normal MTP path, and INT8 KV. The intended local API is `127.0.0.1:8081` because the unrelated listener on 8080 remains active. Strata SHA: `99f3dbd0b21d1401b3769e0c0d963913607f380b`. Review status: `REVIEW_REQUIRED` (waiting for the required CUDA toolkit installation).
 
-See [the 2026-10-03 preflight review](reviews/strata_qwen38_3090_curl_bootstrap_20261003/README.md).
+See [the 2026-10-03 review evidence](reviews/strata_qwen38_3090_curl_bootstrap_20261003/README.md).
