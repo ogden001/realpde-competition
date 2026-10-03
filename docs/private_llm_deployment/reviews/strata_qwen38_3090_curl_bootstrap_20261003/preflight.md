@@ -1,11 +1,13 @@
-# CUDA resume preflight — 2026-10-04
+# CUDA, engine, and capacity preflight — 2026-10-04
 
-- Coordination repo: `HEAD == origin/main == f623049fef3474d95c59a5172c0e6739b0064fb9`; required task commit and base commit ancestor checks passed; push dry-run passed.
-- `which nvcc`: no output. `nvcc --version`: command not found. `/usr/local/cuda*`: no matching path.
-- dpkg query: no package installed for `cuda-toolkit-13-0`, `cuda-compiler-13-0`, or `cuda-nvcc-13-0`.
-- `sudo -n true`: failed with `sudo: a password is required`. Existing `/tmp/cuda-keyring.deb` is present (4328 bytes). No privileged command or package install was attempted.
-- `nvidia-smi`: NVIDIA GeForce RTX 3090; driver 595.84; reported CUDA runtime 13.2; 83 / 24576 MiB used; only Xorg and gnome-shell. Driver is healthy and unchanged from prior evidence.
-- RAM: 62 GiB total; 59 GiB available. Swap: 8 GiB total; 2.7 GiB used. Disk `/`: 1012 GiB free.
-- Port 8080 remains listening on wildcard IPv4/IPv6; port 8081 was free. No listeners were changed.
-- Existing Strata repo: official upstream, pinned SHA `99f3dbd0b21d1401b3769e0c0d963913607f380b`, clean worktree. Existing model dir: `~/ai-stack/models`, 12 KiB.
-- Strata setup was not resumed because the toolkit prerequisite failed the required check. No model download, server launch, or curl request occurred.
+- Coordination repo synchronized at `de9963e25c465f32cddef10223f8cd4883fbbc25`; required task commit is HEAD; `origin/main` matched and push dry-run passed.
+- CUDA Toolkit: dpkg packages `cuda-toolkit-13-0` 13.0.3-1, `cuda-compiler-13-0` 13.0.3-1, `cuda-nvcc-13-0` 13.0.88-1. `nvcc --version` reports release 13.0, V13.0.88.
+- Session-only environment: `PATH=/usr/local/cuda-13.0/bin:$PATH`, `LD_LIBRARY_PATH=/usr/local/cuda-13.0/lib64:${LD_LIBRARY_PATH:-}`. No shell startup or system-wide environment file changed.
+- NVIDIA driver after Toolkit installation: 595.84; `nvidia-smi` healthy and consistent with prior driver snapshot. It reports CUDA runtime 13.2.
+- Current GPU: RTX 3090, 24576 MiB total, 83 MiB used, 0% utilization; Xorg and gnome-shell only.
+- RAM: 62 GiB total, 59 GiB available; swap 8 GiB / 2.7 GiB used. Filesystem `/`: 1001 GiB free.
+- Port 8080 remains occupied by existing wildcard IPv4/IPv6 listeners and was untouched. Port 8081 was free at preflight and remains without a listener.
+- Existing official Strata repo: `https://github.com/Niko1221/Strata.git`, clean worktree, SHA `99f3dbd0b21d1401b3769e0c0d963913607f380b`, v0.1.38.
+- Engine compile: success, 129/129 targets; `~/ai-stack/strata/engine/strata`, 39 MiB.
+- Setup log: `~/ai-stack/logs/setup-resume.log`; setup PID 432102 exited. Exact terminal error: `cannot reach huggingface.co (<urlopen error [Errno 101] Network is unreachable>)`. No shard or partial model file exists in the target model folder.
+- No service start or API request occurred.

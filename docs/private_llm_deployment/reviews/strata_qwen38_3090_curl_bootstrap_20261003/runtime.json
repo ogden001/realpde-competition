@@ -1,16 +1,13 @@
 {
-  "status": "BLOCKED_CUDA_TOOLKIT_NOT_PRESENT",
-  "required_task_commit": "f623049fef3474d95c59a5172c0e6739b0064fb9",
-  "execution_commit": "f623049fef3474d95c59a5172c0e6739b0064fb9",
+  "status": "ENGINE_BUILD_SUCCESS_MODEL_DOWNLOAD_FAILED_NETWORK_UNREACHABLE",
+  "required_task_commit": "de9963e25c465f32cddef10223f8cd4883fbbc25",
+  "execution_commit": "de9963e25c465f32cddef10223f8cd4883fbbc25",
   "cuda_toolkit": {
-    "version": null,
-    "nvcc_found": false,
-    "dpkg_packages": {
-      "cuda-toolkit-13-0": "not installed",
-      "cuda-compiler-13-0": "not installed",
-      "cuda-nvcc-13-0": "not installed"
-    },
-    "sudo_noninteractive": "unavailable; password required"
+    "package": "cuda-toolkit-13-0",
+    "package_version": "13.0.3-1",
+    "nvcc": "13.0.88",
+    "nvcc_path": "/usr/local/cuda-13.0/bin/nvcc",
+    "session_path_adaptation": true
   },
   "nvidia_driver": "595.84",
   "nvidia_smi_cuda_runtime": "13.2",
@@ -18,7 +15,10 @@
     "upstream": "https://github.com/Niko1221/Strata.git",
     "commit": "99f3dbd0b21d1401b3769e0c0d963913607f380b",
     "version": "v0.1.38",
-    "worktree": "clean"
+    "worktree": "clean",
+    "engine_build": "success, 129/129 targets",
+    "engine_path": "~/ai-stack/strata/engine/strata",
+    "engine_size": "39 MiB"
   },
   "model": "Qwen3.8-Flash-Next",
   "quantization": "IQ3_XXS",
@@ -26,37 +26,49 @@
   "vision": "OFF",
   "kv": "int8",
   "mtp": "official normal path",
-  "install_root": "~/ai-stack",
-  "strata_path": "~/ai-stack/strata",
-  "model_path": "~/ai-stack/models",
-  "model_directory_size": "12 KiB; no model assets downloaded",
-  "setup_log": "~/ai-stack/logs/setup.log",
+  "data_root": "~/ai-stack/models",
+  "model_dir": "~/ai-stack/models/models/IQ3_XXS",
+  "model_files_downloaded": false,
   "endpoint": "127.0.0.1:8081",
+  "setup_command": "./setup.sh --yes --family qwen --model IQ3_XXS --context 131072 --vision no --kv int8 --port 8081 --host 127.0.0.1 --data-dir \"$HOME/ai-stack/models\" --no-start",
+  "setup_log": "~/ai-stack/logs/setup-resume.log",
+  "setup_pid": 432102,
+  "setup_pid_status": "exited after Hugging Face network-unreachable error",
+  "server_started": false,
   "strata_pid": null,
-  "service_started": false,
-  "curl_smoke": "NOT_RUN",
+  "curl": {
+    "health": "NOT_RUN",
+    "models": "NOT_RUN",
+    "chat_completions": "NOT_RUN"
+  },
   "snapshot": {
     "gpu": "NVIDIA GeForce RTX 3090",
     "vram_total_mib": 24576,
     "vram_used_mib": 83,
+    "gpu_utilization_percent": 0,
     "gpu_processes": [
       "Xorg",
       "gnome-shell"
     ],
     "ram_total_gib": 62,
+    "ram_used_gib": 3.0,
     "ram_available_gib": 59,
-    "swap_total_gib": 8,
+    "swap_total_gib": 8.0,
     "swap_used_gib": 2.7,
-    "root_free_gib": 1012,
-    "port_8080": "occupied by existing wildcard listeners",
-    "port_8081": "free"
+    "root_free_gib": 1001,
+    "port_8080": "existing wildcard IPv4/IPv6 listeners left untouched",
+    "port_8081": "free; Strata not started",
+    "listening_address": null
   },
+  "blocking_error": "cannot reach huggingface.co (<urlopen error [Errno 101] Network is unreachable>)",
   "scope": {
     "realpde_scientific_assets_accessed": false,
     "agent_framework_installed": false,
     "rag_deployed": false,
     "public_ingress_enabled": false,
     "calibration_run": false,
-    "persistent_service_configured": false
+    "persistent_service_configured": false,
+    "nvidia_driver_changed": false,
+    "large_artifacts_committed": false
   }
 }
