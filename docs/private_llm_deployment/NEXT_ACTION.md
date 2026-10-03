@@ -1,317 +1,103 @@
-# NEXT_ACTION — Strata + Qwen3.8-Flash-Next Bootstrap on RTX 3090
+# NEXT_ACTION — Resume Strata Qwen Bootstrap after CUDA Toolkit
 
 Status: `IMPLEMENT_AND_EXECUTE_AUTHORIZED / REVIEW_REQUIRED`
 
-This is the **first deployment step only**.
+`REQUIRED_BASE_COMMIT = 9fe5244e70732e9621eb2b6f6dbba6aa025bfbcb`
 
-The RealPDE repository is used only as the ChatGPT/Sol ↔ Codex/Luna coordination and evidence channel. Do not modify or access RealPDE scientific assets.
+This is a continuation of the first local-LLM deployment only. Preserve the existing installation/evidence and resume from the CUDA-toolkit blocker. Do not reinstall from scratch unless the existing Strata tree is corrupt.
 
-The user will provide the exact commit containing this task as `REQUIRED_COMMIT`. Before execution, verify that commit is an ancestor of `HEAD`.
-
-## Goal
-
-Deploy and start exactly this local LLM stack on the existing RTX 3090 server:
+## Frozen target
 
 ```text
 curl
   ↓ OpenAI-compatible HTTP API
-Strata
+Strata v0.1.38 source build on Linux
   ↓
-Qwen3.8-Flash-Next / IQ3_XXS / 128K
+Qwen3.8-Flash-Next / IQ3_XXS / 128K / vision OFF / INT8 KV
   ↓
 RTX 3090 24 GB + 64 GB RAM
 ```
 
-Expected host:
+Known approved environment adaptation:
 
-- GPU: NVIDIA RTX 3090 24 GB
-- RAM: 64 GB
-- CPU: Intel i7-13700KF
-- Disk: 1 TB
-- OS: Linux
+- Strata local port: `8081` because unrelated port 8080 remains occupied.
+- Binding must remain exactly local-only: `127.0.0.1:8081`.
 
-Success for this task means:
+Known verified upstream state:
 
-1. Strata is installed from the official upstream repository;
-2. Qwen3.8-Flash-Next IQ3_XXS is installed/configured for 128K context;
-3. the service starts successfully on localhost only;
-4. `curl` can query health/model endpoints and receive one successful OpenAI-compatible chat completion;
-5. lightweight evidence is committed and pushed to `origin/main`;
-6. final state is `REVIEW_REQUIRED`.
+- Strata repo: `~/ai-stack/strata`
+- Strata SHA: `99f3dbd0b21d1401b3769e0c0d963913607f380b`
+- Strata release: `v0.1.38`
+- model/data dir: `~/ai-stack/models`
+- setup log: `~/ai-stack/logs/setup.log`
+- previous setup command:
 
-**Do not install any Agent framework in this task.**
+```bash
+./setup.sh --yes --family qwen --model IQ3_XXS --context 131072 \
+  --vision no --kv int8 --port 8081 --host 127.0.0.1 \
+  --data-dir "$HOME/ai-stack/models" --no-start
+```
+
+Previous evidence established that Linux v0.1.38 fell back to the official source-build path and requires CUDA Toolkit 13.0. The existing NVIDIA driver is 595.84 and must NOT be replaced or downgraded.
 
 ---
 
-# Roles
+# Privileged prerequisite
 
-## ChatGPT / Sol owns
+The only authorized system-level package installation for this continuation is:
 
-- deployment architecture;
-- model / quantization / context choice;
-- hard/soft constraints;
-- review of execution evidence;
-- decision on later Agent, RAG, calibration, service hardening, or production work.
+```text
+cuda-toolkit-13-0
+```
 
-## Codex / Luna owns
+Do NOT install these broader meta-packages:
 
-- host/environment inspection;
-- bounded installation and environment adaptation;
-- following current official Strata documentation;
-- starting the frozen model server;
-- curl smoke tests;
-- lightweight evidence collection;
-- commit + push to `origin/main`.
+```text
+cuda
+cuda-13-0
+nvidia-driver-*
+```
 
-If a required adaptation would change a HARD CONSTRAINT, STOP and report. Do not choose a new architecture or model yourself.
+Do not change the current NVIDIA driver.
+
+If CUDA Toolkit 13.0 is not yet installed and Codex cannot use sudo non-interactively, STOP and return the exact manual commands below for the user to run:
+
+```bash
+sudo dpkg -i /tmp/cuda-keyring.deb
+sudo apt-get update
+sudo apt-get install -y cuda-toolkit-13-0
+```
+
+If `/tmp/cuda-keyring.deb` no longer exists, use the current official NVIDIA/Strata setup flow to recreate/download the repository key package; do not download an arbitrary third-party package.
+
+After the user installs it, continue automatically from the checks below. Do not ask for further confirmation unless a HARD CONSTRAINT would change.
 
 ---
 
 # HARD CONSTRAINTS
 
-These are absolute.
+1. **Model is frozen:** `Qwen3.8-Flash-Next / IQ3_XXS / 131072 / vision OFF / INT8 KV`.
+2. **Inference engine is frozen:** official Strata; do not patch Strata core/kernel/model code.
+3. **Driver is frozen:** do not install/upgrade/downgrade NVIDIA driver.
+4. **Port is frozen for this host:** `127.0.0.1:8081` only.
+5. Do not kill or reconfigure the unrelated process/service on port 8080.
+6. Do not install any Agent framework.
+7. Do not install RAG/vector DB/embedding/reranker/Web UI/model router/cloud fallback.
+8. Do not add Docker/Kubernetes/Nginx/HTTPS/systemd/persistence in this task.
+9. Do not run Strata calibration or tuning sweeps.
+10. Do not compare other model/quantization/context variants.
+11. Do not access/modify/copy/delete RealPDE scientific assets, datasets, checkpoints, training jobs, or scientific code.
+12. Do not use destructive cleanup (`git reset --hard`, broad `rm -rf`, `git clean -fdx`, etc.).
+13. Do not commit credentials, model binaries, caches, or large raw logs.
+14. Final state is always `REVIEW_REQUIRED`; do not continue into Agent/RAG/product work.
 
-## H1. Do not touch RealPDE scientific assets
-
-Do not:
-
-- modify RealPDE model/training/evaluation code;
-- read/copy/delete/move any RealPDE H5 dataset or checkpoint;
-- start/stop any RealPDE training/evaluation job;
-- reuse RealPDE run directories for this deployment;
-- add model binaries, large logs, credentials, or generated model state into Git.
-
-Only files under `docs/private_llm_deployment/` may be added/updated for this task, plus a tiny secret-free helper script only if strictly needed.
-
-## H2. Frozen model configuration
-
-Deploy exactly:
-
-- model family: `Qwen3.8-Flash-Next`
-- Strata quantization: `IQ3_XXS`
-- context target: `131072` tokens (128K)
-- vision: OFF
-- MTP/speculative decoding: use the normal supported Strata path
-- KV: keep Strata's normal/default 8-bit path; do not opt into experimental q4/k8v4 variants
-
-Do not silently switch to:
-
-- IQ2_XS;
-- IQ3_S;
-- Coder;
-- Swift;
-- another Qwen model;
-- another inference engine.
-
-If this exact configuration cannot start, preserve evidence and STOP at `REVIEW_REQUIRED`.
-
-## H3. Strata is the only inference server
-
-Use the official repository:
-
-`https://github.com/Niko1221/Strata`
-
-Requirements:
-
-- clone/use official upstream;
-- record exact Strata Git SHA actually used;
-- follow the current official setup flow;
-- do not patch Strata core/kernel/model code;
-- do not create a private fork to work around an upstream problem.
-
-If official Strata cannot run this frozen configuration on the host, capture the failure and STOP.
-
-## H4. No Agent installation
-
-Do **not** install or configure:
-
-- DeepSeek Harness;
-- AgentScope;
-- Qwen-Agent;
-- OpenHands;
-- LangGraph;
-- Claude Code integrations;
-- Codex integrations;
-- any other Agent framework/runtime.
-
-This task ends after direct HTTP/curl model API validation.
-
-## H5. No RAG/application stack
-
-Do not install or configure:
-
-- RAG;
-- vector database;
-- embedding model/service;
-- reranker;
-- document parsing pipeline;
-- Web UI;
-- application backend;
-- model router;
-- cloud model fallback.
-
-## H6. Local-only network binding
-
-For this stage:
-
-- Strata must bind to `127.0.0.1` only;
-- do not bind to `0.0.0.0`;
-- do not open firewall ports;
-- do not configure public DNS, TLS, Nginx, Cloudflare, tunnels, or ingress.
-
-All smoke tests are performed locally with `curl`.
-
-## H7. Do not kill unrelated processes
-
-Before installation/startup inspect `nvidia-smi` and relevant process/port state.
-
-If an unknown/unrelated process is using material GPU memory or compute:
-
-- do not kill it;
-- do not reset the GPU;
-- do not steal its port;
-- STOP and report before starting Strata.
-
-## H8. No destructive cleanup
-
-Do not use destructive broad commands such as:
-
-- `rm -rf` on unknown/existing project trees;
-- `git reset --hard`;
-- `git clean -fdx`;
-- deleting existing model caches to make room;
-- overwriting unrelated services/configuration.
-
-Unknown existing installations/configs must be preserved and reported.
-
-## H9. Capacity gate before large download
-
-Before downloading model assets verify:
-
-- RTX 3090 is visible and reports about 24 GB VRAM;
-- visible system RAM is about 60 GiB or more;
-- target filesystem has at least `180 GiB` free;
-- NVIDIA driver/runtime are healthy;
-- no material swap thrashing or disk-full condition exists.
-
-If any gate fails, STOP before the large download.
-
-## H10. No secrets in Git
-
-Never commit:
-
-- passwords;
-- SSH keys;
-- API secrets;
-- tokens;
-- sensitive hostnames/IPs;
-- unredacted environment dumps containing credentials.
-
-## H11. No optimization sweep
-
-Do not do:
-
-- model comparison;
-- quantization comparison;
-- context sweep;
-- performance benchmark matrix;
-- kernel tuning;
-- expert-cache tuning;
-- speculative decoding tuning;
-- production load test.
-
-A single minimal smoke measurement/resource snapshot is allowed only as evidence that deployment works.
-
-## H12. No persistence/hardening work in this task
-
-Do not spend time on:
-
-- systemd service creation;
-- Docker/Kubernetes;
-- watchdogs;
-- production logging stack;
-- monitoring stack;
-- auto-restart policy;
-- boot persistence.
-
-The objective is first successful local deployment and curl validation. Persistence comes later after review.
-
-## H13. No calibration in this task
-
-Do not run Strata calibration yet. First establish an untouched upstream baseline that works.
-
-## H14. Final state is always REVIEW_REQUIRED
-
-Do not proceed to Agent, RAG, optimization, or hardening after curl smoke.
-
-End at:
-
-`REVIEW_REQUIRED`
-
-and wait for user + ChatGPT/Sol review.
+If any required fix would violate these constraints, STOP and preserve evidence.
 
 ---
 
-# SOFT CONSTRAINTS
+# Preflight before resume
 
-These may be adapted to the real host without changing the frozen deployment semantics.
-
-## S1. Installation root
-
-Preferred:
-
-`/opt/ai-stack`
-
-Suggested minimal layout:
-
-```text
-/opt/ai-stack/
-├── strata/
-├── models/
-└── logs/
-```
-
-If `/opt` is unsuitable, use an equivalent location such as `$HOME/ai-stack` and record the actual path.
-
-Do not weaken permissions merely to force `/opt`.
-
-## S2. Native Linux preferred
-
-Prefer native Linux. Do not introduce Docker simply for convenience.
-
-If current official Strata unexpectedly requires a materially different deployment mechanism, STOP for review rather than changing architecture automatically.
-
-## S3. Follow current upstream CLI
-
-The Strata repository can change. Codex may adapt exact CLI syntax to current official docs, but final semantics must remain:
-
-- Qwen3.8-Flash-Next;
-- IQ3_XXS;
-- 128K;
-- vision off;
-- local-only API.
-
-Record exact commands actually executed.
-
-## S4. Minimal dependencies
-
-Install only dependencies required by official Strata documentation.
-
-Do not perform broad OS or NVIDIA driver upgrades. If the current driver is incompatible and replacement is required, STOP and report rather than modifying the GPU software stack automatically.
-
-## S5. Background process for smoke is allowed
-
-After successful installation, Codex may launch Strata with the project's supported launcher under `nohup`, a shell background process, `tmux`, or equivalent solely to keep the model alive long enough for curl smoke and evidence collection.
-
-Record PID/command/log path when applicable.
-
-Do not convert this into a permanent service in this task.
-
----
-
-# Preflight
-
-Run from the RealPDE coordination repo before heavy work:
+From the RealPDE coordination repo:
 
 ```bash
 git status --short
@@ -319,137 +105,149 @@ git fetch origin
 git pull --rebase origin main
 git rev-parse HEAD
 git rev-parse origin/main
-git merge-base --is-ancestor "$REQUIRED_COMMIT" HEAD
+git merge-base --is-ancestor 9fe5244e70732e9621eb2b6f6dbba6aa025bfbcb HEAD
 git push --dry-run origin HEAD:main
 ```
 
-Requirements:
+Require:
 
-- no unknown local modifications;
+- clean/known worktree;
 - `HEAD == origin/main`;
-- `REQUIRED_COMMIT` is an ancestor of `HEAD`;
+- base commit is an ancestor;
 - dry-run push succeeds.
 
-If unknown repo changes exist, do not stash/reset/restore/clean. STOP and report.
-
-Then capture host facts:
+Then re-check host state:
 
 ```bash
-uname -a
-cat /etc/os-release
-id
-lscpu
+nvidia-smi
 free -h
 df -h
-nvidia-smi
-nvidia-smi --query-gpu=name,memory.total,memory.used,utilization.gpu,driver_version,pstate --format=csv
+ss -lntp | grep -E ':(8080|8081)\b' || true
 ```
 
-Also inspect:
+Require:
 
-- GPU process list;
-- listener state for port `8080`;
-- existing Strata / AI-stack directories;
-- Git/Python/tool versions required by current Strata docs.
+- RTX 3090 available with no unknown material GPU workload;
+- roughly 60 GiB or more visible RAM and adequate free memory;
+- at least 180 GiB free disk;
+- port 8081 free before Strata start;
+- existing 8080 service untouched.
 
-Do not expose secrets in evidence.
-
-Create lightweight preflight evidence before the large model download.
+If a new unknown material GPU workload appears, STOP rather than killing it.
 
 ---
 
-# Execution
+# Phase 1 — Verify CUDA Toolkit only
 
-## Phase 1 — Prepare isolated Strata installation
+After the privileged prerequisite has been completed, capture:
 
-1. Choose actual AI stack root using S1.
-2. Keep the installation completely outside RealPDE data/run directories.
-3. Create only directories needed for Strata/model/logs.
-4. Record actual path and disk free space.
+```bash
+which nvcc || true
+nvcc --version || true
+ls -ld /usr/local/cuda* 2>/dev/null || true
+nvidia-smi
+```
 
-## Phase 2 — Clone and pin official Strata
+Acceptance:
 
-Clone/use:
+- a CUDA 13.0 toolkit/compiler is available to the Strata build;
+- current NVIDIA driver remains unchanged from the pre-install state unless the host itself changed outside this task;
+- `nvidia-smi` remains healthy.
 
-`https://github.com/Niko1221/Strata`
+If toolkit is installed but Strata cannot discover `nvcc`, bounded PATH/environment adaptation to the official `/usr/local/cuda-13.0/bin` location is allowed. Do not install another CUDA version.
 
-Record:
+---
 
-- upstream URL;
-- current branch/tag if relevant;
-- exact Git SHA;
-- install/setup command;
-- Strata/engine version information if exposed.
+# Phase 2 — Resume official Strata setup
 
-Do not modify Strata core source.
-
-## Phase 3 — Install frozen model
-
-Follow the current upstream setup flow to install exactly:
+Use the existing official Strata tree at:
 
 ```text
-Qwen3.8-Flash-Next
-IQ3_XXS
-context = 131072
-vision = OFF
+~/ai-stack/strata
 ```
 
-Use default/supported MTP and normal/default KV path.
+First verify it is still the approved upstream tree and clean:
 
-Do not download alternate Qwen model variants for comparison.
+```bash
+cd "$HOME/ai-stack/strata"
+git remote -v
+git status --short
+git rev-parse HEAD
+```
 
-If the setup is interactive, answer consistently with the frozen configuration and record the effective choices.
+Expected SHA:
 
-## Phase 4 — Start Strata locally
+`99f3dbd0b21d1401b3769e0c0d963913607f380b`
 
-Start using the official generated/recommended launcher.
+Do not `git pull` Strata to a newer revision in this continuation unless the pinned revision is unusable for a reason that is proven and reviewed. We want to finish the same deployment attempt.
 
-Required:
+Resume the exact frozen setup:
 
-- localhost only;
-- expected model/quantization;
-- 128K context;
-- vision disabled;
-- no fallback model.
+```bash
+./setup.sh --yes --family qwen --model IQ3_XXS --context 131072 \
+  --vision no --kv int8 --port 8081 --host 127.0.0.1 \
+  --data-dir "$HOME/ai-stack/models" --no-start
+```
 
-Verify:
+Allow the official setup to:
 
-- process remains alive;
+- compile the Strata engine;
+- download the frozen model assets;
+- prepare the model/pack/MTP assets required by that configuration.
+
+Do not download any alternative model variant.
+
+If setup fails, capture the relevant tail of the official log and STOP. Do not patch Strata or invent an alternate engine.
+
+---
+
+# Phase 3 — Start the frozen model
+
+After setup succeeds, start Strata using the launcher/config generated by that pinned Strata version for this model.
+
+A temporary background mechanism (`nohup`, `tmux`, shell background) is allowed only to keep it alive for curl smoke.
+
+Verify before curl:
+
+- process alive;
 - no CUDA OOM;
-- no immediate crash-loop;
-- expected listening port is local-only.
+- no immediate crash loop;
+- listener is `127.0.0.1:8081`, not wildcard.
 
-## Phase 5 — curl smoke
+Capture the actual PID, launcher command/config path, and log path.
 
-Use `curl` directly against Strata. Adapt endpoint names only if the current official API differs.
+---
 
-At minimum test:
+# Phase 4 — curl smoke only
 
-### A. Health
+Use port `8081`.
 
-Equivalent to:
+## A. Health
 
 ```bash
-curl -sS http://127.0.0.1:8080/health
+curl -sS -w '\nHTTP_STATUS=%{http_code}\n' \
+  http://127.0.0.1:8081/health
 ```
 
-### B. Models
-
-Equivalent to:
+## B. Models
 
 ```bash
-curl -sS http://127.0.0.1:8080/v1/models
+curl -sS -w '\nHTTP_STATUS=%{http_code}\n' \
+  http://127.0.0.1:8081/v1/models
 ```
 
-### C. OpenAI-compatible chat completion
+Read the actual model identifier from the response if one is provided.
 
-Equivalent to:
+## C. One OpenAI-compatible Chinese chat completion
+
+Use the actual model identifier accepted by the service. Semantically equivalent request:
 
 ```bash
-curl -sS http://127.0.0.1:8080/v1/chat/completions \
+curl -sS -w '\nHTTP_STATUS=%{http_code}\n' \
+  http://127.0.0.1:8081/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
-    "model": "strata",
+    "model": "<actual-model-id>",
     "messages": [
       {"role": "user", "content": "请用三句话说明大型化工工程投标技术文件通常需要关注哪些核心内容。"}
     ],
@@ -458,125 +256,98 @@ curl -sS http://127.0.0.1:8080/v1/chat/completions \
   }'
 ```
 
-If the current API reports a different actual model name, use the name returned by `/v1/models` instead of guessing.
+Do not repeat requests for benchmarking. One successful chat completion is enough.
 
-Capture:
+---
 
-- HTTP success/failure;
-- response body in redacted/lightweight form;
-- returned model identifier;
-- token usage if exposed;
-- elapsed request time if easily available from curl;
-- no need to run repeated performance trials.
+# Phase 5 — Runtime evidence
 
-## Phase 6 — Runtime snapshot
-
-Immediately after successful chat smoke, capture:
+Immediately after successful chat smoke capture:
 
 ```bash
 nvidia-smi
 free -h
-ps -ef | grep -i strata
-ss -lntp | grep 8080 || true
+ps -ef | grep -i '[s]trata' || true
+ss -lntp | grep ':8081' || true
 ```
 
-Record at minimum:
+Record:
 
-- GPU VRAM used;
-- GPU utilization snapshot;
+- GPU VRAM used and utilization snapshot;
 - system RAM used/available;
 - Strata PID;
-- local listening address;
-- model/context configuration;
-- log path.
+- exact local listener;
+- model/quant/context configuration;
+- model/data directory size;
+- log/config/launcher paths;
+- health/models/chat HTTP status;
+- returned model identifier;
+- token usage/elapsed time only if trivially exposed by the single smoke request.
 
-This is deployment evidence, not a benchmark.
+This is evidence, not a performance benchmark.
 
-Then STOP. Do not install anything else.
-
----
-
-# Verification Gate
-
-Return `LLM_BOOTSTRAP_PASS` only if all are true:
-
-1. host/capacity preflight passed;
-2. exact Strata SHA/version recorded;
-3. exact Qwen3.8-Flash-Next IQ3_XXS installed;
-4. configured context is 128K;
-5. vision is off;
-6. Strata listens only on localhost;
-7. health curl passes;
-8. models curl passes;
-9. OpenAI-compatible chat curl returns a valid completion;
-10. runtime RAM/VRAM evidence captured;
-11. no RealPDE scientific asset was accessed or modified;
-12. no Agent/RAG/application stack was installed;
-13. no secret was committed.
-
-If the service starts but one API smoke fails, classify `PARTIAL` and preserve exact evidence.
-
-Any HARD CONSTRAINT violation means `INVALID` until Sol review.
+Then STOP the investigation. Do not install the next layer.
 
 ---
 
-# Evidence and Deliverables
+# Gate
 
-Maintain only:
+Set:
+
+`bootstrap_gate: LLM_BOOTSTRAP_PASS`
+
+only if all are true:
+
+1. CUDA Toolkit 13.0 is available and driver remains healthy;
+2. pinned Strata source build succeeds;
+3. Qwen3.8-Flash-Next IQ3_XXS assets/config are installed;
+4. context = 128K and vision = off;
+5. Strata listens only on `127.0.0.1:8081`;
+6. health curl returns success;
+7. `/v1/models` curl returns success;
+8. one `/v1/chat/completions` returns a valid Chinese completion;
+9. runtime RAM/VRAM/PID/listener evidence is captured;
+10. no RealPDE scientific assets were accessed;
+11. no Agent/RAG/persistence stack was installed;
+12. no secrets or large artifacts enter Git.
+
+Otherwise use `PARTIAL` or `FAILED` with the exact blocker.
+
+---
+
+# Evidence / Git delivery
+
+Update the existing review folder rather than creating a parallel history unless the date has materially changed:
 
 ```text
-docs/private_llm_deployment/
-├── README.md
-├── NEXT_ACTION.md
-└── reviews/
-    └── strata_qwen38_3090_curl_bootstrap_20261003/
-        ├── README.md
-        ├── preflight.md
-        ├── runtime.json
-        └── curl_smoke.md
+docs/private_llm_deployment/reviews/strata_qwen38_3090_curl_bootstrap_20261003/
 ```
 
-A slightly different date suffix is acceptable if execution crosses midnight.
+Update at least:
 
-## `docs/private_llm_deployment/README.md`
+- `README.md`
+- `preflight.md`
+- `runtime.json`
+- `curl_smoke.md`
 
-Record stable facts only:
+Also update `docs/private_llm_deployment/README.md` with stable deployment facts only after they are actually established.
 
-- purpose of this local LLM node;
-- actual host hardware/OS;
-- actual Strata install root;
-- exact Strata SHA/version;
-- model / quantization / context;
-- local endpoint;
-- exact start command/launcher;
-- known limitations;
-- review status.
+Evidence must explicitly state:
 
-## Review evidence must include
-
-- execution commit in the coordination repo;
-- hardware/capacity preflight;
-- GPU process conflict check;
-- exact Strata SHA/version;
-- exact install/setup/start commands, secret-free;
-- actual install/model paths and sizes;
-- health/models/chat curl results;
-- runtime RAM/VRAM snapshot;
-- bounded environment adaptations;
-- warnings/errors;
-- explicit scope statement:
-  - `RealPDE scientific assets NOT accessed`
-  - `Agent framework NOT installed`
-  - `RAG NOT deployed`
-  - `public ingress NOT enabled`
-  - `calibration NOT run`
-  - `persistent service NOT configured`
-
-Do not commit model files or large raw logs. Reference paths only.
-
----
-
-# Git Delivery
+- CUDA toolkit version;
+- NVIDIA driver version after installation;
+- Strata SHA/version;
+- exact setup/start commands;
+- local endpoint `127.0.0.1:8081`;
+- model/quant/context;
+- curl results;
+- runtime snapshot;
+- `Agent framework NOT installed`;
+- `RAG NOT deployed`;
+- `RealPDE scientific assets NOT accessed`;
+- `public ingress NOT enabled`;
+- `calibration NOT run`;
+- `persistent service NOT configured`.
 
 Before final commit:
 
@@ -586,14 +357,12 @@ git fetch origin
 git pull --rebase origin main
 ```
 
-If rebase creates a substantive conflict, STOP and report.
+Stage only deployment-direction evidence. Do not use blind `git add .`.
 
-Stage only files in this deployment direction. Do not use blind `git add .`.
-
-Suggested commit message:
+Suggested result commit:
 
 ```text
-ops: record Strata Qwen curl bootstrap
+ops: complete Strata Qwen curl bootstrap
 ```
 
 Then:
@@ -605,26 +374,26 @@ git rev-parse origin/main
 git status --short
 ```
 
-Requirements:
-
-- evidence commit is present on remote `main`;
-- `HEAD == origin/main` after delivery;
-- no unknown local changes introduced by this task.
+Result evidence is not formally delivered until it is on remote `main`.
 
 ---
 
-# Final Response Format
+# Final response
 
-After GitHub delivery, return only a compact handoff:
+Return only a compact handoff:
 
 ```text
 PRIVATE_LLM_BOOTSTRAP
 status: REVIEW_REQUIRED
 bootstrap_gate: LLM_BOOTSTRAP_PASS | PARTIAL | FAILED | INVALID
 execution_commit: <sha>
-strata_commit/version: <value>
+evidence_commit: <sha>
+cuda_toolkit: <version>
+nvidia_driver: <version>
+strata_commit/version: 99f3dbd0b21d1401b3769e0c0d963913607f380b / v0.1.38
 model: Qwen3.8-Flash-Next IQ3_XXS
 context: 128K
+endpoint: 127.0.0.1:8081
 health_curl: PASS | FAIL
 models_curl: PASS | FAIL
 chat_curl: PASS | FAIL
@@ -635,9 +404,9 @@ agent_framework_installed: NO
 rag_deployed: NO
 realpde_assets_accessed: NO
 public_ingress_enabled: NO
-evidence: docs/private_llm_deployment/reviews/<run>/README.md
-blocking_issue: <none or concise issue>
+evidence: docs/private_llm_deployment/reviews/strata_qwen38_3090_curl_bootstrap_20261003/README.md
+blocking_issue: <none or concise blocker>
 NEXT_ACTION: REVIEW_REQUIRED
 ```
 
-Do not install an Agent, RAG stack, Web UI, model router, or persistent service after this handoff.
+Do not proceed to Agent, RAG, calibration, tuning, or persistence after this handoff.
