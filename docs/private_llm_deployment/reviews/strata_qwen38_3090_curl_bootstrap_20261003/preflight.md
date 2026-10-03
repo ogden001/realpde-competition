@@ -1,12 +1,11 @@
-# Preflight and setup details
+# CUDA resume preflight — 2026-10-04
 
-- Coordination repo synchronized at `9cedb64f9713c3861d9172b862aa04c70cb8c8af`; required commit `a2c4f30bd928fcd9af417b13926c70a90fd1390a` is an ancestor. Push dry-run passed.
-- User confirmed the earlier GPU memory process had been stopped. Fresh `nvidia-smi`: 83 MiB / 24576 MiB used; only Xorg and gnome-shell. PID 3619115 is absent.
-- Capacity: Ubuntu 24.04.4 LTS; i7-13700KF; RTX 3090; driver 595.84; 62 GiB RAM / 59 GiB available; swap 8 GiB / 2.7 GiB used; root filesystem 1012 GiB free. Five `vmstat` samples showed no sustained swap traffic.
-- Existing listener on port 8080 remains wildcard IPv4/IPv6. Port 8081 was free; official Strata docs advise 8081 when 8080 is occupied. Setup specifies `--host 127.0.0.1 --port 8081`.
-- Installation root: `~/ai-stack`; Strata repository: `~/ai-stack/strata`; model directory: `~/ai-stack/models`; logs: `~/ai-stack/logs`. No pre-existing stack was found at these paths.
-- Official Strata upstream: `https://github.com/Niko1221/Strata`; SHA `99f3dbd0b21d1401b3769e0c0d963913607f380b`; branch `main`; repository worktree clean. Current release is v0.1.38.
-- Setup installed Python packages in its virtual environment and downloaded llama.cpp source revision `3cf0325`. No model data was downloaded (`~/ai-stack/models`: 12 KiB).
-- Ready-made engine lookup returned HTTP 404. Official setup fell back to compile and required NVIDIA CUDA Toolkit 13.0. It downloaded `/tmp/cuda-keyring.deb`, then `sudo dpkg -i` failed: `sudo: a terminal is required to read the password` / `sudo: a password is required`. Setup exited; no system package or driver was changed.
-- Full setup command is recorded in the review README. No service start or curl request occurred.
-- SSH warning: connection did not use a post-quantum key exchange.
+- Coordination repo: `HEAD == origin/main == f623049fef3474d95c59a5172c0e6739b0064fb9`; required task commit and base commit ancestor checks passed; push dry-run passed.
+- `which nvcc`: no output. `nvcc --version`: command not found. `/usr/local/cuda*`: no matching path.
+- dpkg query: no package installed for `cuda-toolkit-13-0`, `cuda-compiler-13-0`, or `cuda-nvcc-13-0`.
+- `sudo -n true`: failed with `sudo: a password is required`. Existing `/tmp/cuda-keyring.deb` is present (4328 bytes). No privileged command or package install was attempted.
+- `nvidia-smi`: NVIDIA GeForce RTX 3090; driver 595.84; reported CUDA runtime 13.2; 83 / 24576 MiB used; only Xorg and gnome-shell. Driver is healthy and unchanged from prior evidence.
+- RAM: 62 GiB total; 59 GiB available. Swap: 8 GiB total; 2.7 GiB used. Disk `/`: 1012 GiB free.
+- Port 8080 remains listening on wildcard IPv4/IPv6; port 8081 was free. No listeners were changed.
+- Existing Strata repo: official upstream, pinned SHA `99f3dbd0b21d1401b3769e0c0d963913607f380b`, clean worktree. Existing model dir: `~/ai-stack/models`, 12 KiB.
+- Strata setup was not resumed because the toolkit prerequisite failed the required check. No model download, server launch, or curl request occurred.
