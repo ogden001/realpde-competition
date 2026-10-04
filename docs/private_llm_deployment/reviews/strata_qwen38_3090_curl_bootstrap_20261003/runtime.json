@@ -1,74 +1,100 @@
 {
-  "status": "ENGINE_BUILD_SUCCESS_MODEL_DOWNLOAD_FAILED_NETWORK_UNREACHABLE",
-  "required_task_commit": "de9963e25c465f32cddef10223f8cd4883fbbc25",
-  "execution_commit": "de9963e25c465f32cddef10223f8cd4883fbbc25",
-  "cuda_toolkit": {
-    "package": "cuda-toolkit-13-0",
-    "package_version": "13.0.3-1",
-    "nvcc": "13.0.88",
-    "nvcc_path": "/usr/local/cuda-13.0/bin/nvcc",
-    "session_path_adaptation": true
-  },
+  "status": "LLM_BOOTSTRAP_PASS_REVIEW_REQUIRED",
+  "execution_commit": "7e5da38acd8791a71bcd85f8fc921807280d161b",
+  "required_continuation_commit": "7e5da38acd8791a71bcd85f8fc921807280d161b",
+  "cuda_toolkit": "13.0.88",
   "nvidia_driver": "595.84",
-  "nvidia_smi_cuda_runtime": "13.2",
   "strata": {
     "upstream": "https://github.com/Niko1221/Strata.git",
     "commit": "99f3dbd0b21d1401b3769e0c0d963913607f380b",
     "version": "v0.1.38",
     "worktree": "clean",
-    "engine_build": "success, 129/129 targets",
+    "engine_build": "PASS, 129/129 targets",
     "engine_path": "~/ai-stack/strata/engine/strata",
     "engine_size": "39 MiB"
   },
-  "model": "Qwen3.8-Flash-Next",
-  "quantization": "IQ3_XXS",
-  "context_tokens": 131072,
-  "vision": "OFF",
-  "kv": "int8",
-  "mtp": "official normal path",
-  "data_root": "~/ai-stack/models",
-  "model_dir": "~/ai-stack/models/models/IQ3_XXS",
-  "model_files_downloaded": false,
-  "endpoint": "127.0.0.1:8081",
-  "setup_command": "./setup.sh --yes --family qwen --model IQ3_XXS --context 131072 --vision no --kv int8 --port 8081 --host 127.0.0.1 --data-dir \"$HOME/ai-stack/models\" --no-start",
-  "setup_log": "~/ai-stack/logs/setup-resume.log",
-  "setup_pid": 432102,
-  "setup_pid_status": "exited after Hugging Face network-unreachable error",
-  "server_started": false,
-  "strata_pid": null,
-  "curl": {
-    "health": "NOT_RUN",
-    "models": "NOT_RUN",
-    "chat_completions": "NOT_RUN"
+  "model": {
+    "family": "Qwen3.8-Flash-Next",
+    "quantization": "IQ3_XXS",
+    "context_tokens": 131072,
+    "vision": "OFF",
+    "kv": "int8",
+    "mtp": "normal Strata path"
   },
-  "snapshot": {
+  "network": {
+    "hf_direct_ipv4": "FAIL, curl 35 connection reset, HTTP 000",
+    "hf_direct_ipv6": "FAIL, curl 7 connect failed, HTTP 000",
+    "hf_mirror_ipv4": "PASS, HTTP 200",
+    "proxy_env_present": false,
+    "HF_ENDPOINT": "https://hf-mirror.com",
+    "strata_downloader_modified": false,
+    "pinned_revision_and_integrity_validation": "official setup path retained; setup completed, both shard done markers present"
+  },
+  "model_assets": {
+    "directory": "~/ai-stack/models/models/IQ3_XXS",
+    "shard1_bytes": 47039860096,
+    "shard2_bytes": 28800138432,
+    "shards_total_bytes": 75839998528,
+    "mtp_path": "~/ai-stack/models/mtp/rt",
+    "pack_path": "~/ai-stack/models/packs/iq3_xxs",
+    "model_preparation": "PASS"
+  },
+  "setup_command": "./setup.sh --yes --family qwen --model IQ3_XXS --context 131072 --vision no --kv int8 --port 8081 --host 127.0.0.1 --data-dir \"$HOME/ai-stack/models\" --no-start",
+  "setup_log": "~/ai-stack/logs/setup-hf-mirror.log",
+  "start_command": "BROWSER=/usr/bin/true ./run-iq3_xxs.sh (official generated launcher; detached for curl smoke)",
+  "server_log": "~/ai-stack/logs/server-smoke-20261004.log",
+  "endpoint": "127.0.0.1:8081",
+  "health": {
+    "http_status": 200,
+    "status": "ok",
+    "max_context": 131072,
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "images": false,
+    "loaded": true
+  },
+  "models": {
+    "http_status": 200,
+    "model_id": "qwen3.8-flash-next-iq3_xxs",
+    "loaded": true,
+    "n_ctx": 131072,
+    "modalities": [
+      "text"
+    ]
+  },
+  "chat": {
+    "http_status": 200,
+    "model": "qwen3.8-flash-next-iq3_xxs",
+    "prompt_tokens": 68,
+    "completion_tokens": 167,
+    "total_tokens": 235,
+    "time_seconds": 4.38248,
+    "chinese_answer": "大型化工工程投标技术文件应重点响应招标技术要求，明确工艺路线、设备选型、设计标准及关键技术指标。\n同时需体现施工组织能力，包括进度计划、质量控制、HSE管理、安装调试及试运行方案。\n还应突出企业资质、类似项目业绩、人员配置、风险识别与应对措施，以证明履约能力。"
+  },
+  "runtime_snapshot": {
     "gpu": "NVIDIA GeForce RTX 3090",
     "vram_total_mib": 24576,
-    "vram_used_mib": 83,
+    "vram_used_mib": 23744,
     "gpu_utilization_percent": 0,
-    "gpu_processes": [
-      "Xorg",
-      "gnome-shell"
-    ],
+    "strata_engine_gpu_memory_mib": 23576,
     "ram_total_gib": 62,
-    "ram_used_gib": 3.0,
-    "ram_available_gib": 59,
-    "swap_total_gib": 8.0,
-    "swap_used_gib": 2.7,
-    "root_free_gib": 1001,
-    "port_8080": "existing wildcard IPv4/IPv6 listeners left untouched",
-    "port_8081": "free; Strata not started",
-    "listening_address": null
+    "ram_used_gib": 45,
+    "ram_available_gib": 17,
+    "swap_total_gib": 8,
+    "swap_used_gib": 3,
+    "server_pid": 664852,
+    "engine_pid": 664860,
+    "launcher_pid": 664850,
+    "listener": "127.0.0.1:8081"
   },
-  "blocking_error": "cannot reach huggingface.co (<urlopen error [Errno 101] Network is unreachable>)",
   "scope": {
-    "realpde_scientific_assets_accessed": false,
     "agent_framework_installed": false,
     "rag_deployed": false,
+    "realpde_scientific_assets_accessed": false,
     "public_ingress_enabled": false,
     "calibration_run": false,
     "persistent_service_configured": false,
     "nvidia_driver_changed": false,
+    "alternate_model_or_engine_used": false,
     "large_artifacts_committed": false
   }
 }
